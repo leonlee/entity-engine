@@ -47,4 +47,11 @@ public interface TransactionFactoryInterface {
     public String getTxMgrName();
     
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException;
+
+    /**
+     * Removes a datasource, and if necessary, shuts it down
+     *
+     * @param helperName The name of the datasource to remove
+     */
+    public void removeDatasource(String helperName);
 }

@@ -389,4 +389,10 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         }
         return null;
     }
+
+    public void removeDatasource(final String helperName)
+    {
+        // If a JDBC connection was configured, then there may be one here
+        ConnectionFactory.removeDatasource(helperName);
+    }
 }

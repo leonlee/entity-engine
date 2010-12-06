@@ -51,6 +51,7 @@ import org.apache.commons.pool.ObjectPool;
 public class DBCPConnectionFactory {
 
     protected static Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static Map<String, ObjectPool> connectionPoolCache = CopyOnWriteMap.newHashMap();
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         // the PooledDataSource implementation
@@ -71,6 +72,7 @@ public class DBCPConnectionFactory {
 
                 // First, we'll need a ObjectPool that serves as the actual pool of connections.
                 ObjectPool connectionPool = new GenericObjectPool(null);
+                connectionPoolCache.put(helperName, connectionPool);
 
                 // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
                 ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -99,5 +101,32 @@ public class DBCPConnectionFactory {
         }
 
         return null;
+    }
+
+    /**
+     * Shuts down and removes a datasource, if it exists
+     *
+     * @param helperName The name of the datasource to remove
+     */
+    public synchronized static void removeDatasource(String helperName)
+    {
+        DataSource dataSource = dsCache.get(helperName);
+        if (dataSource != null)
+        {
+            ObjectPool connectionPool = connectionPoolCache.get(helperName);
+            if (connectionPool != null)
+            {
+                try
+                {
+                    connectionPool.close();
+                }
+                catch (Exception e)
+                {
+                    Debug.logError(e, "Error closing connection pool in DBCP");
+                }
+                connectionPoolCache.remove(helperName);
+            }
+            dsCache.remove(helperName);
+        }
     }
 }

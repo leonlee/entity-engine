@@ -112,4 +112,9 @@ public class DumbFactory implements TransactionFactoryInterface {
             return null;
         }
     }
+
+    public void removeDatasource(final String helperName)
+    {
+        ConnectionFactory.removeDatasource(helperName);
+    }
 }

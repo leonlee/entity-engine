@@ -79,4 +79,15 @@ public class ConnectionFactory {
 
         return null;
     }
+
+    /**
+     * Remove the datasource by the given name if one was configured
+     *
+     * @param helperName The datasource to remove
+     */
+    public static void removeDatasource(String helperName)
+    {
+        // Try and remove it from DBCP
+        DBCPConnectionFactory.removeDatasource(helperName);
+    }
 }

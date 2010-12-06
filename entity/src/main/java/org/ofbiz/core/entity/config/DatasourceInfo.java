@@ -40,7 +40,7 @@ public class DatasourceInfo
     private String fkStyle = null;
     private boolean useFkInitiallyDeferred = true;
     private boolean useIndices = true;
-    private String joinStyle = null;
+    private String joinStyle = "ansi";
 
     protected static final Properties CONFIGURATION;
 

@@ -27,8 +27,12 @@ package org.ofbiz.core.entity.config;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.config.ResourceLoader;
+import org.ofbiz.core.entity.GenericDAO;
+import org.ofbiz.core.entity.GenericDelegator;
 import org.ofbiz.core.entity.GenericEntityConfException;
 import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericHelperFactory;
+import org.ofbiz.core.entity.TransactionFactory;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 import org.ofbiz.core.util.UtilXml;
@@ -140,20 +144,27 @@ public class EntityConfigUtil
         }
     }
 
-    public synchronized void removeDatasourceInfo(String datasourceInfoName)
+    public synchronized void removeDatasource(String helperName)
     {
-        this.datasourceInfos.remove(datasourceInfoName);
+        // Remove the datasource info
+        this.datasourceInfos.remove(helperName);
+        // Remove the helper
+        GenericHelperFactory.removeHelper(helperName);
+        // Remove the DAO
+        GenericDAO.removeGenericDAO(helperName);
+        // Shut down the connection pool if there is one
+        TransactionFactory.getTransactionFactory().removeDatasource(helperName);
     }
 
-    public synchronized void addDatasourceInfo(Element element)
+    public synchronized void addDatasourceInfo(DatasourceInfo datasourceInfo)
     {
-        DatasourceInfo datasourceInfo = new DatasourceInfo(element);
         datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
     }
 
-    public synchronized void removeDelegatorInfo(String delegatorInfoName)
+    public synchronized void removeDelegator(String delegatorName)
     {
-        this.delegatorInfos.remove(delegatorInfoName);
+        this.delegatorInfos.remove(delegatorName);
+        GenericDelegator.removeGenericDelegator(delegatorName);
     }
 
     public synchronized void addDelegatorInfo(DelegatorInfo delegatorInfo)
