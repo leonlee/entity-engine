@@ -141,21 +141,21 @@ public class TyrexFactory implements TransactionFactoryInterface {
     }
     
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
-        if (datasourceInfo.inlineJdbcElement != null) {
+        if (datasourceInfo.getJdbcDatasource() != null) {
             // Use JOTM (enhydra-jdbc.jar) connection pooling
             try {
-                Connection con = TyrexConnectionFactory.getConnection(helperName, datasourceInfo.inlineJdbcElement);
+                Connection con = TyrexConnectionFactory.getConnection(helperName, datasourceInfo.getJdbcDatasource());
                 if (con != null) return con;
             } catch (Exception ex) {
                 Debug.logError(ex, "Tyrex is the configured transaction manager but there was an error getting a database Connection through Tyrex for the " + helperName + " datasource. Please check your configuration, class path, etc.");
             }
         
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.inlineJdbcElement);
+            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
-        } else if (datasourceInfo.tyrexDataSourceElement != null) {
-            Element tyrexDataSourceElement = datasourceInfo.tyrexDataSourceElement;
+        } else if (datasourceInfo.getTyrexDataSourceElement() != null) {
+            Element tyrexDataSourceElement = datasourceInfo.getTyrexDataSourceElement();
             String dataSourceName = tyrexDataSourceElement.getAttribute("dataSource-name");
 
             if (UtilValidate.isEmpty(dataSourceName)) {
@@ -190,7 +190,7 @@ public class TyrexFactory implements TransactionFactoryInterface {
                     }
                 }
             }
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.inlineJdbcElement);
+            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
         } else {
             Debug.logError("Tyrex is the configured transaction manager but no inline-jdbc or tyrex-dataSource element was specified in the " + helperName + " datasource. Please check your configuration");

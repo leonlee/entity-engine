@@ -24,15 +24,10 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
 import java.sql.*;
-import javax.sql.*;
-import javax.naming.*;
-import org.w3c.dom.Element;
 
 import org.ofbiz.core.entity.config.*;
 import org.ofbiz.core.entity.transaction.*;
-import org.ofbiz.core.config.*;
 import org.ofbiz.core.util.*;
 
 /**
@@ -57,17 +52,17 @@ public class ConnectionFactory {
         return con;
     }
     
-    public static Connection tryGenericConnectionSources(String helperName, Element inlineJdbcElement) throws SQLException, GenericEntityException {
+    public static Connection tryGenericConnectionSources(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         // first try DBCP
         try {
-            Connection con = DBCPConnectionFactory.getConnection(helperName, inlineJdbcElement);
+            Connection con = DBCPConnectionFactory.getConnection(helperName, jdbcDatasource);
             if (con != null) return con;
         } catch (Exception ex) {
             Debug.logError(ex, "There was an error getting a DBCP datasource.");
         }
         
         // Default to plain JDBC.
-        String driverClassName = inlineJdbcElement.getAttribute("jdbc-driver");
+        String driverClassName = jdbcDatasource.getDriverClassName();
 
         if (driverClassName != null && driverClassName.length() > 0) {
             try {
@@ -78,8 +73,8 @@ public class ConnectionFactory {
                 Debug.logWarning(cnfe);
                 return null;
             }
-            return DriverManager.getConnection(inlineJdbcElement.getAttribute("jdbc-uri"),
-                    inlineJdbcElement.getAttribute("jdbc-username"), inlineJdbcElement.getAttribute("jdbc-password"));
+            return DriverManager.getConnection(jdbcDatasource.getUri(),
+                    jdbcDatasource.getUsername(), jdbcDatasource.getPassword());
         }
 
         return null;

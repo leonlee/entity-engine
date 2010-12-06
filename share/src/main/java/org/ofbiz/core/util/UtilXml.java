@@ -229,10 +229,10 @@ public class UtilXml {
     /** Return a List of Element objects that have the given name and are
      * immediate children of the given element; if name is null, all child
      * elements will be included. */
-    public static List childElementList(Element element, String childElementName) {
+    public static List<Element> childElementList(Element element, String childElementName) {
         if (element == null) return null;
 
-        List elements = new LinkedList();
+        List<Element> elements = new LinkedList<Element>();
         Node node = element.getFirstChild();
 
         if (node != null) {
@@ -385,8 +385,8 @@ public class UtilXml {
         /**
          * Returns DTD inputSource. If DTD was found in the dtds Map and inputSource was created
          * flag hasDTD is set to true.
-         * @param String publicId - Public ID of DTD
-         * @param String systemId - System ID of DTD
+         * @param publicId - Public ID of DTD
+         * @param systemId - System ID of DTD
          * @return InputSource of DTD
          */
         public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {

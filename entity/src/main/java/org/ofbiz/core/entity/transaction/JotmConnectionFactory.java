@@ -29,8 +29,9 @@ import org.enhydra.jdbc.pool.StandardXAPoolDataSource;
 import org.enhydra.jdbc.standard.StandardXADataSource;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.TransactionFactory;
+import org.ofbiz.core.entity.config.ConnectionPoolInfo;
+import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.util.Debug;
-import org.w3c.dom.Element;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -51,7 +52,7 @@ public class JotmConnectionFactory {
 
     public static synchronized void removeDatasource(String helperName)
     {
-        StandardXAPoolDataSource pds = (StandardXAPoolDataSource) dsCache.get(helperName);
+        StandardXAPoolDataSource pds = dsCache.get(helperName);
         if (pds != null)
         {
             pds.shutdown(true);
@@ -59,8 +60,8 @@ public class JotmConnectionFactory {
         }
     }
 
-    public static Connection getConnection(String helperName, Element jotmJdbcElement) throws SQLException, GenericEntityException {                               
-        StandardXAPoolDataSource pds = (StandardXAPoolDataSource) dsCache.get(helperName);        
+    public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
+        StandardXAPoolDataSource pds = dsCache.get(helperName);
         if (pds != null) {                      
             if (Debug.verboseOn()) Debug.logInfo(helperName + " pool size: " + pds.pool.getCount(), module);
             //return TransactionUtil.enlistConnection(ds.getXAConnection());
@@ -69,7 +70,7 @@ public class JotmConnectionFactory {
         }
         
         synchronized (JotmConnectionFactory.class) {            
-            pds = (StandardXAPoolDataSource) dsCache.get(helperName);
+            pds = dsCache.get(helperName);
             if (pds != null) {              
                 //return TransactionUtil.enlistConnection(ds.getXAConnection());
                 //return ds.getXAConnection().getConnection();
@@ -83,24 +84,24 @@ public class JotmConnectionFactory {
             } catch (NoClassDefFoundError e) {                
                 throw new GenericEntityException("Cannot find enhydra-jdbc.jar");                       
             }
-            ds.setDriverName(jotmJdbcElement.getAttribute("jdbc-driver"));
-            ds.setUrl(jotmJdbcElement.getAttribute("jdbc-uri"));
-            ds.setUser(jotmJdbcElement.getAttribute("jdbc-username"));
-            ds.setPassword(jotmJdbcElement.getAttribute("jdbc-password"));
+            ds.setDriverName(jdbcDatasource.getDriverClassName());
+            ds.setUrl(jdbcDatasource.getUri());
+            ds.setUser(jdbcDatasource.getUsername());
+            ds.setPassword(jdbcDatasource.getPassword());
             ds.setDescription(helperName);  
             ds.setTransactionManager(TransactionFactory.getTransactionManager()); 
-            String transIso = jotmJdbcElement.getAttribute("isolation-level");
+            String transIso = jdbcDatasource.getIsolationLevel();
             if (transIso != null && transIso.length() > 0) {
                 if ("Serializable".equals(transIso)) {
-                    ((StandardXADataSource) ds).setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+                    ds.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
                 } else if ("RepeatableRead".equals(transIso)) {
-                    ((StandardXADataSource) ds).setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+                    ds.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                 } else if ("ReadUncommitted".equals(transIso)) {
-                    ((StandardXADataSource) ds).setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+                    ds.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
                 } else if ("ReadCommitted".equals(transIso)) {
-                    ((StandardXADataSource) ds).setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+                    ds.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
                 } else if ("None".equals(transIso)) {
-                    ((StandardXADataSource) ds).setTransactionIsolation(Connection.TRANSACTION_NONE);
+                    ds.setTransactionIsolation(Connection.TRANSACTION_NONE);
                 }                                            
             }
             // set the datasource in the pool
@@ -110,17 +111,19 @@ public class JotmConnectionFactory {
             pds.setPassword(ds.getPassword());
             // set the transaction manager in the pool
             pds.setTransactionManager(TransactionFactory.getTransactionManager());
-            // configure the pool settings           
-            try {            
-                pds.setMaxSize(new Integer(jotmJdbcElement.getAttribute("pool-maxsize")).intValue());
-                pds.setMinSize(new Integer(jotmJdbcElement.getAttribute("pool-minsize")).intValue());
-                pds.setSleepTime(new Long(jotmJdbcElement.getAttribute("pool-sleeptime")).longValue());
-                pds.setLifeTime(new Long(jotmJdbcElement.getAttribute("pool-lifetime")).longValue());
-                pds.setDeadLockMaxWait(new Long(jotmJdbcElement.getAttribute("pool-deadlock-maxwait")).longValue());
-                pds.setDeadLockRetryWait(new Long(jotmJdbcElement.getAttribute("pool-deadlock-retrywait")).longValue());                
-            } catch (NumberFormatException nfe) {
-                Debug.logError(nfe, "Problems with pool settings; the values MUST be numbers, using defaults.", module);
-            } catch (Exception e) {
+            // configure the pool settings
+            ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
+            try
+            {
+                pds.setMaxSize(poolInfo.getMaxSize());
+                pds.setMinSize(poolInfo.getMinSize());
+                pds.setSleepTime(poolInfo.getSleepTime());
+                pds.setLifeTime(poolInfo.getLifeTime());
+                pds.setDeadLockMaxWait(poolInfo.getDeadLockMaxWait());
+                pds.setDeadLockRetryWait(poolInfo.getDeadLockRetryWait());
+            }
+            catch (Exception e)
+            {
                 Debug.logError(e, "Problems with pool settings", module);
             }
             // TODO: set the test statement to test connections

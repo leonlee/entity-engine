@@ -53,7 +53,7 @@ public class ModelFieldTypeReader {
     public String entityFileName;
 
     public static ModelFieldTypeReader getModelFieldTypeReader(String helperName) {
-        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         if (datasourceInfo == null) {
             throw new IllegalArgumentException("Could not find a datasource/helper with the name " + helperName);
         }

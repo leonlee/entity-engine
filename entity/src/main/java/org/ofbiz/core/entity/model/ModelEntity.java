@@ -24,6 +24,8 @@
 package org.ofbiz.core.entity.model;
 
 import java.util.*;
+
+import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.w3c.dom.*;
 
 import org.ofbiz.core.entity.config.EntityConfigUtil;
@@ -247,7 +249,7 @@ public class ModelEntity implements Comparable {
     }
 
     /** The table-name of the Entity including a Schema name if specified in the datasource config */
-    public String getTableName(EntityConfigUtil.DatasourceInfo datasourceInfo) {
+    public String getTableName(DatasourceInfo datasourceInfo) {
         if (datasourceInfo != null && datasourceInfo.getSchemaName() != null && datasourceInfo.getSchemaName().length() > 0) {
             return datasourceInfo.getSchemaName() + "." + this.tableName;
         } else {

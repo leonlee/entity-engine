@@ -25,6 +25,7 @@
 package org.ofbiz.core.entity;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.util.Debug;
 
@@ -56,12 +57,12 @@ public class GenericHelperFactory {
                 helper = helperCache.get(helperName);
                 if (helper == null) {
                     try {
-                        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+                        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
                         if (datasourceInfo == null) {
                             throw new IllegalStateException("Could not find datasource definition with name " + helperName);
                         }
-                        String helperClassName = datasourceInfo.helperClass;
+                        String helperClassName = datasourceInfo.getHelperClass();
                         Class helperClass = null;
 
                         if (helperClassName != null && helperClassName.length() > 0) {

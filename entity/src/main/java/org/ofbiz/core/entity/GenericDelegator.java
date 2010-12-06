@@ -158,12 +158,12 @@ public class GenericDelegator implements DelegatorInterface {
                 // get the helper and if configured, do the datasource check
                 GenericHelper helper = GenericHelperFactory.getHelper(helperName);
 
-                EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+                DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
-                if (datasourceInfo.checkOnStart) {
-                    if (Debug.infoOn()) Debug.logInfo("Doing database check as requested in entityengine.xml with addMissing=" + datasourceInfo.addMissingOnStart, module);
+                if (datasourceInfo.isCheckOnStart()) {
+                    if (Debug.infoOn()) Debug.logInfo("Doing database check as requested in entityengine.xml with addMissing=" + datasourceInfo.isAddMissingOnStart(), module);
                     try {
-                        helper.checkDataSource(this.getModelEntityMapByGroup(groupName), null, datasourceInfo.addMissingOnStart);
+                        helper.checkDataSource(this.getModelEntityMapByGroup(groupName), null, datasourceInfo.isAddMissingOnStart());
                     } catch (GenericEntityException e) {
                         Debug.logWarning(e.getMessage(), module);
                     }

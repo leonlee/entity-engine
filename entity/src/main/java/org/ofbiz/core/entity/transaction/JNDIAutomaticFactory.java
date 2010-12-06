@@ -4,13 +4,14 @@ import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.TransactionUtil;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.JndiDatasourceInfo;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.util.GeneralException;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.JNDIContextFactory;
 import org.ofbiz.core.config.GenericConfigException;
-import org.w3c.dom.Element;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
@@ -237,18 +238,19 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
     }
 
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         Connection con = null;
 
-        if (datasourceInfo.jndiJdbcElement != null) {
+        if (datasourceInfo.getJndiDatasource() != null) {
             if (!conDetails.detailsSet()) {
-                Element jndiJdbcElement = datasourceInfo.jndiJdbcElement;
-                String jndiName = jndiJdbcElement.getAttribute("jndi-name");
+                JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();
+
+                String jndiName = jndiDatasource.getJndiName();
 
                 // Check whether prefix was set to the automatic value
                 boolean guessJndiName = jndiName.startsWith(AUTO_CONFIGURE_JNDI_PREFIX);
 
-                conDetails.setServerName(jndiJdbcElement.getAttribute("jndi-server-name"));
+                conDetails.setServerName(jndiDatasource.getJndiServerName());
 
                 if (guessJndiName) {
                     // User has asked us to guess what the prefix of the connection name should be
@@ -288,8 +290,8 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             Debug.logError("JNDI loaded is the configured transaction manager but no jndi-jdbc element was specified in the " + helperName + " datasource. Please check your configuration; will try other sources");
         }
 
-        if (datasourceInfo.inlineJdbcElement != null) {
-            return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.inlineJdbcElement);
+        if (datasourceInfo.getJdbcDatasource() != null) {
+            return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
         } else {
             //no real need to print an error here
             return null;

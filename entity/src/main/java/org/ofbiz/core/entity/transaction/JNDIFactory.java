@@ -31,7 +31,6 @@ import java.sql.*;
 import javax.sql.*;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-import org.w3c.dom.Element;
 
 import org.ofbiz.core.entity.*;
 import org.ofbiz.core.entity.config.*;
@@ -132,17 +131,15 @@ public class JNDIFactory implements TransactionFactoryInterface {
     }
     
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
-        if (datasourceInfo.jndiJdbcElement != null) {
-            Element jndiJdbcElement = datasourceInfo.jndiJdbcElement;
-            String jndiName = jndiJdbcElement.getAttribute("jndi-name");
-            String jndiServerName = jndiJdbcElement.getAttribute("jndi-server-name");
-            Connection con = getJndiConnection(jndiName, jndiServerName);
+        if (datasourceInfo.getJndiDatasource() != null) {
+            JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();
+            Connection con = getJndiConnection(jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
             if (con != null) return con;
         }
-        if (datasourceInfo.inlineJdbcElement != null) {
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.inlineJdbcElement);
+        if (datasourceInfo.getJdbcDatasource() != null) {
+            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
         } else {
             //no real need to print an error here

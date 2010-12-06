@@ -28,9 +28,9 @@ import java.sql.*;
 import javax.sql.*;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-import org.w3c.dom.Element;
 
 import org.ofbiz.core.entity.*;
+import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.util.*;
 
 import org.apache.commons.dbcp.DriverManagerConnectionFactory;
@@ -52,7 +52,7 @@ public class DBCPConnectionFactory {
 
     protected static Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
 
-    public static Connection getConnection(String helperName, Element dbcpJdbcElement) throws SQLException, GenericEntityException {
+    public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         // the PooledDataSource implementation
         DataSource dataSource = dsCache.get(helperName);
 
@@ -73,16 +73,10 @@ public class DBCPConnectionFactory {
                 ObjectPool connectionPool = new GenericObjectPool(null);
 
                 // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
-                String connectURI = dbcpJdbcElement.getAttribute("jdbc-uri");
-
-                // String driver = dbcpJdbcElement.getAttribute("jdbc-driver");
-                String username = dbcpJdbcElement.getAttribute("jdbc-username");
-                String password = dbcpJdbcElement.getAttribute("jdbc-password");
-
-                String driverClassName = dbcpJdbcElement.getAttribute("jdbc-driver");
                 ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                loader.loadClass(driverClassName);
-                org.apache.commons.dbcp.ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(connectURI,username,password);
+                loader.loadClass(jdbcDatasource.getDriverClassName());
+                org.apache.commons.dbcp.ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(
+                        jdbcDatasource.getUri(), jdbcDatasource.getUsername(), jdbcDatasource.getPassword());
 
                 // Now we'll create the PoolableConnectionFactory, which wraps
                 // the "real" Connections created by the ConnectionFactory with

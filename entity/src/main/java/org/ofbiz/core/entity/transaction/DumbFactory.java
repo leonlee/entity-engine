@@ -26,7 +26,6 @@ package org.ofbiz.core.entity.transaction;
 
 import javax.transaction.*;
 import java.sql.*;
-import org.w3c.dom.Element;
 
 import org.ofbiz.core.entity.*;
 import org.ofbiz.core.entity.config.*;
@@ -103,10 +102,10 @@ public class DumbFactory implements TransactionFactoryInterface {
     }
     
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        EntityConfigUtil.DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
-        if (datasourceInfo.inlineJdbcElement != null) {
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.inlineJdbcElement);
+        if (datasourceInfo.getJdbcDatasource() != null) {
+            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
         } else {
             Debug.logError("Dumb/Empty is the configured transaction manager but no inline-jdbc element was specified in the " + helperName + " datasource. Please check your configuration");

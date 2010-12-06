@@ -25,6 +25,7 @@
 package org.ofbiz.core.entity;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.AutoCommitSQLProcessor;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
@@ -78,7 +79,7 @@ public class GenericDAO {
     protected static Map<String, GenericDAO> genericDAOs = CopyOnWriteMap.newHashMap();
     protected String helperName;
     protected ModelFieldTypeReader modelFieldTypeReader = null;
-    protected EntityConfigUtil.DatasourceInfo datasourceInfo;
+    protected DatasourceInfo datasourceInfo;
 
     public static synchronized void removeGenericDAO(String helperName)
     {
@@ -509,7 +510,7 @@ public class GenericDAO {
         }
 
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.joinStyle));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
 
         SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
 
@@ -581,7 +582,7 @@ public class GenericDAO {
             sqlBuffer.append("*");
         }
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.joinStyle));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
 
         SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
 
@@ -1005,7 +1006,7 @@ public class GenericDAO {
             entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
         }
 
-        String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.joinStyle);
+        String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
 
         if (viewClause.length() > 0) {
             if (entityCondWhereString.length() > 0) {

@@ -27,26 +27,18 @@ package org.ofbiz.core.entity.config;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.config.ResourceLoader;
-import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericEntityConfException;
 import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
-import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
-import org.ofbiz.core.util.GeneralRuntimeException;
 import org.ofbiz.core.util.UtilValidate;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * Misc. utility method for dealing with the entityengine.xml file
@@ -56,8 +48,7 @@ import java.util.Properties;
  * @version $Revision: 1.7 $
  * @since 2.0
  */
-public class
-        EntityConfigUtil
+public class EntityConfigUtil
 {
 
     public static final String ENTITY_ENGINE_XML_FILENAME = "entityengine.xml";
@@ -145,7 +136,7 @@ public class
     public synchronized void addDatasourceInfo(Element element)
     {
         DatasourceInfo datasourceInfo = new DatasourceInfo(element);
-        datasourceInfos.put(datasourceInfo.name, datasourceInfo);
+        datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
     }
 
     public synchronized void removeDelegatorInfo(String delegatorInfoName)
@@ -267,7 +258,7 @@ public class
             {
                 Element curElement = (Element) elementIter.next();
                 DatasourceInfo datasourceInfo = new DatasourceInfo(curElement);
-                datasourceInfos.put(datasourceInfo.name, datasourceInfo);
+                datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
             }
         }
     }
@@ -452,266 +443,4 @@ public class
         }
     }
 
-
-    public static class DatasourceInfo
-    {
-        public String name;
-        public String helperClass;
-        private String fieldTypeName;
-        public List sqlLoadPaths = new LinkedList();
-        public Element datasourceElement;
-
-        public static final int TYPE_JNDI_JDBC = 1;
-        public static final int TYPE_INLINE_JDBC = 2;
-        public static final int TYPE_TYREX_DATA_SOURCE = 3;
-        public static final int TYPE_OTHER = 4;
-
-        public Element jndiJdbcElement;
-        public Element tyrexDataSourceElement;
-        public Element inlineJdbcElement;
-
-        private String schemaName = null;
-        public boolean checkOnStart = true;
-        public boolean addMissingOnStart = false;
-        public boolean useFks = true;
-        public boolean useFkIndices = true;
-        public boolean checkForeignKeysOnStart = false;
-        public boolean checkFkIndicesOnStart = false;
-        public boolean usePkConstraintNames = true;
-        private Integer constraintNameClipLength = null;
-        public String fkStyle = null;
-        public boolean useFkInitiallyDeferred = true;
-        public boolean useIndices = true;
-        public boolean checkIndicesOnStart = false;
-        public String joinStyle = null;
-
-        protected static final Properties CONFIGURATION;
-
-
-        static
-        {
-            CONFIGURATION = new Properties();
-            try
-            {
-                CONFIGURATION.load(ClassLoaderUtils.getResourceAsStream("ofbiz-database.properties", EntityConfigUtil.class));
-            }
-            catch (Exception e)
-            {
-                Debug.logError("Unable to find ofbiz-database.properties file. Using default values for ofbiz configuration.");
-            }
-        }
-
-        /**
-         * If the field-type-name property matches this string we will try and guess the field-type-name by using the
-         * metadata returned by the database connection.
-         */
-        public static final String AUTO_FIELD_TYPE;
-
-        public static final String AUTO_SCHEMA_NAME;
-
-        public static final String AUTO_CONSTRAINT_NAME_CLIP_LENGTH;
-
-        static
-        {
-            AUTO_FIELD_TYPE = getNonNullProperty("fieldType.autoConfigue", "${auto-field-type-name}");
-
-            AUTO_SCHEMA_NAME = getNonNullProperty("schemaName.autoConfigure", "${auto-schema-name}");
-
-            AUTO_CONSTRAINT_NAME_CLIP_LENGTH = getNonNullProperty("constraintNameClipLength.autoConfigure", "${auto-constraint-name-clip-length}");
-        }
-
-        public static final int DEFAULT_CONSTRAINT_NAME_CLIP_LENGTH = 20;
-
-        /**
-         * A method for getting properties from the configuration file. Uses the default value passed in if the key as
-         * read from the property file was null.
-         */
-        private static String getNonNullProperty(String propertyKey, String defaultValue)
-        {
-            String fieldValue = CONFIGURATION.getProperty(propertyKey);
-            if (fieldValue != null)
-            {
-                return fieldValue;
-            }
-            else
-            {
-                Debug.logError(propertyKey + " not set in the ofbiz-database.properties file. Using default value: " + defaultValue);
-                return defaultValue;
-            }
-        }
-
-        public DatasourceInfo(Element element)
-        {
-            this.name = element.getAttribute("name");
-            this.helperClass = element.getAttribute("helper-class");
-            this.fieldTypeName = element.getAttribute("field-type-name");
-
-            sqlLoadPaths = UtilXml.childElementList(element, "sql-load-path");
-            datasourceElement = element;
-
-            if (datasourceElement == null)
-            {
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for schema-name (none)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for check-on-start (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for add-missing-on-start (false)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for use-foreign-keys (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default use-foreign-key-indices (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for check-fks-on-start (false)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for check-fk-indices-on-start (false)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for use-pk-constraint-names (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for constraint-name-clip-length (30)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for fk-style (name_constraint)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for use-fk-initially-deferred (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for use-indices (true)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for check-indices-on-start (false)");
-                Debug.logWarning("datasource def not found with name " + this.name + ", using default for join-style (ansi)");
-            }
-            else
-            {
-                schemaName = datasourceElement.getAttribute("schema-name");
-                // anything but false is true
-                checkOnStart = !"false".equals(datasourceElement.getAttribute("check-on-start"));
-                // anything but true is false
-                addMissingOnStart = "true".equals(datasourceElement.getAttribute("add-missing-on-start"));
-                // anything but false is true
-                useFks = !"false".equals(datasourceElement.getAttribute("use-foreign-keys"));
-                // anything but false is true
-                useFkIndices = !"false".equals(datasourceElement.getAttribute("use-foreign-key-indices"));
-                // anything but true is false
-                checkForeignKeysOnStart = "true".equals(datasourceElement.getAttribute("check-fks-on-start"));
-                // anything but true is false
-                checkFkIndicesOnStart = "true".equals(datasourceElement.getAttribute("check-fk-indices-on-start"));
-                // anything but false is true
-                usePkConstraintNames = !"false".equals(datasourceElement.getAttribute("use-pk-constraint-names"));
-//                try {
-//                    constraintNameClipLength = Integer.parseInt(datasourceElement.getAttribute("constraint-name-clip-length"));
-//                } catch (Exception e) {
-//                    Debug.logError("Could not parse constraint-name-clip-length value for datasource with name " + this.name + ", using default value of 30");
-//                }
-                fkStyle = datasourceElement.getAttribute("fk-style");
-                // anything but true is false
-                useFkInitiallyDeferred = "true".equals(datasourceElement.getAttribute("use-fk-initially-deferred"));
-                // anything but false is true
-                useIndices = !"false".equals(datasourceElement.getAttribute("use-indices"));
-                // anything but true is false
-                checkIndicesOnStart = "true".equals(datasourceElement.getAttribute("check-indices-on-start"));
-                joinStyle = datasourceElement.getAttribute("join-style");
-            }
-            if (fkStyle == null || fkStyle.length() == 0)
-            {
-                fkStyle = "name_constraint";
-            }
-            if (joinStyle == null || joinStyle.length() == 0)
-            {
-                joinStyle = "ansi";
-            }
-
-            jndiJdbcElement = UtilXml.firstChildElement(datasourceElement, "jndi-jdbc");
-            tyrexDataSourceElement = UtilXml.firstChildElement(datasourceElement, "tyrex-dataSource");
-            inlineJdbcElement = UtilXml.firstChildElement(datasourceElement, "inline-jdbc");
-        }
-
-        public String getFieldTypeName()
-        {
-            // Check whether the field has already been initialized
-            if (AUTO_FIELD_TYPE.equals(fieldTypeName))
-            {
-                fieldTypeName = findFieldTypeFromJDBCConnection();
-            }
-            return fieldTypeName;
-        }
-
-        public String getSchemaName()
-        {
-            if (AUTO_SCHEMA_NAME.equals(schemaName))
-            {
-                schemaName = findSchemaNameFromJDBCConnection();
-            }
-            return schemaName;
-        }
-
-        public int getConstraintNameClipLength()
-        {
-            if(constraintNameClipLength == null) {
-                final String clipLength = datasourceElement.getAttribute("constraint-name-clip-length");
-                if(AUTO_CONSTRAINT_NAME_CLIP_LENGTH.equals(clipLength)) {
-                   constraintNameClipLength = new Integer(findConstraintNameClipLengthFromJDBCConnection());
-               } else {
-                   try {
-                       constraintNameClipLength = new Integer(30);
-                       if ((clipLength != null) && (!clipLength.equals(""))) {
-                           constraintNameClipLength = new Integer(clipLength);
-                       }
-                   } catch (Exception e) {
-                       Debug.logError("Could not parse constraint-name-clip-length value for datasource with name " + this.name + ", using default value of 30");
-                   }
-               }
-            }
-
-            return constraintNameClipLength.intValue();
-        }
-
-        private String findFieldTypeFromJDBCConnection()
-        {
-            final Connection connection;
-            try
-            {
-                connection = ConnectionFactory.getConnection(name);
-                final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-                if (typeForConnection == null)
-                {
-                    Debug.logError("Could not determine database type from ");
-                }
-                return typeForConnection.getFieldTypeName();
-            }
-            catch (Exception e)
-            {
-                String error = "Could not get connection to database to determine database type for " + AUTO_FIELD_TYPE;
-                Debug.logError(e, error);
-                throw new GeneralRuntimeException(error, e);
-            }
-        }
-
-        private String findSchemaNameFromJDBCConnection()
-        {
-            final Connection connection;
-            try
-            {
-                connection = ConnectionFactory.getConnection(name);
-                final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-                if (typeForConnection == null)
-                {
-                    Debug.logError("Could not determine database type from ");
-                }
-                return typeForConnection.getSchemaName(connection);
-            }
-            catch (Exception e)
-            {
-                String error = "Could not get connection to database to determine database schema-name for " + AUTO_SCHEMA_NAME;
-                Debug.logError(e, error);
-                throw new GeneralRuntimeException(error, e);
-            }
-        }
-
-        private int findConstraintNameClipLengthFromJDBCConnection()
-        {
-            final Connection connection;
-            try
-            {
-                connection = ConnectionFactory.getConnection(name);
-                final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-                if (typeForConnection == null)
-                {
-                    Debug.logError("Could not determine database type from ");
-                }
-                return typeForConnection.getConstraintNameClipLength();
-            }
-            catch (Exception e)
-            {
-                String error = "Could not get connection to database to determine database clip length";
-                Debug.logError(e, error);
-                return DEFAULT_CONSTRAINT_NAME_CLIP_LENGTH;
-            }
-        }
-            }
-        }
+}

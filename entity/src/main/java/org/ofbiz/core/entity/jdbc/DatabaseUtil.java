@@ -44,7 +44,7 @@ public class DatabaseUtil {
 
     protected String helperName;
     protected ModelFieldTypeReader modelFieldTypeReader;
-    protected EntityConfigUtil.DatasourceInfo datasourceInfo;
+    protected DatasourceInfo datasourceInfo;
 
     public DatabaseUtil(String helperName) {
         this.helperName = helperName;
@@ -302,7 +302,7 @@ public class DatabaseUtil {
 
                 if (addMissing) {
                     // create the table
-                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.usePkConstraintNames, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.fkStyle, datasourceInfo.useFkInitiallyDeferred);
+                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                     if (errMsg != null && errMsg.length() > 0) {
                         message = "Could not create table \"" + entity.getTableName(datasourceInfo) + "\"";
@@ -335,12 +335,12 @@ public class DatabaseUtil {
         }
 
         // for each newly added table, add fks
-        if (datasourceInfo.useFks) {
+        if (datasourceInfo.isUseFks()) {
             Iterator eaIter = entitiesAdded.iterator();
 
             while (eaIter.hasNext()) {
                 ModelEntity curEntity = (ModelEntity) eaIter.next();
-                String errMsg = this.createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.fkStyle, datasourceInfo.useFkInitiallyDeferred);
+                String errMsg = this.createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                 if (errMsg != null && errMsg.length() > 0) {
                     String message = "Could not create foreign keys for entity \"" + curEntity.getEntityName() + "\"";
@@ -358,7 +358,7 @@ public class DatabaseUtil {
             }
         }
         // for each newly added table, add fk indices
-        if (datasourceInfo.useFkIndices) {
+        if (datasourceInfo.isUseFkIndices()) {
             Iterator eaIter = entitiesAdded.iterator();
 
             while (eaIter.hasNext()) {
@@ -381,7 +381,7 @@ public class DatabaseUtil {
             }
         }
         // for each newly added table, add declared indexes
-        if (datasourceInfo.useIndices) {
+        if (datasourceInfo.isUseIndices()) {
             Iterator eaIter = entitiesAdded.iterator();
 
             while (eaIter.hasNext()) {
@@ -405,7 +405,7 @@ public class DatabaseUtil {
         }
 
         // make sure each one-relation has an FK
-        if (datasourceInfo.useFks && datasourceInfo.checkForeignKeysOnStart) {
+        if (datasourceInfo.isUseFks() && datasourceInfo.isCheckForeignKeysOnStart()) {
             // NOTE: This ISN'T working for Postgres or MySQL, who knows about others, may be from JDBC driver bugs...
             int numFksCreated = 0;
             // TODO: check each key-map to make sure it exists in the FK, if any differences warn and then remove FK and recreate it
@@ -463,7 +463,7 @@ public class DatabaseUtil {
                         } else {
                             // if not, create one
                             if (Debug.verboseOn()) Debug.logVerbose("No Foreign Key Constraint " + relConstraintName + " found in entity " + entityName);
-                            String errMsg = createForeignKey(entity, modelRelation, relModelEntity, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.fkStyle, datasourceInfo.useFkInitiallyDeferred);
+                            String errMsg = createForeignKey(entity, modelRelation, relModelEntity, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                             if (errMsg != null && errMsg.length() > 0) {
                                 String message = "Could not create foreign key " + relConstraintName + " for entity \"" + entity.getEntityName() + "\"";
@@ -506,7 +506,7 @@ public class DatabaseUtil {
         }
 
         // make sure each one-relation has an index
-        if (datasourceInfo.useFkIndices && datasourceInfo.checkFkIndicesOnStart) {
+        if (datasourceInfo.isUseFkIndices() && datasourceInfo.isCheckFkIndicesOnStart()) {
             int numIndicesCreated = 0;
             // TODO: check each key-map to make sure it exists in the index, if any differences warn and then remove the index and recreate it
 

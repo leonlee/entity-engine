@@ -47,13 +47,13 @@ public class SqlJdbcUtil {
     public static final String module = GenericDAO.class.getName();
 
     /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
-    public static String makeFromClause(ModelEntity modelEntity, EntityConfigUtil.DatasourceInfo datasourceInfo) throws GenericEntityException {
+    public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
         StringBuffer sql = new StringBuffer(" FROM ");
 
         if (modelEntity instanceof ModelViewEntity) {
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
 
-            if ("ansi".equals(datasourceInfo.joinStyle)) {
+            if ("ansi".equals(datasourceInfo.getJoinStyle())) {
                 String firstMemberAlias = null;
 
                 // FROM clause: in this case will be a bunch of joins that correspond with the view-links
@@ -191,7 +191,7 @@ public class SqlJdbcUtil {
                 }
 
 
-            } else if ("theta-oracle".equals(datasourceInfo.joinStyle) || "theta-mssql".equals(datasourceInfo.joinStyle)) {
+            } else if ("theta-oracle".equals(datasourceInfo.getJoinStyle()) || "theta-mssql".equals(datasourceInfo.getJoinStyle())) {
                 // FROM clause
                 Iterator meIter = modelViewEntity.getMemberModelMemberEntities().entrySet().iterator();
 
@@ -207,7 +207,7 @@ public class SqlJdbcUtil {
 
                 // JOIN clause(s): none needed, all the work done in the where clause for theta-oracle
             } else {
-                throw new GenericModelException("The join-style " + datasourceInfo.joinStyle + " is not yet supported");
+                throw new GenericModelException("The join-style " + datasourceInfo.getJoinStyle() + " is not yet supported");
             }
         } else {
             sql.append(modelEntity.getTableName(datasourceInfo));
@@ -352,11 +352,11 @@ public class SqlJdbcUtil {
         return "";
     }
 
-    public static String makeOrderByClause(ModelEntity modelEntity, List orderBy, EntityConfigUtil.DatasourceInfo datasourceInfo) {
+    public static String makeOrderByClause(ModelEntity modelEntity, List orderBy, DatasourceInfo datasourceInfo) {
         return makeOrderByClause(modelEntity, orderBy, false, datasourceInfo);
     }
 
-    public static String makeOrderByClause(ModelEntity modelEntity, List orderBy, boolean includeTablenamePrefix, EntityConfigUtil.DatasourceInfo datasourceInfo) {
+    public static String makeOrderByClause(ModelEntity modelEntity, List orderBy, boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
         StringBuffer sql = new StringBuffer("");
         String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + ".") : "";
 
@@ -411,7 +411,7 @@ public class SqlJdbcUtil {
         return sql.toString();
     }
 
-    public static String makeViewTable(ModelEntity modelEntity, EntityConfigUtil.DatasourceInfo datasourceInfo) throws GenericEntityException {
+    public static String makeViewTable(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
             StringBuffer sql = new StringBuffer("(SELECT ");
             List fields = modelEntity.getFieldsCopy();
@@ -429,7 +429,7 @@ public class SqlJdbcUtil {
                 }
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo));
-            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.joinStyle));
+            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
             ModelViewEntity modelViewEntity = (ModelViewEntity)modelEntity;
             String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
             if (UtilValidate.isNotEmpty(groupByString)) {

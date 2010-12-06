@@ -1,7 +1,6 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
-import org.ofbiz.core.entity.config.EntityConfigUtil;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
@@ -86,7 +85,7 @@ public class DatabaseTypeFactory {
             final DatabaseMetaData md = con.getMetaData();
             Debug.logError("Could not determine database type.  Database meta-data: " + md.getDatabaseProductName() +
                     " " + md.getDatabaseProductVersion() + ".  Driver meta-data: " + md.getDriverName() + " " + md.getDriverVersion() + ".");
-            Debug.logError("Please specify field type name in entityengine.xml.  Replace " + EntityConfigUtil.DatasourceInfo.AUTO_FIELD_TYPE +
+            Debug.logError("Please specify field type name in entityengine.xml.  Replace " + DatasourceInfo.AUTO_FIELD_TYPE +
                     " with specific field type name.");
         } catch (SQLException e) {
             Debug.logError(e, "Could not determine database type. SQLException occured when trying to retrieve connection meta-data");
