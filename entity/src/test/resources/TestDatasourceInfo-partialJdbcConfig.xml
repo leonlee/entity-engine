@@ -1,0 +1,8 @@
+<ofbiz-datasource name="default" field-type-name="postgres72"
+                  helper-class="org.ofbiz.core.entity.GenericHelperDAO">
+  <inline-jdbc jdbc-uri="jdbc:postgresql://localhost:5432/jira"
+               jdbc-username="jira"
+               jdbc-password="password"
+               jdbc-driver="org.postgresql.Driver"
+          />
+</ofbiz-datasource>

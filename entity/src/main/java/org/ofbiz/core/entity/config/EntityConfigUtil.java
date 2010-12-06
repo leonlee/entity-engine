@@ -115,6 +115,18 @@ public class EntityConfigUtil
         }
     }
 
+    public EntityConfigUtil(String filename)
+    {
+        try
+        {
+            initialize(ResourceLoader.getXmlRootElement(filename));
+        }
+        catch (Exception e)
+        {
+            Debug.logError(e, "Error loading entity config XML file " + ENTITY_ENGINE_XML_FILENAME);
+        }
+    }
+
     public synchronized void reinitialize() throws GenericEntityException
     {
         try
