@@ -241,7 +241,11 @@ public class JNDIFactory implements TransactionFactoryInterface {
 
     public void removeDatasource(final String helperName)
     {
-        // If a JDBC connection was configured, then there may be one here
-        ConnectionFactory.removeDatasource(helperName);
+        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        if (datasourceInfo.getJndiDatasource() == null && datasourceInfo.getJdbcDatasource() != null)
+        {
+            // If a JDBC connection was configured, then there may be one here
+            ConnectionFactory.removeDatasource(helperName);
+        }
     }
 }

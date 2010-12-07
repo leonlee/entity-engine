@@ -146,14 +146,14 @@ public class EntityConfigUtil
 
     public synchronized void removeDatasource(String helperName)
     {
-        // Remove the datasource info
-        this.datasourceInfos.remove(helperName);
         // Remove the helper
         GenericHelperFactory.removeHelper(helperName);
         // Remove the DAO
         GenericDAO.removeGenericDAO(helperName);
         // Shut down the connection pool if there is one
         TransactionFactory.getTransactionFactory().removeDatasource(helperName);
+        // Remove the datasource info
+        this.datasourceInfos.remove(helperName);
     }
 
     public synchronized void addDatasourceInfo(DatasourceInfo datasourceInfo)

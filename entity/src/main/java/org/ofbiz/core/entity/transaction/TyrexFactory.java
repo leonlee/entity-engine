@@ -201,7 +201,5 @@ public class TyrexFactory implements TransactionFactoryInterface {
     public void removeDatasource(final String helperName)
     {
         // We'll never support tyrex, so I'm not gonna bother shutting it down....
-        // If no Tyrex datasource was found, then the generic connection factory would have been used
-        ConnectionFactory.removeDatasource(helperName);
     }
 }

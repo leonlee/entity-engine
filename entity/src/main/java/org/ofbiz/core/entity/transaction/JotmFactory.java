@@ -109,8 +109,15 @@ public class JotmFactory implements TransactionFactoryInterface {
 
     public void removeDatasource(final String helperName)
     {
-        JotmConnectionFactory.removeDatasource(helperName);
-        // If no JOTM datasource was found, then the generic connection factory would have been used
-        ConnectionFactory.removeDatasource(helperName);
+        try
+        {
+            JotmConnectionFactory.removeDatasource(helperName);
+        }
+        catch (Exception ex)
+        {
+            Debug.logError(ex, "Error shutting down the JOTM " + helperName + " datasource. Please check your configuration, class path, etc.");
+            // If no JOTM datasource was found, then the generic connection factory would have been used
+            ConnectionFactory.removeDatasource(helperName);
+        }
     }
 }
