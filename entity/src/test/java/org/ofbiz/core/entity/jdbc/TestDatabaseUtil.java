@@ -1,6 +1,6 @@
 package org.ofbiz.core.entity.jdbc;
 
-import junit.framework.Assert;
+import static junit.framework.Assert.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.Test;
@@ -12,6 +12,7 @@ import org.ofbiz.core.entity.model.ModelIndex;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 
 /**
  * Unit test for {@link org.ofbiz.core.entity.jdbc.DatabaseUtil}.
@@ -24,7 +25,7 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil("Santa's Little Helper", null, null, null);
         ModelEntity modelEntity = new ModelEntity();
         final String mesg = du.createDeclaredIndices(modelEntity);
-        Assert.assertNull(mesg);
+        assertNull(mesg);
     }
 
     @Test
@@ -38,8 +39,9 @@ public class TestDatabaseUtil {
                 return connection;
             }
         });
-        ModelEntity modelEntity = new ModelEntity();
+        ModelEntity modelEntity = new ModelEntity("testable", Collections.emptyList(), null);
         modelEntity.addIndex(new ModelIndex());
         final String mesg = du.createDeclaredIndices(modelEntity);
+        assertNull(mesg);
     }
 }

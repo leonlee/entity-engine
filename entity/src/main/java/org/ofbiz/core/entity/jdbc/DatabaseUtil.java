@@ -70,7 +70,7 @@ public class DatabaseUtil {
      * @param datasourceInfo the DatasourceInfo
      * @param connectionProvider used to create {@link java.sql.Connection Connections}.
      */
-    DatabaseUtil(String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, ConnectionProvider connectionProvider) {
+    DatabaseUtil(final String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, final ConnectionProvider connectionProvider) {
         this.helperName = helperName; 
         this.modelFieldTypeReader = modelFieldTypeReader;
         this.datasourceInfo = datasourceInfo;
