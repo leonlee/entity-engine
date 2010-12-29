@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelIndex;
 
 import java.sql.Connection;
@@ -25,7 +26,7 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil("Santa's Little Helper", null, null, null);
         ModelEntity modelEntity = new ModelEntity();
         final String mesg = du.createDeclaredIndices(modelEntity);
-        assertNull(mesg);
+        assertNull("unexpected error", mesg);
     }
 
     @Test
@@ -33,15 +34,21 @@ public class TestDatabaseUtil {
         final Connection connection = mock(Connection.class);
         final Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
-        when(statement.executeUpdate(anyString())).thenReturn(0);
         DatabaseUtil du = new DatabaseUtil("Santa's Little Helper", null, null, new ConnectionProvider() {
             public Connection getConnection(final String name) throws SQLException, GenericEntityException {
                 return connection;
             }
         });
         ModelEntity modelEntity = new ModelEntity("testable", Collections.emptyList(), null);
-        modelEntity.addIndex(new ModelIndex());
+        final ModelField modelField = new ModelField();
+        modelField.setColName("nicecolumn");
+        modelField.setName("fieldname");
+        modelEntity.addField(modelField);
+        final ModelIndex modelIndex = new ModelIndex();
+        modelIndex.addIndexField("fieldname");
+        modelEntity.addIndex(modelIndex);
         final String mesg = du.createDeclaredIndices(modelEntity);
-        assertNull(mesg);
+        assertNull("unexpected error", mesg);
+        verify(statement).executeUpdate("CREATE INDEX  ON TESTABLE (nicecolumn)");
     }
 }
