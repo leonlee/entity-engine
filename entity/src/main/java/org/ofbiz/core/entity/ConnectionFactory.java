@@ -24,11 +24,13 @@
  */
 package org.ofbiz.core.entity;
 
-import java.sql.*;
+import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
+import org.ofbiz.core.entity.transaction.DBCPConnectionFactory;
+import org.ofbiz.core.util.Debug;
 
-import org.ofbiz.core.entity.config.*;
-import org.ofbiz.core.entity.transaction.*;
-import org.ofbiz.core.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 /**
  * ConnectionFactory - central source for JDBC connections
@@ -42,6 +44,15 @@ public class ConnectionFactory {
     // Debug module name
     public static final String module = ConnectionFactory.class.getName();
 
+    /**
+     * Convenience reference to an adapter for the ConnectionProvider interface.
+     */
+    public static final ConnectionProvider provider = new ConnectionProvider() {
+        public Connection getConnection(final String name) throws SQLException, GenericEntityException {
+            return ConnectionFactory.getConnection(name);
+        }
+    };
+
     public static Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         // Debug.logVerbose("Getting a connection", module);
 
@@ -51,7 +62,7 @@ public class ConnectionFactory {
         }
         return con;
     }
-    
+
     public static Connection tryGenericConnectionSources(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         // first try DBCP
         try {
@@ -60,7 +71,7 @@ public class ConnectionFactory {
         } catch (Exception ex) {
             Debug.logError(ex, "There was an error getting a DBCP datasource.");
         }
-        
+
         // Default to plain JDBC.
         String driverClassName = jdbcDatasource.getDriverClassName();
 

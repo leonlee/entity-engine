@@ -46,20 +46,48 @@ public class DatabaseUtil {
     protected ModelFieldTypeReader modelFieldTypeReader;
     protected DatasourceInfo datasourceInfo;
 
+    private final ConnectionProvider connectionProvider;
+
+    /**
+     * Constructs with the name of a helper that is used to load {@link org.ofbiz.core.entity.config.DatasourceInfo}
+     * from {@link org.ofbiz.core.entity.config.EntityConfigUtil} and uses the static
+     * {@link org.ofbiz.core.entity.ConnectionFactory} for connections.
+     *
+     * @param helperName
+     */
     public DatabaseUtil(String helperName) {
         this.helperName = helperName;
         this.modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
         this.datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        this.connectionProvider = ConnectionFactory.provider;
     }
 
+    /**
+     * Full monty constructor.
+     *
+     * @param helperName the helperName
+     * @param modelFieldTypeReader the ModelFieldTypeReader
+     * @param datasourceInfo the DatasourceInfo
+     * @param connectionProvider used to create {@link java.sql.Connection Connections}.
+     */
+    DatabaseUtil(String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, ConnectionProvider connectionProvider) {
+        this.helperName = helperName; 
+        this.modelFieldTypeReader = modelFieldTypeReader;
+        this.datasourceInfo = datasourceInfo;
+        this.connectionProvider = connectionProvider;
+    }
+
+    /**
+     * Uses the configured {@link org.ofbiz.core.entity.ConnectionProvider} to get a {@link java.sql.Connection} based
+     * on the configured helper name.
+     *
+     * @return the {@link java.sql.Connection}
+     * @throws SQLException
+     * @throws GenericEntityException
+     */
     public Connection getConnection() throws SQLException, GenericEntityException {
-        Connection connection = ConnectionFactory.getConnection(helperName);
-        return connection;
+        return connectionProvider.getConnection(helperName);
     }
-
-    /* ====================================================================== */
-
-    /* ====================================================================== */
 
     public void checkDb(Map modelEntities, Collection messages, boolean addMissing) {
 
@@ -1674,9 +1702,11 @@ public class DatabaseUtil {
         return null;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
+    /**
+     * Creates a database index for every declared index on the given entity. 
+     * @param entity
+     * @return an error message if there is an error, or null if it worked.
+     */
     public String createDeclaredIndices(ModelEntity entity) {
         if (entity == null) {
             return "ModelEntity was null and is required to create declared indices for a table";
