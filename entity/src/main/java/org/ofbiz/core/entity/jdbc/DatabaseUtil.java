@@ -1011,7 +1011,7 @@ public class DatabaseUtil {
      * @param includeUnique if true, the index info will include unique indexes which could include pk indexes.
      * @return a map of table names to index name sets or null on failure.
      */
-    Map<String, ? extends Set<String>> getIndexInfo(Set tableNames, Collection messages, boolean includeUnique) {
+    Map getIndexInfo(Set tableNames, Collection messages, boolean includeUnique) {
     
         Connection connection = null;
 
@@ -1920,27 +1920,27 @@ public class DatabaseUtil {
         }
     }
 
-    private void error(final String message, final Collection messages) {
+    void error(final String message, final Collection messages) {
         Debug.logError(message, module);
         if (messages != null)
             messages.add(message);
     }
 
-    private void warn(final String message, final Collection messages) {
+    void warn(final String message, final Collection messages) {
         Debug.logWarning(message, module);
         if (messages != null) {
             messages.add(message);
         }
     }
 
-    private void important(final String message, final Collection messages) {
+    void important(final String message, final Collection messages) {
         Debug.logImportant(message, module);
         if (messages != null) {
             messages.add(message);
         }
     }
 
-    private void verbose(final String message, final Collection messages) {
+    void verbose(final String message, final Collection messages) {
         Debug.logVerbose(message, module);
         if (messages != null) messages.add(message);
     }

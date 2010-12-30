@@ -135,7 +135,7 @@ public class TestDatabaseUtil {
         when(connection.getMetaData()).thenReturn(dbData);
 
         MockResultSet t1IndexRs = new MockResultSet();
-        // t1 has two indexes, t2 has one index and t3 has no indexes
+        // t1 has two indexes, t2 has one non unique index and t3 has no indexes
         t1IndexRs.addRow(createIndexMetadataRow("t1_index1", "t1", false));
         t1IndexRs.addRow(createIndexMetadataRow("t1_index2", "t1", false));
         MockResultSet t2IndexRs = new MockResultSet();
@@ -153,7 +153,7 @@ public class TestDatabaseUtil {
         HashSet<String> tableNames = new HashSet<String>(Arrays.asList("T1", "T2", "T3"));
 
         // the call to the production method
-        final Map<String, TreeSet<String>> indexInfo = du.getIndexInfo(tableNames, messages);
+        final Map indexInfo = du.getIndexInfo(tableNames, messages);
 
         // the assertions...
         assertTrue(indexInfo.entrySet().size() == 2);
@@ -176,8 +176,95 @@ public class TestDatabaseUtil {
      */
     @Test
     public void testGetIndexInfoUnique() throws Exception {
+        final Connection connection = mock(Connection.class);
+        final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
+        when(connection.getMetaData()).thenReturn(dbData);
 
+        MockResultSet t1IndexRs = new MockResultSet();
+        // t1 has two indexes, t2 has one non unique index and t3 has no indexes
+        t1IndexRs.addRow(createIndexMetadataRow("t1_index1", "t1", false));
+        t1IndexRs.addRow(createIndexMetadataRow("t1_index2", "t1", false));
+        MockResultSet t2IndexRs = new MockResultSet();
+        t2IndexRs.addRow(createIndexMetadataRow("t2_index", "t2", false));
+        t2IndexRs.addRow(createIndexMetadataRow("t2_index_unique", "t2", true));
+        MockResultSet t3IndexRs = new MockResultSet();
+
+        when(dbData.getIndexInfo(anyString(), anyString(), eq("T1"), anyBoolean(), anyBoolean())).thenReturn(t1IndexRs);
+        when(dbData.getIndexInfo(anyString(), anyString(), eq("T2"), anyBoolean(), anyBoolean())).thenReturn(t2IndexRs);
+        when(dbData.getIndexInfo(anyString(), anyString(), eq("T3"), anyBoolean(), anyBoolean())).thenReturn(t3IndexRs);
+
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
+
+        ArrayList messages = new ArrayList();
+        HashSet<String> tableNames = new HashSet<String>(Arrays.asList("T1", "T2", "T3"));
+
+        // the call to the production method
+        final Map indexInfo = du.getIndexInfo(tableNames, messages, true);
+
+        // the assertions...
+        assertTrue(indexInfo.entrySet().size() == 2);
+        assertTrue("unexpected error messages", messages.isEmpty());
+        final TreeSet<String> t1Indexes = new TreeSet<String>();
+        t1Indexes.addAll(Arrays.asList("T1_INDEX1", "T1_INDEX2"));
+        assertEquals(t1Indexes, indexInfo.get("T1"));
+        final TreeSet<String> t2Indexes = new TreeSet<String>();
+        t2Indexes.addAll(Arrays.asList("T2_INDEX", "T2_INDEX_UNIQUE"));
+        assertEquals(t2Indexes, indexInfo.get("T2"));
     }
+
+    @Test
+    public void testError() {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        du.error("mesg", null);
+
+        ArrayList<String> expected = new ArrayList<String>();
+        expected.add("mesg");
+        ArrayList in = new ArrayList();
+        du.error("mesg", in);
+        assertEquals(expected, in);
+        du.error("mesg2", in);
+        expected.add("mesg2");
+        assertEquals(expected, in);        
+    }
+    @Test
+    public void testImportant() {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        du.important("mesg", null);
+
+        ArrayList<String> expected = new ArrayList<String>();
+        expected.add("mesg");
+        ArrayList in = new ArrayList();
+        du.important("mesg", in);
+        assertEquals(expected, in);
+        du.important("mesg2", in);
+        expected.add("mesg2");
+        assertEquals(expected, in);    }
+    @Test
+    public void testWarn() {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        du.warn("mesg", null);
+
+        ArrayList<String> expected = new ArrayList<String>();
+        expected.add("mesg");
+        ArrayList in = new ArrayList();
+        du.warn("mesg", in);
+        assertEquals(expected, in);
+        du.warn("mesg2", in);
+        expected.add("mesg2");
+        assertEquals(expected, in);    }
+    @Test
+    public void testVerbose() {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        du.verbose("mesg", null);
+
+        ArrayList<String> expected = new ArrayList<String>();
+        expected.add("mesg");
+        ArrayList in = new ArrayList();
+        du.verbose("mesg", in);
+        assertEquals(expected, in);
+        du.verbose("mesg2", in);
+        expected.add("mesg2");
+        assertEquals(expected, in);    }
 
 //    @Test
 //    public void testMissingIndices() {
