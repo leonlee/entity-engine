@@ -22,9 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static junit.framework.Assert.*;
-import static org.mockito.Mockito.*;
+import static junit.framework.Assert.fail;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link org.ofbiz.core.entity.jdbc.DatabaseUtil}.
@@ -151,7 +160,7 @@ public class TestDatabaseUtil {
         final Map indexInfo = du.getIndexInfo(tableNames, messages);
 
         // the assertions...
-        verify(dbData, times(3)).getIndexInfo(anyString(),anyString(), anyString(), eq(false), anyBoolean());
+        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
         assertTrue(indexInfo.entrySet().size() == 2);
         assertTrue("unexpected error messages", messages.isEmpty());
         final TreeSet<String> t1Indexes = new TreeSet<String>();
@@ -198,7 +207,7 @@ public class TestDatabaseUtil {
         final Map indexInfo = du.getIndexInfo(tableNames, messages, true);
 
         // the assertions...
-        verify(dbData, times(3)).getIndexInfo(anyString(),anyString(), anyString(), eq(true), anyBoolean());
+        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(true), anyBoolean());
         assertTrue(indexInfo.entrySet().size() == 2);
         assertTrue("unexpected error messages", messages.isEmpty());
         final TreeSet<String> t1Indexes = new TreeSet<String>();
@@ -207,6 +216,106 @@ public class TestDatabaseUtil {
         final TreeSet<String> t2Indexes = new TreeSet<String>();
         t2Indexes.addAll(Arrays.asList("T2_INDEX", "T2_INDEX_UNIQUE"));
         assertEquals(t2Indexes, indexInfo.get("T2"));
+    }
+
+    @Test
+    public void testMissingIndices() {
+
+        // record requests for index info
+        final AtomicReference<Set> tableNamesReceived = new AtomicReference<Set>();
+        final AtomicBoolean includeUniqueReceived = new AtomicBoolean();
+
+        final Map<String, Set<String>> indexInfo = new HashMap<String, Set<String>>();
+        indexInfo.put("e1", Collections.<String>emptySet());
+        indexInfo.put("e2", quickSet("e2i2"));
+        indexInfo.put("e3", Collections.<String>emptySet());
+
+        // record requests to create indexes
+        final HashMap<String, Set<String>> creationCalls = new HashMap<String, Set<String>>();
+
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
+            @Override
+            Map getIndexInfo(final Set tableNames, final Collection messages, final boolean includeUnique) {
+                tableNamesReceived.set(tableNames);
+                if (includeUniqueReceived.get()) {
+                    fail("unexpected second call (breaks test invariant)");
+                }
+                includeUniqueReceived.set(includeUnique);
+                return indexInfo;
+            }
+
+            @Override
+            public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
+                final String name = entity.getEntityName();
+                if (!creationCalls.containsKey(name)) {
+                    creationCalls.put(name, new HashSet<String>());
+                }
+                creationCalls.get(name).add(modelIndex.getName());
+                // report a failure on this one
+                if (modelIndex.getName().equals("e2i1")) {
+                    return "NO CAN DO";
+                }
+                return null;
+            }
+        };
+        ArrayList messages = new ArrayList();
+        HashMap<String, ModelEntity> modelEntities = new HashMap<String, ModelEntity>();
+
+        {
+            // entity e1 has one index
+            ModelEntity e1 = createSimpleModelEntity("e1", "e1f1", "e1f2");
+            ModelIndex e1i1 = new ModelIndex();
+            e1i1.setName("e1i1");
+            e1i1.addIndexField("e1f1");
+            e1i1.setUnique(false);
+            e1.addIndex(e1i1);
+            modelEntities.put("e1", e1);
+        }
+
+        {
+            // entity e2 has two indexes, one with two fields
+            ModelEntity e2 = createSimpleModelEntity("e2", "e2f1", "e2f2", "e2f3");
+            ModelIndex e2i1 = new ModelIndex();
+            e2i1.setName("e2i1");
+            e2i1.addIndexField("e2f1");
+            e2i1.setUnique(true);
+            e2.addIndex(e2i1);
+            ModelIndex e2i2 = new ModelIndex();
+            e2i2.setName("e2i2");
+            e2i2.addIndexField("e2f2");
+            e2i2.addIndexField("e2f3");
+            e2i1.setUnique(false);
+            e2.addIndex(e2i2);
+            modelEntities.put("e2", e2);
+        }
+
+        // enity e3 has no indexes
+        ModelEntity e3 = createSimpleModelEntity("e3", "e3f1", "e3f2");
+        modelEntities.put("e3", e3);
+
+        // production call!
+        du.createMissingIndices(modelEntities, messages);
+
+        // assert index info calls all received
+        assertTrue(tableNamesReceived.get().containsAll(Arrays.asList("e1", "e2", "e3")));
+        assertTrue(tableNamesReceived.get().size() == 3);
+        assertTrue(includeUniqueReceived.get());
+
+        // assert calls to create missing indexes were correct
+        assertEquals("expected one call to add e1i1 for entity e1", quickSet("e1i1"), creationCalls.get("e1"));
+        assertEquals("expected one call to add e2i1 for entity e2", quickSet("e2i1"), creationCalls.get("e2"));
+
+        // assert failure message recieved
+        assertTrue(messages.contains("NO CAN DO"));
+        assertTrue(messages.contains("Could not create missing indices for entity \"e2\""));
+        assertTrue(messages.size() == 2);
+
+    }
+
+    private static <T> Set<T> quickSet(T... members) {
+        HashSet<T> s = new HashSet<T>();
+        s.addAll(Arrays.asList(members));
+        return s;
     }
 
     @Test
@@ -221,8 +330,9 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
         du.error("mesg2", in);
         expected.add("mesg2");
-        assertEquals(expected, in);        
+        assertEquals(expected, in);
     }
+
     @Test
     public void testImportant() {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
@@ -235,7 +345,9 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
         du.important("mesg2", in);
         expected.add("mesg2");
-        assertEquals(expected, in);    }
+        assertEquals(expected, in);
+    }
+
     @Test
     public void testWarn() {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
@@ -248,7 +360,9 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
         du.warn("mesg2", in);
         expected.add("mesg2");
-        assertEquals(expected, in);    }
+        assertEquals(expected, in);
+    }
+
     @Test
     public void testVerbose() {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
@@ -261,13 +375,9 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
         du.verbose("mesg2", in);
         expected.add("mesg2");
-        assertEquals(expected, in);    }
+        assertEquals(expected, in);
+    }
 
-//    @Test
-//    public void testMissingIndices() {
-//        fail("TODO: check conditions under which the missing indices are created");
-//        fail("TODO: look at TODOs about index creation");
-//    }
 
     private ModelEntity createSimpleModelEntity(String tableAndEntityName, String... fields) {
         ModelEntity authorModelEntity = new ModelEntity();

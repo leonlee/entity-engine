@@ -23,13 +23,18 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.ConnectionProvider;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.model.*;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilTimer;
+import org.ofbiz.core.util.UtilValidate;
+
 import java.sql.*;
 import java.util.*;
-
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.*;
-import org.ofbiz.core.entity.model.*;
 
 /**
  * Utilities for Entity Database Maintenance
@@ -94,7 +99,7 @@ public class DatabaseUtil {
      *
      * @param modelEntities Model entity names to ModelEntity objects.
      * @param messages a thing to collect errors.
-     * @param addMissing if true, will attempt to add missing things in general.
+     * @param addMissing if true, will attempt to add tables and columns, fks, indices etc are added always.
      */
     public void checkDb(Map modelEntities, Collection messages, boolean addMissing) {
 
@@ -157,16 +162,16 @@ public class DatabaseUtil {
 
             // if this is a view entity, do not check it...
             if (entity instanceof ModelViewEntity) {
-                verbose("(" + timer.timeSinceLast() + "ms) NOT Checking #" + curEnt + "/" + totalEnt + " View Entity " + entity.getEntityName(), messages);
+                verbose("(" + timer.timeSinceLast() + "ms) NOT Checking #" + curEnt + "/" + totalEnt + " View Entity " + entityName, messages);
                 continue;
             }
 
+            String tableName = entity.getTableName(datasourceInfo);
             String entMessage = "(" + timer.timeSinceLast() + "ms) Checking #" + curEnt + "/" + totalEnt +
-                " Entity " + entity.getEntityName() + " with table " + entity.getTableName(datasourceInfo);
+                " Entity " + entityName + " with table " + tableName;
 
             verbose(entMessage, messages);
 
-            String tableName = entity.getTableName(datasourceInfo);
             final String upperTableName = tableName.toUpperCase();
             // -make sure all entities have a corresponding table
             if (tableNames.contains(upperTableName)) {
@@ -195,14 +200,14 @@ public class DatabaseUtil {
                                 checkFieldType(entity, field, ccInfo, messages);
                             } else {
 
-                                warn("Column \"" + ccInfo.columnName + "\" of table \"" + tableName + "\" of entity \"" + entity.getEntityName() + "\" exists in the database but has no corresponding field", messages);
+                                warn("Column \"" + ccInfo.columnName + "\" of table \"" + tableName + "\" of entity \"" + entityName + "\" exists in the database but has no corresponding field", messages);
                             }
                         }
                     }
 
                     // -display message if number of table columns does not match number of entity fields
                     if (numCols != entity.getFieldsSize()) {
-                        String message = "Entity \"" + entity.getEntityName() + "\" has " + entity.getFieldsSize() + " fields but table \"" + tableName + "\" has " +
+                        String message = "Entity \"" + entityName + "\" has " + entity.getFieldsSize() + " fields but table \"" + tableName + "\" has " +
                             numCols + " columns.";
 
                         warn(message, messages);
@@ -215,7 +220,7 @@ public class DatabaseUtil {
                         String colName = (String) fcnIter.next();
                         ModelField field = (ModelField) fieldColNames.get(colName);
 
-                        warn("Field \"" + field.getName() + "\" of entity \"" + entity.getEntityName() + "\" is missing its corresponding column \"" + field.getColName() + "\"", messages);
+                        warn("Field \"" + field.getName() + "\" of entity \"" + entityName + "\" is missing its corresponding column \"" + field.getColName() + "\"", messages);
 
                         if (addMissing) {
                             // add the column
@@ -232,7 +237,7 @@ public class DatabaseUtil {
                 }
             } else {
 
-                warn("Entity \"" + entity.getEntityName() + "\" has no table in the database", messages);
+                warn("Entity \"" + entityName + "\" has no table in the database", messages);
 
                 if (addMissing) {
                     // create the table
@@ -306,16 +311,13 @@ public class DatabaseUtil {
                 String indErrMsg = this.createDeclaredIndices(curEntity);
 
                 if (indErrMsg != null && indErrMsg.length() > 0) {
-
                     error("Could not create declared indices for entity \"" + curEntity.getEntityName() + "\"", messages);
                     error(indErrMsg, messages);
                 } else {
-
                     important("Created declared indices for entity \"" + curEntity.getEntityName() + "\"", messages);
                 }
             }
 
-            // TODO test this happens in the right conditions only
             createMissingIndices(existingTableEntities, messages);
         }
 
@@ -599,13 +601,17 @@ public class DatabaseUtil {
     }
 
     /**
-     * Add only the missing indexes for the given modelEntities.
-     * @param modelEntities
+     * Add only the missing indexes for the given modelEntities, keyed by table name. The existence of an index is
+     * determined soley by its name. If the {@link org.ofbiz.core.entity.model.ModelIndex} defines an index that has
+     * the same name but different fields or unique flag as the one in the database, no action is taken to rectify the
+     * difference.
+     *
+     * @param tableToModelEntities a map of table name to corresponding model entity.
      * @param messages error messages go here
      */
     void createMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection messages) {
         // get the actual db index names per table
-        final Map<String, Set<String>> indexInfo = getIndexInfo(tableToModelEntities.keySet(), messages);
+        final Map<String, Set<String>> indexInfo = getIndexInfo(tableToModelEntities.keySet(), messages, true);
 
         for (Map.Entry<String, Set<String>> indexInfoEntry : indexInfo.entrySet()) {
             final String tableName = indexInfoEntry.getKey();
@@ -613,16 +619,28 @@ public class DatabaseUtil {
 
             final ModelEntity modelEntity = tableToModelEntities.get(tableName);
             final Iterator indexesIterator = modelEntity.getIndexesIterator();
+
+            final StringBuffer retMsgsBuffer = new StringBuffer();
+
             while (indexesIterator.hasNext()) {
                 ModelIndex modelIndex = (ModelIndex) indexesIterator.next();
                 if (!actualIndexes.contains(modelIndex.getName())) {
                     if (Debug.infoOn()) {
                         Debug.logInfo("Missing index '" + modelIndex.getName() + "' on existing table '" + tableName + "' ...creating");
                     }
-                    createDeclaredIndex(modelEntity, modelIndex);
+                    String retMsg = createDeclaredIndex(modelEntity, modelIndex);
+
+                    if (retMsg != null && retMsg.length() > 0) {
+                        if (retMsgsBuffer.length() > 0) {
+                            retMsgsBuffer.append("\n");
+                        }
+                        retMsgsBuffer.append(retMsg);
+                    }
                 }
-                // TODO need to decide whether to check if an index with the name exists but it has the wrong fields etc.
-                // http://jira.atlassian.com/browse/INST-119
+            }
+            if (retMsgsBuffer.length() > 0) {
+                error("Could not create missing indices for entity \"" + modelEntity.getEntityName() + "\"", messages);
+                error(retMsgsBuffer.toString(), messages);
             }
         }
     }
@@ -1006,23 +1024,21 @@ public class DatabaseUtil {
     /**
      * Gets index information from the database for the given table names only, optionally including unique indexes.
      *
-     * @param tablenNames the names of tables to get indexes for.
+     * @param tableNames the names of tables to get indexes for.
      * @param messages a collector of errors.
      * @param includeUnique if true, the index info will include unique indexes which could include pk indexes.
-     * @return a map of table names to index name sets or null on failure.
+     * @return a map of table names to sets of index names or null on failure.
      */
     Map getIndexInfo(Set tableNames, Collection messages, boolean includeUnique) {
-    
+
         Connection connection = null;
 
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-
             error("Unable to esablish a connection with the database... Error was:" + sqle.toString(), messages);
             return null;
         } catch (GenericEntityException e) {
-
             error("Unable to esablish a connection with the database... Error was:" + e.toString(), messages);
             return null;
         }
@@ -1032,9 +1048,7 @@ public class DatabaseUtil {
         try {
             dbData = connection.getMetaData();
         } catch (SQLException sqle) {
-
             error("Unable to get database meta data... Error was:" + sqle.toString(), messages);
-
             cleanup(connection, messages);
             return null;
         }
@@ -1820,8 +1834,7 @@ public class DatabaseUtil {
         return null;
     }
 
-    private String convertToSchemaTableName(String tableName, DatabaseMetaData dbData) throws SQLException
-    {
+    private String convertToSchemaTableName(String tableName, DatabaseMetaData dbData) throws SQLException {
         // Check if the database supports schemas
        if (tableName != null && dbData.supportsSchemasInTableDefinitions())
        {
@@ -1836,34 +1849,6 @@ public class DatabaseUtil {
        return tableName;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
-    public static class ColumnCheckInfo {
-        public String tableName;
-        public String columnName;
-        public String typeName;
-        public int columnSize;
-        public int decimalDigits;
-        public String isNullable; // YES/NO or "" = ie nobody knows
-    }
-
-
-    public static class ReferenceCheckInfo {
-        public String pkTableName;
-
-        /** Comma separated list of column names in the related tables primary key */
-        public String pkColumnName;
-        public String fkName;
-        public String fkTableName;
-
-        /** Comma separated list of column names in the primary tables foreign keys */
-        public String fkColumnName;
-
-        public String toString() {
-            return "FK Reference from table " + fkTableName + " called " + fkName + " to PK in table " + pkTableName;
-        }
-    }
 
     private void logDbInfo(final DatabaseMetaData dbData) {
         try {
@@ -1942,6 +1927,34 @@ public class DatabaseUtil {
     void verbose(final String message, final Collection messages) {
         Debug.logVerbose(message, module);
         if (messages != null) messages.add(message);
+    }
+
+    /* ====================================================================== */
+
+    /* ====================================================================== */
+    public static class ColumnCheckInfo {
+        public String tableName;
+        public String columnName;
+        public String typeName;
+        public int columnSize;
+        public int decimalDigits;
+        public String isNullable; // YES/NO or "" = ie nobody knows
+    }
+
+    public static class ReferenceCheckInfo {
+        public String pkTableName;
+
+        /** Comma separated list of column names in the related tables primary key */
+        public String pkColumnName;
+        public String fkName;
+        public String fkTableName;
+
+        /** Comma separated list of column names in the primary tables foreign keys */
+        public String fkColumnName;
+
+        public String toString() {
+            return "FK Reference from table " + fkTableName + " called " + fkName + " to PK in table " + pkTableName;
+        }
     }
 
 }
