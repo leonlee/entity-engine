@@ -207,7 +207,7 @@ public class TestDatabaseUtil {
         final Map indexInfo = du.getIndexInfo(tableNames, messages, true);
 
         // the assertions...
-        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(true), anyBoolean());
+        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
         assertTrue(indexInfo.entrySet().size() == 2);
         assertTrue("unexpected error messages", messages.isEmpty());
         final TreeSet<String> t1Indexes = new TreeSet<String>();
