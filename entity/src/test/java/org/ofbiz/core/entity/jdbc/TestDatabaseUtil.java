@@ -105,11 +105,6 @@ public class TestDatabaseUtil {
             }
 
             @Override
-            public String addColumn(ModelEntity entity, ModelField field) {
-                return null;
-            }
-
-            @Override
             void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection messages) {
                 // do nothing... we're not testing field types here
             }
@@ -156,6 +151,7 @@ public class TestDatabaseUtil {
         final Map indexInfo = du.getIndexInfo(tableNames, messages);
 
         // the assertions...
+        verify(dbData, times(3)).getIndexInfo(anyString(),anyString(), anyString(), eq(false), anyBoolean());
         assertTrue(indexInfo.entrySet().size() == 2);
         assertTrue("unexpected error messages", messages.isEmpty());
         final TreeSet<String> t1Indexes = new TreeSet<String>();
@@ -202,6 +198,7 @@ public class TestDatabaseUtil {
         final Map indexInfo = du.getIndexInfo(tableNames, messages, true);
 
         // the assertions...
+        verify(dbData, times(3)).getIndexInfo(anyString(),anyString(), anyString(), eq(true), anyBoolean());
         assertTrue(indexInfo.entrySet().size() == 2);
         assertTrue("unexpected error messages", messages.isEmpty());
         final TreeSet<String> t1Indexes = new TreeSet<String>();

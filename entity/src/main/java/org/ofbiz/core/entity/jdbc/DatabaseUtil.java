@@ -316,7 +316,7 @@ public class DatabaseUtil {
             }
 
             // TODO test this happens in the right conditions only
-            // addMissingIndices(existingTableEntities, messages);
+            createMissingIndices(existingTableEntities, messages);
         }
 
         // make sure each one-relation has an FK
@@ -603,7 +603,7 @@ public class DatabaseUtil {
      * @param modelEntities
      * @param messages error messages go here
      */
-    void addMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection messages) {
+    void createMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection messages) {
         // get the actual db index names per table
         final Map<String, Set<String>> indexInfo = getIndexInfo(tableToModelEntities.keySet(), messages);
 
@@ -1054,9 +1054,8 @@ public class DatabaseUtil {
 
                 ResultSet rsCols = null;
                 try {
-                    // false for unique, we don't really use unique indexes
                     // true for approximate, don't really care if stats are up-to-date
-                    rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
+                    rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, includeUnique, true);
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
                 }
