@@ -115,11 +115,8 @@ public class DatabaseUtil {
         Map existingTableEntities = new HashMap();
 
         if (tableNames == null) {
-            String message = "Could not get table name information from the database, aborting.";
 
-            if (messages != null)
-                messages.add(message);
-            Debug.logError(message, module);
+            error("Could not get table name information from the database, aborting.", messages);
             return;
         }
         timer.timerString("After Get All Table Names");
@@ -127,11 +124,8 @@ public class DatabaseUtil {
         // get ALL column info, put into hashmap by table name
         Map colInfo = this.getColumnInfo(tableNames, messages);
         if (colInfo == null) {
-            String message = "Could not get column information from the database, aborting.";
 
-            if (messages != null)
-                messages.add(message);
-            Debug.logError(message, module);
+            error("Could not get column information from the database, aborting.", messages);
             return;
         }
         timer.timerString("After Get All Column Info");
