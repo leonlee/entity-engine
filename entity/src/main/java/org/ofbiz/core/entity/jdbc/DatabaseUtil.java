@@ -618,7 +618,7 @@ public class DatabaseUtil {
 
             while (indexesIterator.hasNext()) {
                 ModelIndex modelIndex = (ModelIndex) indexesIterator.next();
-                if (!actualIndexes.contains(modelIndex.getName())) {
+                if (!actualIndexes.contains(modelIndex.getName().toUpperCase())) {
                     if (Debug.infoOn()) {
                         Debug.logInfo("Missing index '" + modelIndex.getName() + "' on existing table '" + tableName + "' ...creating");
                     }
@@ -1077,7 +1077,7 @@ public class DatabaseUtil {
                         if (!includeUnique && !rsCols.getBoolean("NON_UNIQUE")) continue;
 
                         String tableName = rsCols.getString("TABLE_NAME");
-                        
+
                         if (!tableNames.contains(tableName)) continue;
 
                         String indexName = rsCols.getString("INDEX_NAME");
