@@ -170,7 +170,7 @@ public class DatabaseUtil {
             // -make sure all entities have a corresponding table
             if (tableNames.contains(upperTableName)) {
                 tableNames.remove(upperTableName);
-                existingTableEntities.put(upperTableName, entity);
+                existingTableEntities.put(entity.getPlainTableName(), entity);
 
                 if (colInfo != null) {
                     Map fieldColNames = new HashMap();
@@ -1063,7 +1063,7 @@ public class DatabaseUtil {
                 ResultSet rsCols = null;
                 try {
                     // true for approximate, don't really care if stats are up-to-date
-                    rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
+                    rsCols = dbData.getIndexInfo(connection.getCatalog(), lookupSchemaName, curTableName, false, true);
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
                 }
@@ -1077,8 +1077,7 @@ public class DatabaseUtil {
                         if (!includeUnique && !rsCols.getBoolean("NON_UNIQUE")) continue;
 
                         String tableName = rsCols.getString("TABLE_NAME");
-
-                        tableName = (tableName == null) ? null : tableName.toUpperCase();
+                        
                         if (!tableNames.contains(tableName)) continue;
 
                         String indexName = rsCols.getString("INDEX_NAME");
