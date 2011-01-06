@@ -227,7 +227,7 @@ public class TestDatabaseUtil {
 
         final Map<String, Set<String>> indexInfo = new HashMap<String, Set<String>>();
         indexInfo.put("e1", Collections.<String>emptySet());
-        indexInfo.put("e2", quickSet("e2i2"));
+        indexInfo.put("e2", quickSet("E2I2"));
         indexInfo.put("e3", Collections.<String>emptySet());
 
         // record requests to create indexes

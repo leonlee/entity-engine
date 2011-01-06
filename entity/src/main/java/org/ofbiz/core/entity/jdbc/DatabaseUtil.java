@@ -1063,7 +1063,7 @@ public class DatabaseUtil {
                 ResultSet rsCols = null;
                 try {
                     // true for approximate, don't really care if stats are up-to-date
-                    rsCols = dbData.getIndexInfo(connection.getCatalog(), lookupSchemaName, curTableName, false, true);
+                    rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
                 }
