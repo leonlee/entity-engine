@@ -28,6 +28,7 @@ import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.*;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilTimer;
@@ -1061,9 +1062,26 @@ public class DatabaseUtil {
                 String curTableName = (String) tableNamesIter.next();
 
                 ResultSet rsCols = null;
+                String queryTableName;
                 try {
-                    // true for approximate, don't really care if stats are up-to-date
-                    rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
+                	
+                	// ORACLE's table names are case sensitive when used as a parameter to getIndexInfo call
+                	// however when a table is created and the table name is not quoted then oracle automatically uppercase it.
+                	// i.e 
+                	// 'create table issues' will create table with name ISSUES and inside getIndex info 'ISSUES' must be used.
+                	// OFBiz does put table names in quotes when it creates them thus for oracle they are always uppercased.
+                	// (in postgres on the other case table names are case sensitive and are created as 'written')
+                	if (DatabaseTypeFactory.ORACLE_10G == DatabaseTypeFactory.getTypeForConnection(connection)
+                			|| DatabaseTypeFactory.ORACLE_8I == DatabaseTypeFactory.getTypeForConnection(connection))
+                	{
+                		rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName.toUpperCase(), false, true);
+                	}
+                	else 
+                	{
+                		rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
+                	}
+                	// true for approximate, don't really care if stats are up-to-date
+                    
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
                 }
@@ -1076,20 +1094,16 @@ public class DatabaseUtil {
 
                         if (!includeUnique && !rsCols.getBoolean("NON_UNIQUE")) continue;
 
-                        String tableName = rsCols.getString("TABLE_NAME");
-
-                        if (!tableNames.contains(tableName)) continue;
-
                         String indexName = rsCols.getString("INDEX_NAME");
 
                         indexName = (indexName == null) ? null : indexName.toUpperCase();
 
-                        TreeSet<String> tableIndexList = indexInfo.get(tableName);
+                        TreeSet<String> tableIndexList = indexInfo.get(curTableName);
 
                         if (tableIndexList == null) {
                             tableIndexList = new TreeSet<String>();
-                            indexInfo.put(tableName, tableIndexList);
-                            if (Debug.verboseOn()) Debug.logVerbose("Adding new Map for table: " + tableName);
+                            indexInfo.put(curTableName, tableIndexList);
+                            if (Debug.verboseOn()) Debug.logVerbose("Adding new Map for table: " + curTableName);
                         }
                         if (!tableIndexList.contains(indexName)) totalIndices++;
                         tableIndexList.add(indexName);

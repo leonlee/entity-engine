@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class DatabaseTypeFactory {
 
-    private static final Collection DATABASE_TYPES = new ArrayList();
+    static final Collection DATABASE_TYPES = new ArrayList();
 
 
     public static final DatabaseType DB2 = new DB2DatabaseType();
