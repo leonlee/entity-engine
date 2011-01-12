@@ -1068,8 +1068,8 @@ public class DatabaseUtil {
                 	// ORACLE's table names are case sensitive when used as a parameter to getIndexInfo call
                 	// however when a table is created and the table name is not quoted then oracle automatically uppercase it.
                 	// i.e 
-                	// 'create table issues' will create table with name ISSUES and inside getIndex info 'ISSUES' must be used.
-                	// OFBiz does put table names in quotes when it creates them thus for oracle they are always uppercased.
+                	// 'create table issues' will create table with name ISSUES and inside getIndexInfo 'ISSUES' must be used.
+                	// OFBiz does not put table names in quotes when it creates them thus for oracle they are always uppercased.
                 	// (in postgres on the other case table names are case sensitive and are created as 'written')
                 	if (DatabaseTypeFactory.ORACLE_10G == DatabaseTypeFactory.getTypeForConnection(connection)
                 			|| DatabaseTypeFactory.ORACLE_8I == DatabaseTypeFactory.getTypeForConnection(connection))
@@ -1080,7 +1080,6 @@ public class DatabaseUtil {
                 	{
                 		rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
                 	}
-                	// true for approximate, don't really care if stats are up-to-date
                     
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
