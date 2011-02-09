@@ -23,10 +23,13 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import org.ofbiz.core.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Generic Entity - Relation model class
@@ -50,7 +53,7 @@ public class ModelRelation {
     protected String fkName;
 
     /** keyMaps defining how to lookup the relatedTable using columns from this table */
-    protected List keyMaps = new ArrayList();
+    protected List<ModelKeyMap> keyMaps = new ArrayList<ModelKeyMap>();
 
     /** the main entity of this relation */
     protected ModelEntity mainEntity = null;
@@ -131,7 +134,7 @@ public class ModelRelation {
     }
 
     /** keyMaps defining how to lookup the relatedTable using columns from this table */
-    public Iterator getKeyMapsIterator() {
+    public Iterator<ModelKeyMap> getKeyMapsIterator() {
         return this.keyMaps.iterator();
     }
 
@@ -140,7 +143,7 @@ public class ModelRelation {
     }
 
     public ModelKeyMap getKeyMap(int index) {
-        return (ModelKeyMap) this.keyMaps.get(index);
+        return this.keyMaps.get(index);
     }
 
     public void addKeyMap(ModelKeyMap keyMap) {
@@ -148,14 +151,12 @@ public class ModelRelation {
     }
 
     public ModelKeyMap removeKeyMap(int index) {
-        return (ModelKeyMap) this.keyMaps.remove(index);
+        return this.keyMaps.remove(index);
     }
 
     /** Find a KeyMap with the specified fieldName */
     public ModelKeyMap findKeyMap(String fieldName) {
-        for (int i = 0; i < keyMaps.size(); i++) {
-            ModelKeyMap keyMap = (ModelKeyMap) keyMaps.get(i);
-
+        for (ModelKeyMap keyMap : keyMaps) {
             if (keyMap.fieldName.equals(fieldName)) return keyMap;
         }
         return null;
@@ -163,9 +164,7 @@ public class ModelRelation {
 
     /** Find a KeyMap with the specified relFieldName */
     public ModelKeyMap findKeyMapByRelated(String relFieldName) {
-        for (int i = 0; i < keyMaps.size(); i++) {
-            ModelKeyMap keyMap = (ModelKeyMap) keyMaps.get(i);
-
+        for (ModelKeyMap keyMap : keyMaps) {
             if (keyMap.relFieldName.equals(relFieldName))
                 return keyMap;
         }
@@ -182,9 +181,9 @@ public class ModelRelation {
         int i = 0;
 
         for (; i < keyMaps.size() - 1; i++) {
-            returnString = returnString + ((ModelKeyMap) keyMaps.get(i)).fieldName + separator;
+            returnString = returnString + keyMaps.get(i).fieldName + separator;
         }
-        returnString = returnString + ((ModelKeyMap) keyMaps.get(i)).fieldName + afterLast;
+        returnString = returnString + keyMaps.get(i).fieldName + afterLast;
         return returnString;
     }
 
@@ -210,7 +209,7 @@ public class ModelRelation {
         StringBuffer returnString = new StringBuffer( keyMaps.size() * 10 );
         int i=0;
         while (true) {
-            ModelKeyMap kmap = (ModelKeyMap) keyMaps.get(i);
+            ModelKeyMap kmap = keyMaps.get(i);
             returnString.append( ModelUtil.upperFirstChar( kmap.fieldName));
 
             i++;
@@ -247,7 +246,7 @@ public class ModelRelation {
         StringBuffer returnString = new StringBuffer( keyMaps.size() * 10 );
         int i=0;
         while (true) {
-            ModelKeyMap kmap = (ModelKeyMap) keyMaps.get(i);
+            ModelKeyMap kmap = keyMaps.get(i);
             returnString.append( ModelUtil.upperFirstChar( kmap.relFieldName ));
 
             i++;

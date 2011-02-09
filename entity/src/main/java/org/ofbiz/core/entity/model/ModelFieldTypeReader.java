@@ -23,12 +23,21 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.config.GenericConfigException;
+import org.ofbiz.core.config.ResourceHandler;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilCache;
+import org.ofbiz.core.util.UtilTimer;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
-import org.ofbiz.core.config.*;
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.config.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Generic Entity - Field Type Definition Reader
@@ -40,9 +49,9 @@ import org.ofbiz.core.entity.config.*;
 public class ModelFieldTypeReader {
 
     public static final String module = ModelFieldTypeReader.class.getName();
-    public static UtilCache readers = new UtilCache("entity.ModelFieldTypeReader", 0, 0);
+    public static UtilCache<String, ModelFieldTypeReader> readers = new UtilCache<String, ModelFieldTypeReader>("entity.ModelFieldTypeReader", 0, 0);
 
-    public Map fieldTypeCache = null;
+    public Map<String, ModelFieldType> fieldTypeCache = null;
 
     public int numEntities = 0;
     public int numFields = 0;
@@ -59,13 +68,13 @@ public class ModelFieldTypeReader {
         }
 
         String tempModelName = datasourceInfo.getFieldTypeName();
-        ModelFieldTypeReader reader = (ModelFieldTypeReader) readers.get(tempModelName);
+        ModelFieldTypeReader reader = readers.get(tempModelName);
 
         if (reader == null) // don't want to block here
         {
             synchronized (ModelFieldTypeReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                reader = (ModelFieldTypeReader) readers.get(tempModelName);
+                reader = readers.get(tempModelName);
                 if (reader == null) {
                     reader = new ModelFieldTypeReader(tempModelName);
                     readers.put(tempModelName, reader);
@@ -88,14 +97,14 @@ public class ModelFieldTypeReader {
         getFieldTypeCache();
     }
 
-    public Map getFieldTypeCache() {
+    public Map<String, ModelFieldType> getFieldTypeCache() {
         if (fieldTypeCache == null) // don't want to block here
         {
             synchronized (ModelFieldTypeReader.class) {
                 // must check if null again as one of the blocked threads can still enter
                 if (fieldTypeCache == null) // now it's safe
                 {
-                    fieldTypeCache = new HashMap();
+                    fieldTypeCache = new HashMap<String, ModelFieldType>();
 
                     UtilTimer utilTimer = new UtilTimer();
                     // utilTimer.timerString("Before getDocument");
@@ -159,19 +168,16 @@ public class ModelFieldTypeReader {
     /** Creates a Collection with all of the ModelFieldType names
      * @return A Collection of ModelFieldType names
      */
-    public Collection getFieldTypeNames() {
-        Map ftc = getFieldTypeCache();
+    public Collection<String> getFieldTypeNames() {
 
-        return ftc.keySet();
+        return getFieldTypeCache().keySet();
     }
 
     /** Creates a Collection with all of the ModelFieldTypes
      * @return A Collection of ModelFieldTypes
      */
-    public Collection getFieldTypes() {
-        Map ftc = getFieldTypeCache();
-
-        return ftc.values();
+    public Collection<ModelFieldType> getFieldTypes() {
+        return getFieldTypeCache().values();
     }
 
     /** Gets an FieldType object based on a definition from the specified XML FieldType descriptor file.
@@ -179,19 +185,16 @@ public class ModelFieldTypeReader {
      * @return An FieldType object describing the specified fieldType of the specified descriptor file.
      */
     public ModelFieldType getModelFieldType(String fieldTypeName) {
-        Map ftc = getFieldTypeCache();
+        Map<String, ModelFieldType> ftc = getFieldTypeCache();
 
         if (ftc != null)
-            return (ModelFieldType) ftc.get(fieldTypeName);
+            return ftc.get(fieldTypeName);
         else
             return null;
     }
 
     ModelFieldType createModelFieldType(Element fieldTypeElement, Element docElement, UtilTimer utilTimer) {
         if (fieldTypeElement == null) return null;
-
-        ModelFieldType field = new ModelFieldType(fieldTypeElement);
-
-        return field;
+        return new ModelFieldType(fieldTypeElement);
     }
 }

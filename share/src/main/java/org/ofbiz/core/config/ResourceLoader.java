@@ -26,12 +26,17 @@
 package org.ofbiz.core.config;
 
 
-import java.util.*;
-import java.net.*;
-import java.io.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilCache;
+import org.ofbiz.core.util.UtilURL;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-import org.ofbiz.core.util.*;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -42,8 +47,8 @@ import org.ofbiz.core.util.*;
  *@version    1.0
  */
 public abstract class ResourceLoader {
-    protected static UtilCache loaderCache = new UtilCache("resource.ResourceLoaders", 0, 0);
-    protected static Map docSaveMap = new HashMap();
+    protected static UtilCache<String, ResourceLoader> loaderCache = new UtilCache<String, ResourceLoader>("resource.ResourceLoaders", 0, 0);
+    protected static Map<String, Document> docSaveMap = new HashMap<String, Document>();
 
     protected String name;
     protected String prefix;
@@ -57,11 +62,11 @@ public abstract class ResourceLoader {
     }
 
     public static ResourceLoader getLoader(String xmlFilename, String loaderName) throws GenericConfigException {
-        ResourceLoader loader = (ResourceLoader) loaderCache.get(xmlFilename + "::" + loaderName);
+        ResourceLoader loader = loaderCache.get(xmlFilename + "::" + loaderName);
 
         if (loader == null) {
             synchronized (ResourceLoader.class) {
-                loader = (ResourceLoader) loaderCache.get(xmlFilename + "::" + loaderName);
+                loader = loaderCache.get(xmlFilename + "::" + loaderName);
                 if (loader == null) {
                     Element rootElement = getXmlRootElement(xmlFilename);
 
@@ -96,11 +101,11 @@ public abstract class ResourceLoader {
     }
 
     public static Document getXmlDocument(String xmlFilename) throws GenericConfigException {
-        Document document = (Document) docSaveMap.get(xmlFilename);
+        Document document = docSaveMap.get(xmlFilename);
 
         if (document == null) {
             synchronized (ResourceLoader.class) {
-                document = (Document) docSaveMap.get(xmlFilename);
+                document = docSaveMap.get(xmlFilename);
                 if (document == null) {
                     URL confUrl = UtilURL.fromResource(xmlFilename);
 
@@ -136,7 +141,7 @@ public abstract class ResourceLoader {
         ResourceLoader loader = null;
 
         try {
-            Class lClass = null;
+            Class<?> lClass = null;
 
             if (className != null && className.length() > 0) {
                 try {

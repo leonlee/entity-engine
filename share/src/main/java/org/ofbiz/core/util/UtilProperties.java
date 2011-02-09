@@ -25,9 +25,9 @@
 package org.ofbiz.core.util;
 
 
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
-import java.net.*;
 
 
 /**
@@ -42,17 +42,17 @@ public class UtilProperties {
      *  corresponding to each properties file keyed by a String for the resource location.
      * This will be used for both non-locale and locale keyed FexibleProperties instances.
      */
-    public static UtilCache resourceCache = new UtilCache("properties.UtilPropertiesResourceCache");
+    public static UtilCache<Object, FlexibleProperties> resourceCache = new UtilCache<Object, FlexibleProperties>("properties.UtilPropertiesResourceCache");
 
     /** An instance of the generic cache for storing the FlexibleProperties 
      *  corresponding to each properties file keyed by a URL object
      */
-    public static UtilCache urlCache = new UtilCache("properties.UtilPropertiesUrlCache");
+    public static UtilCache<URL, FlexibleProperties> urlCache = new UtilCache<URL, FlexibleProperties>("properties.UtilPropertiesUrlCache");
 
     /** An instance of the generic cache for storing the ResourceBundle 
      *  corresponding to each properties file keyed by a String for the resource location and the locale
      */
-    public static UtilCache bundleLocaleCache = new UtilCache("properties.UtilPropertiesBundleLocaleCache");
+    public static UtilCache<String, ResourceBundle> bundleLocaleCache = new UtilCache<String, ResourceBundle>("properties.UtilPropertiesBundleLocaleCache");
 
 
     /** Compares the specified property to the compareString, returns true if they are the same, false otherwise
@@ -115,7 +115,7 @@ public class UtilProperties {
     public static String getPropertyValue(String resource, String name) {
         if (resource == null || resource.length() <= 0) return "";
         if (name == null || name.length() <= 0) return "";
-        FlexibleProperties properties = (FlexibleProperties) resourceCache.get(resource);
+        FlexibleProperties properties = resourceCache.get(resource);
 
         if (properties == null) {
             try {
@@ -150,7 +150,7 @@ public class UtilProperties {
     public static Properties getProperties(String resource) {
         if (resource == null || resource.length() <= 0)
             return null;
-        Properties properties = (FlexibleProperties) resourceCache.get(resource);
+        FlexibleProperties properties = resourceCache.get(resource);
 
         if (properties == null) {
             try {
@@ -178,7 +178,7 @@ public class UtilProperties {
     public static Properties getProperties(URL url) {
         if (url == null)
             return null;
-        Properties properties = (FlexibleProperties) resourceCache.get(url);
+        FlexibleProperties properties = resourceCache.get(url);
 
         if (properties == null) {
             try {                                
@@ -258,7 +258,7 @@ public class UtilProperties {
     public static String getPropertyValue(URL url, String name) {
         if (url == null) return "";
         if (name == null || name.length() <= 0) return "";
-        FlexibleProperties properties = (FlexibleProperties) urlCache.get(url);
+        FlexibleProperties properties = urlCache.get(url);
 
         if (properties == null) {
             try {
@@ -295,7 +295,7 @@ public class UtilProperties {
         if (url == null) return "";
         if (name == null || name.length() <= 0) return "";
 
-        FlexibleProperties properties = (FlexibleProperties) urlCache.get(url);
+        FlexibleProperties properties = urlCache.get(url);
 
         if (properties == null) {
             try {
@@ -389,7 +389,7 @@ public class UtilProperties {
      * @param arguments A list of Objects to insert into the message argument place holders
      * @return The value of the property in the properties file
      */
-    public static String getMessage(String resource, String name, List arguments, Locale locale) {
+    public static String getMessage(String resource, String name, List<?> arguments, Locale locale) {
         String value = getMessage(resource, name, locale);
         
         if (value == null || value.length() == 0) {
@@ -412,7 +412,7 @@ public class UtilProperties {
         if (locale == null) locale = Locale.getDefault();
 
         String resourceCacheKey = resource + "_" + locale.toString();        
-        ResourceBundle bundle = (ResourceBundle) bundleLocaleCache.get(resourceCacheKey);
+        ResourceBundle bundle = bundleLocaleCache.get(resourceCacheKey);
 
         if (bundle == null) {
             try {
@@ -474,13 +474,13 @@ public class UtilProperties {
         
         String localeString = locale.toString();
         String resourceLocale = resource + "_" + localeString;
-        Properties properties = (FlexibleProperties) resourceCache.get(resourceLocale);
+        FlexibleProperties properties = resourceCache.get(resourceLocale);
 
         if (properties == null) {
             try {
                 URL url = UtilURL.fromResource(resourceLocale);
                 if (url == null) {
-                    properties = getProperties(resource);
+                    properties = (FlexibleProperties) getProperties(resource);
                 } else {
                     properties = FlexibleProperties.makeFlexibleProperties(url);
                 }

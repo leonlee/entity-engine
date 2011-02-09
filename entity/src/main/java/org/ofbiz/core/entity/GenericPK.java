@@ -23,9 +23,9 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.model.ModelEntity;
 
-import org.ofbiz.core.entity.model.*;
+import java.util.Map;
 
 /**
  * Generic Entity Primary Key Object
@@ -42,7 +42,7 @@ public class GenericPK extends GenericEntity {
     }
 
     /** Creates new GenericPK from existing Map */
-    public GenericPK(ModelEntity modelEntity, Map fields) {
+    public GenericPK(ModelEntity modelEntity, Map<String, ?> fields) {
         super(modelEntity, fields);
     }
 

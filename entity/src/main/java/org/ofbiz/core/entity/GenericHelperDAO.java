@@ -24,10 +24,11 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelRelation;
+import org.ofbiz.core.util.Debug;
 
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.model.*;
+import java.util.*;
 
 /**
  * Generic Entity Helper Class
@@ -83,7 +84,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param keys The keys, or names, of the values to retrieve; only these values will be retrieved
      *@return The GenericValue corresponding to the primaryKey
      */
-    public GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set keys) throws GenericEntityException {
+    public GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set<String> keys) throws GenericEntityException {
         if (primaryKey == null) {
             return null;
         }
@@ -99,16 +100,12 @@ public class GenericHelperDAO implements GenericHelper {
      *@param primaryKeys A List of primary keys to find by.
      *@return List of GenericValue objects corresponding to the passed primaryKey objects
      */
-    public List findAllByPrimaryKeys(List primaryKeys) throws GenericEntityException {
+    public List<GenericValue> findAllByPrimaryKeys(List<? extends GenericPK> primaryKeys) throws GenericEntityException {
         if (primaryKeys == null) return null;
-        List results = new LinkedList();
+        List<GenericValue> results = new LinkedList<GenericValue>();
 
-        Iterator pkiter = primaryKeys.iterator();
-
-        while (pkiter.hasNext()) {
-            GenericPK primaryKey = (GenericPK) pkiter.next();
-            GenericValue result = this.findByPrimaryKey(primaryKey);
-
+        for (GenericPK pk : primaryKeys) {
+            GenericValue result = this.findByPrimaryKey(pk);
             if (result != null) results.add(result);
         }
         return results;
@@ -130,7 +127,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
      *@return List of GenericValue instances that match the query
      */
-    public List findByAnd(ModelEntity modelEntity, Map fields, List orderBy) throws GenericEntityException {
+    public List<GenericValue> findByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         return genericDAO.selectByAnd(modelEntity, fields, orderBy);
     }
 
@@ -146,7 +143,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
      *@return List of GenericValue instances that match the query
      */
-    public List findByOr(ModelEntity modelEntity, Map fields, List orderBy) throws GenericEntityException {
+    public List<GenericValue> findByOr(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         return genericDAO.selectByOr(modelEntity, fields, orderBy);
     }
 
@@ -157,8 +154,8 @@ public class GenericHelperDAO implements GenericHelper {
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
      *@return List of GenericValue objects representing the result
      */
-    public List findByCondition(ModelEntity modelEntity, EntityCondition entityCondition,
-        Collection fieldsToSelect, List orderBy) throws GenericEntityException {
+    public List<GenericValue> findByCondition(ModelEntity modelEntity, EntityCondition entityCondition,
+        Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
         return genericDAO.selectByCondition(modelEntity, entityCondition, fieldsToSelect, orderBy);
     }
 
@@ -173,14 +170,14 @@ public class GenericHelperDAO implements GenericHelper {
      *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     public EntityListIterator findListIteratorByCondition(ModelEntity modelEntity, EntityCondition whereEntityCondition,
-        EntityCondition havingEntityCondition, Collection fieldsToSelect, List orderBy, EntityFindOptions findOptions)
+        EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
         throws GenericEntityException {
         return genericDAO.selectListIteratorByCondition(modelEntity, whereEntityCondition, havingEntityCondition, fieldsToSelect,
                 orderBy, findOptions);
     }
 
-    public List findByMultiRelation(GenericValue value, ModelRelation modelRelationOne, ModelEntity modelEntityOne,
-        ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List orderBy) throws GenericEntityException {
+    public List<GenericValue> findByMultiRelation(GenericValue value, ModelRelation modelRelationOne, ModelEntity modelEntityOne,
+        ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List<String> orderBy) throws GenericEntityException {
         return genericDAO.selectByMultiRelation(value, modelRelationOne, modelEntityOne, modelRelationTwo, modelEntityTwo, orderBy);
     }
 
@@ -189,7 +186,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param fields The fields of the named entity to query by with their corresponging values
      *@return int representing number of rows effected by this operation
      */
-    public int removeByAnd(ModelEntity modelEntity, Map fields) throws GenericEntityException {
+    public int removeByAnd(ModelEntity modelEntity, Map<String, ?> fields) throws GenericEntityException {
         if (modelEntity == null || fields == null) {
             return 0;
         }
@@ -217,7 +214,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param values List of GenericValue instances containing the entities to store
      *@return int representing number of rows effected by this operation
      */
-    public int storeAll(List values) throws GenericEntityException {
+    public int storeAll(List<? extends GenericValue> values) throws GenericEntityException {
         return genericDAO.storeAll(values);
     }
 
@@ -232,7 +229,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param dummyPKs List of GenericEntity instances containing the entities or by and fields to remove
      *@return int representing number of rows effected by this operation
      */
-    public int removeAll(List dummyPKs) throws GenericEntityException {
+    public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException {
         return genericDAO.deleteAll(dummyPKs);
     }
 
@@ -241,7 +238,7 @@ public class GenericHelperDAO implements GenericHelper {
      *@param messages Collection to put any result messages in
      *@param addMissing Flag indicating whether or not to add missing entities and fields on the server
      */
-    public void checkDataSource(Map modelEntities, Collection messages, boolean addMissing) throws GenericEntityException {
+    public void checkDataSource(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) throws GenericEntityException {
         genericDAO.checkDb(modelEntities, messages, addMissing);
     }
 }

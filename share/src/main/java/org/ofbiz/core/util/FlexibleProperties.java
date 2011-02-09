@@ -25,9 +25,12 @@
 package org.ofbiz.core.util;
 
 
-import java.util.*;
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Properties;
 
 
 /**
@@ -175,7 +178,7 @@ public class FlexibleProperties extends Properties {
     }
 
     public static void interpolateProperties(Properties props, boolean truncateIfMissing) {
-        Enumeration keys = props.keys();
+        Enumeration<Object> keys = props.keys();
 
         while (keys.hasMoreElements()) {
             String key = keys.nextElement().toString();
@@ -194,10 +197,10 @@ public class FlexibleProperties extends Properties {
         return interpolate(value, props, truncateIfMissing, null);
     }
 
-    public static String interpolate(String value, Properties props, boolean truncateIfMissing, ArrayList beenThere) {
+    public static String interpolate(String value, Properties props, boolean truncateIfMissing, ArrayList<String> beenThere) {
         if (props == null || value == null) return value;
         if (beenThere == null) {
-            beenThere = new ArrayList();
+            beenThere = new ArrayList<String>();
             // Debug.log("[FlexibleProperties.interpolate] starting interpolate: value=[" + value + "]");
         } else {// Debug.log("[FlexibleProperties.interpolate] starting sub-interpolate: beenThere=[" + beenThere + "], value=[" + value + "]");
         }
@@ -221,11 +224,11 @@ public class FlexibleProperties extends Properties {
                     }
                 }
                 // if this key needs to be interpolated itself
-                if (keyToExpand.indexOf("${") > -1) {
+                if (keyToExpand.contains("${")) {
                     // Debug.log("[FlexibleProperties.interpolate] recursing on key: keyToExpand=[" + keyToExpand + "]");
 
                     // save current beenThere and restore after so the later interpolates don't get messed up
-                    ArrayList tempBeenThere = new ArrayList(beenThere);
+                    ArrayList<String> tempBeenThere = new ArrayList<String>(beenThere);
 
                     beenThere.add(keyToExpand);
                     keyToExpand = interpolate(keyToExpand, props, truncateIfMissing, beenThere);
@@ -257,10 +260,10 @@ public class FlexibleProperties extends Properties {
                         // Key found - interpolate
 
                         // if this value needs to be interpolated itself
-                        if (expandValue.indexOf("${") > -1) {
+                        if (expandValue.contains("${")) {
                             // Debug.log("[FlexibleProperties] recursing on value: expandValue=[" + expandValue + "]");
                             // save current beenThere and restore after so the later interpolates don't get messed up
-                            ArrayList tempBeenThere = new ArrayList(beenThere);
+                            ArrayList<String> tempBeenThere = new ArrayList<String>(beenThere);
 
                             beenThere.add(keyToExpand);
                             expandValue = interpolate(expandValue, props, truncateIfMissing, beenThere);
@@ -298,11 +301,9 @@ public class FlexibleProperties extends Properties {
 
     public String toString() {
         StringBuffer retVal = new StringBuffer();
-        Set keySet = keySet();
-        Iterator keys = keySet.iterator();
 
-        while (keys.hasNext()) {
-            String key = keys.next().toString();
+        for (Object keyObj : keySet()) {
+            String key = keyObj.toString();
             String value = getProperty(key);
 
             retVal.append(key);

@@ -24,9 +24,9 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.model.ModelEntity;
 
-import org.ofbiz.core.entity.model.*;
+import java.util.List;
 
 /**
  * <p>Encapsulates SQL expressions used for where clause snippets. 
@@ -52,7 +52,7 @@ public class EntityWhereString extends EntityCondition {
         this.sqlString = sqlString;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         return sqlString;
     }
 

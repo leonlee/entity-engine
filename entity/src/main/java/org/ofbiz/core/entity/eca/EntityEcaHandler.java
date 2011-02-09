@@ -24,8 +24,11 @@
  */
 package org.ofbiz.core.entity.eca;
 
-import java.util.*;
-import org.ofbiz.core.entity.*;
+import org.ofbiz.core.entity.GenericDelegator;
+import org.ofbiz.core.entity.GenericEntity;
+import org.ofbiz.core.entity.GenericEntityException;
+
+import java.util.Map;
 
 /**
  * EntityEcaHandler interface
@@ -51,7 +54,7 @@ public interface EntityEcaHandler {
 
     public void setDelegator(GenericDelegator delegator);
 
-    public Map getEntityEventMap(String entityName);
+    public Map<?, ?> getEntityEventMap(String entityName);
 
-    public void evalRules(String currentOperation, Map eventMap, String event, GenericEntity value, boolean isError) throws GenericEntityException;
+    public void evalRules(String currentOperation, Map<?, ?> eventMap, String event, GenericEntity value, boolean isError) throws GenericEntityException;
 }

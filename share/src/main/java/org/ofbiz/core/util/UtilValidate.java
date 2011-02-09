@@ -190,7 +190,7 @@ public class UtilValidate {
     }
 
     /** Check whether collection c is empty. */
-    public static boolean isEmpty(Collection c) {
+    public static boolean isEmpty(Collection<?> c) {
         return ((c == null) || (c.size() == 0));
     }
 
@@ -200,7 +200,7 @@ public class UtilValidate {
     }
 
     /** Check whether collection c is NOT empty. */
-    public static boolean isNotEmpty(Collection c) {
+    public static boolean isNotEmpty(Collection<?> c) {
         return ((c != null) && (c.size() > 0));
     }
 
@@ -629,13 +629,13 @@ public class UtilValidate {
     /** Return true if s is a valid U.S. Postal Code (abbreviation for state). */
     public static boolean isStateCode(String s) {
         if (isEmpty(s)) return defaultEmptyOK;
-        return ((USStateCodes.indexOf(s) != -1) && (s.indexOf(USStateCodeDelimiter) == -1));
+        return ((USStateCodes.contains(s)) && (!s.contains(USStateCodeDelimiter)));
     }
 
     /** Return true if s is a valid contiguous U.S. Postal Code (abbreviation for state). */
     public static boolean isContiguousStateCode(String s) {
         if (isEmpty(s)) return defaultEmptyOK;
-        return ((ContiguousUSStateCodes.indexOf(s) != -1) && (s.indexOf(USStateCodeDelimiter) == -1));
+        return ((ContiguousUSStateCodes.contains(s)) && (!s.contains(USStateCodeDelimiter)));
     }
 
     /** Email address must be of form a@b.c -- in other words:
@@ -1073,24 +1073,24 @@ public class UtilValidate {
         // "P0 B"
 
         String sl = s.toLowerCase();
-        if (sl.indexOf("p.o. b") != -1) return false;
-        if (sl.indexOf("p.o.b") != -1) return false;
-        if (sl.indexOf("p.o b") != -1) return false;
-        if (sl.indexOf("p o b") != -1) return false;
-        if (sl.indexOf("po b") != -1) return false;
-        if (sl.indexOf("pobox") != -1) return false;
-        if (sl.indexOf("po#") != -1) return false;
-        if (sl.indexOf("po #") != -1) return false;
+        if (sl.contains("p.o. b")) return false;
+        if (sl.contains("p.o.b")) return false;
+        if (sl.contains("p.o b")) return false;
+        if (sl.contains("p o b")) return false;
+        if (sl.contains("po b")) return false;
+        if (sl.contains("pobox")) return false;
+        if (sl.contains("po#")) return false;
+        if (sl.contains("po #")) return false;
 
         // now with 0's for them sneaky folks
-        if (sl.indexOf("p.0. b") != -1) return false;
-        if (sl.indexOf("p.0.b") != -1) return false;
-        if (sl.indexOf("p.0 b") != -1) return false;
-        if (sl.indexOf("p 0 b") != -1) return false;
-        if (sl.indexOf("p0 b") != -1) return false;
-        if (sl.indexOf("p0box") != -1) return false;
-        if (sl.indexOf("p0#") != -1) return false;
-        if (sl.indexOf("p0 #") != -1) return false;
+        if (sl.contains("p.0. b")) return false;
+        if (sl.contains("p.0.b")) return false;
+        if (sl.contains("p.0 b")) return false;
+        if (sl.contains("p 0 b")) return false;
+        if (sl.contains("p0 b")) return false;
+        if (sl.contains("p0box")) return false;
+        if (sl.contains("p0#")) return false;
+        if (sl.contains("p0 #")) return false;
         return true;
     }
 }

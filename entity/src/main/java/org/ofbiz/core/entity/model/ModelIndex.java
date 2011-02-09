@@ -23,10 +23,13 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import org.ofbiz.core.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Generic Entity - Relation model class
@@ -47,7 +50,7 @@ public class ModelIndex {
     protected boolean unique;
 
     /** list of the field names included in this index */
-    protected List fieldNames = new ArrayList();
+    protected List<String> fieldNames = new ArrayList<String>();
 
     /** Default Constructor */
     public ModelIndex() {
@@ -99,7 +102,7 @@ public class ModelIndex {
         this.mainEntity = mainEntity;
     }
 
-    public Iterator getIndexFieldsIterator() {
+    public Iterator<String> getIndexFieldsIterator() {
         return this.fieldNames.iterator();
     }
 
@@ -108,7 +111,7 @@ public class ModelIndex {
     }
 
     public String getIndexField(int index) {
-        return (String) this.fieldNames.get(index);
+        return this.fieldNames.get(index);
     }
 
     public void addIndexField(String fieldName) {
@@ -116,6 +119,6 @@ public class ModelIndex {
     }
 
     public String removeIndexField(int index) {
-        return (String) this.fieldNames.remove(index);
+        return this.fieldNames.remove(index);
     }
 }

@@ -23,12 +23,13 @@
  */
 package org.ofbiz.core.entity;
 
-import java.sql.*;
-import javax.sql.*;
-import javax.transaction.*;
-import javax.transaction.xa.*;
+import org.ofbiz.core.util.Debug;
 
-import org.ofbiz.core.util.*;
+import javax.sql.XAConnection;
+import javax.transaction.*;
+import javax.transaction.xa.XAResource;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * <p>Transaction Utility to help with some common transaction tasks
@@ -42,7 +43,7 @@ public class TransactionUtil implements javax.transaction.Status {
     // Debug module name
     public static final String module = TransactionUtil.class.getName();
 
-    public static final ThreadLocal localTransaction = new ThreadLocal();
+    public static final ThreadLocal<Connection> localTransaction = new ThreadLocal<Connection>();
 
     /** Begins a transaction in the current thread IF transactions are available; only
      * tries if the current transaction status is ACTIVE, if not active it returns false.
@@ -286,7 +287,7 @@ public class TransactionUtil implements javax.transaction.Status {
      */
     public static Connection getLocalTransactionConnection()
     {
-        return (Connection) localTransaction.get();
+        return localTransaction.get();
     }
 
     /**

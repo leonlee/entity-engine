@@ -24,9 +24,10 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.model.ModelEntity;
 
-import org.ofbiz.core.entity.model.*;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Encapsulates a list of EntityConditions to be used as a single EntityCondition combined as specified
@@ -37,12 +38,12 @@ import org.ofbiz.core.entity.model.*;
  */
 public class EntityConditionList extends EntityCondition {
 
-    protected List conditionList;
+    protected List<? extends EntityCondition> conditionList;
     protected EntityOperator operator;
 
     protected EntityConditionList() {}
 
-    public EntityConditionList(List conditionList, EntityOperator operator) {
+    public EntityConditionList(List<? extends EntityCondition> conditionList, EntityOperator operator) {
         this.conditionList = conditionList;
         this.operator = operator;
     }
@@ -52,24 +53,24 @@ public class EntityConditionList extends EntityCondition {
     }
 
     public EntityCondition getCondition(int index) {
-        return (EntityCondition) this.conditionList.get(index);
+        return this.conditionList.get(index);
     }
     
     public int getConditionListSize() {
         return this.conditionList.size();
     }
     
-    public Iterator getConditionIterator() {
+    public Iterator<? extends EntityCondition> getConditionIterator() {
         return this.conditionList.iterator();
     }
     
-    public String makeWhereString(ModelEntity modelEntity, List entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuffer whereStringBuffer = new StringBuffer();
 
         if (conditionList != null && conditionList.size() > 0) {
             for (int i = 0; i < conditionList.size(); i++) {
-                EntityCondition condition = (EntityCondition) conditionList.get(i);
+                EntityCondition condition = conditionList.get(i);
 
                 whereStringBuffer.append('(');
                 whereStringBuffer.append(condition.makeWhereString(modelEntity, entityConditionParams));
@@ -86,12 +87,10 @@ public class EntityConditionList extends EntityCondition {
 
     public void checkCondition(ModelEntity modelEntity) throws GenericModelException {
         // if (Debug.verboseOn()) Debug.logVerbose("checkCondition for entity " + modelEntity.getEntityName());
-        Iterator exprIter = conditionList.iterator();
 
-        while (exprIter.hasNext()) {
-            EntityCondition entityCondition = (EntityCondition) exprIter.next();
+        for (EntityCondition condition : conditionList) {
 
-            entityCondition.checkCondition(modelEntity);
+            condition.checkCondition(modelEntity);
         }
     }
 
@@ -101,7 +100,7 @@ public class EntityConditionList extends EntityCondition {
         toStringBuffer.append("[conditionList::");
         if (conditionList != null && conditionList.size() > 0) {
             for (int i = 0; i < conditionList.size(); i++) {
-                EntityCondition condition = (EntityCondition) conditionList.get(i);
+                EntityCondition condition = conditionList.get(i);
 
                 toStringBuffer.append(condition.toString());
                 if (i > 0) toStringBuffer.append("::");

@@ -23,13 +23,19 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.config.GenericConfigException;
+import org.ofbiz.core.config.ResourceHandler;
+import org.ofbiz.core.entity.GenericEntityConfException;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilCache;
+import org.ofbiz.core.util.UtilTimer;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
-import org.ofbiz.core.config.*;
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.*;
+import java.util.*;
 
 /**
  * Generic Entity - Entity Group Definition Reader
@@ -40,10 +46,10 @@ import org.ofbiz.core.entity.config.*;
  */
 public class ModelGroupReader {
 
-    public static UtilCache readers = new UtilCache("entity.ModelGroupReader", 0, 0);
+    public static UtilCache<String, ModelGroupReader> readers = new UtilCache<String, ModelGroupReader>("entity.ModelGroupReader", 0, 0);
 
-    private Map groupCache = null;
-    private Set groupNames = null;
+    private Map<String, String> groupCache = null;
+    private Set<String> groupNames = null;
 
     public String modelName;
     public ResourceHandler entityGroupResourceHandler;
@@ -56,12 +62,12 @@ public class ModelGroupReader {
         }
 
         String tempModelName = delegatorInfo.entityGroupReader;
-        ModelGroupReader reader = (ModelGroupReader) readers.get(tempModelName);
+        ModelGroupReader reader = readers.get(tempModelName);
 
         if (reader == null) { // don't want to block here
             synchronized (ModelGroupReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                reader = (ModelGroupReader) readers.get(tempModelName);
+                reader = readers.get(tempModelName);
                 if (reader == null) {
                     reader = new ModelGroupReader(tempModelName);
                     readers.put(tempModelName, reader);
@@ -84,15 +90,15 @@ public class ModelGroupReader {
         getGroupCache();
     }
 
-    public Map getGroupCache() {
+    public Map<String, String> getGroupCache() {
         if (groupCache == null) // don't want to block here
         {
             synchronized (ModelGroupReader.class) {
                 // must check if null again as one of the blocked threads can still enter
                 if (groupCache == null) // now it's safe
                 {
-                    groupCache = new HashMap();
-                    groupNames = new TreeSet();
+                    groupCache = new HashMap<String, String>();
+                    groupNames = new TreeSet<String>();
 
                     UtilTimer utilTimer = new UtilTimer();
                     // utilTimer.timerString("[ModelGroupReader.getGroupCache] Before getDocument");
@@ -108,10 +114,6 @@ public class ModelGroupReader {
                         groupCache = null;
                         return null;
                     }
-
-                    Hashtable docElementValues = null;
-
-                    docElementValues = new Hashtable();
 
                     // utilTimer.timerString("[ModelGroupReader.getGroupCache] Before getDocumentElement");
                     Element docElement = document.getDocumentElement();
@@ -154,10 +156,10 @@ public class ModelGroupReader {
      * @return A group name
      */
     public String getEntityGroupName(String entityName) {
-        Map gc = getGroupCache();
+        Map<String, String> gc = getGroupCache();
 
         if (gc != null)
-            return (String) gc.get(entityName);
+            return gc.get(entityName);
         else
             return null;
     }
@@ -165,28 +167,24 @@ public class ModelGroupReader {
     /** Creates a Collection with all of the groupNames defined in the specified XML Entity Group Descriptor file.
      * @return A Collection of groupNames Strings
      */
-    public Collection getGroupNames() {
+    public Collection<String> getGroupNames() {
         getGroupCache();
         if (groupNames == null) return null;
-        return new ArrayList(groupNames);
+        return new ArrayList<String>(groupNames);
     }
 
     /** Creates a Collection with names of all of the entities for a given group
      * @return A Collection of entityName Strings
      */
-    public Collection getEntityNamesByGroup(String groupName) {
-        Map gc = getGroupCache();
-        Collection enames = new LinkedList();
+    public Collection<String> getEntityNamesByGroup(String groupName) {
+        Map<String, String> gc = getGroupCache();
+        Collection<String> enames = new LinkedList<String>();
 
         if (groupName == null || groupName.length() <= 0) return enames;
         if (gc == null || gc.size() < 0) return enames;
-        Set gcEntries = gc.entrySet();
-        Iterator gcIter = gcEntries.iterator();
 
-        while (gcIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) gcIter.next();
-
-            if (groupName.equals(entry.getValue())) enames.add(entry.getKey());
+        for (Map.Entry<String, String> gcEntry : gc.entrySet()) {
+            if (groupName.equals(gcEntry.getValue())) enames.add(gcEntry.getKey());
         }
         return enames;
     }

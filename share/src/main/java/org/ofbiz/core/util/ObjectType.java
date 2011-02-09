@@ -23,7 +23,10 @@
  */
 package org.ofbiz.core.util;
 
-import java.text.*;
+import java.text.DateFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -39,7 +42,7 @@ public class ObjectType {
     
     public static final String module = ObjectType.class.getName();
 
-    protected static Map classCache = new HashMap();
+    protected static Map<String, Class<?>> classCache = new HashMap<String, Class<?>>();
 
     public static final String LANG_PACKAGE = "java.lang."; // We will test both the raw value and this + raw value
     public static final String SQL_PACKAGE = "java.sql.";   // We will test both the raw value and this + raw value
@@ -48,9 +51,9 @@ public class ObjectType {
      * Loads a class with the current thread's context classloader
      * @param className The name of the class to load
      */
-    public static Class loadClass(String className) throws ClassNotFoundException {
+    public static Class<?> loadClass(String className) throws ClassNotFoundException {
         // small block to speed things up by putting using preloaded classes for common objects, this turns out to help quite a bit...
-        Class theClass = (Class) CachedClassLoader.globalClassNameClassMap.get(className);
+        Class<?> theClass = CachedClassLoader.globalClassNameClassMap.get(className);
 
         if (theClass != null) return theClass;
 
@@ -61,9 +64,9 @@ public class ObjectType {
      * Loads a class with the current thread's context classloader
      * @param className The name of the class to load
      */
-    public static Class loadClass(String className, ClassLoader loader) throws ClassNotFoundException {
+    public static Class<?> loadClass(String className, ClassLoader loader) throws ClassNotFoundException {
         // small block to speed things up by putting using preloaded classes for common objects, this turns out to help quite a bit...
-        Class theClass = (Class) CachedClassLoader.globalClassNameClassMap.get(className);
+        Class<?> theClass = CachedClassLoader.globalClassNameClassMap.get(className);
 
         if (theClass != null) return theClass;
 
@@ -72,10 +75,10 @@ public class ObjectType {
         try {
             theClass = loader.loadClass(className);
         } catch (Exception e) {
-            theClass = (Class) classCache.get(className);
+            theClass = classCache.get(className);
             if (theClass == null) {
                 synchronized (ObjectType.class) {
-                    theClass = (Class) classCache.get(className);
+                    theClass = classCache.get(className);
                     if (theClass == null) {
                         theClass = Class.forName(className);
                         if (theClass != null) {
@@ -96,7 +99,7 @@ public class ObjectType {
      */
     public static Object getInstance(String className) throws ClassNotFoundException,
             InstantiationException, IllegalAccessException {
-        Class c = loadClass(className);
+        Class<?> c = loadClass(className);
         Object o = c.newInstance();
 
         if (Debug.verboseOn()) Debug.logVerbose("Instantiated object: " + o.toString(), module);
@@ -109,7 +112,7 @@ public class ObjectType {
      * @param interfaceName Name of the interface to test against
      */
     public static boolean interfaceOf(Object obj, String interfaceName) throws ClassNotFoundException {
-        Class interfaceClass = loadClass(interfaceName);
+        Class<?> interfaceClass = loadClass(interfaceName);
 
         return interfaceOf(obj, interfaceClass);
     }
@@ -120,7 +123,7 @@ public class ObjectType {
      * @param interfaceObject to test against
      */
     public static boolean interfaceOf(Object obj, Object interfaceObject) {
-        Class interfaceClass = interfaceObject.getClass();
+        Class<?> interfaceClass = interfaceObject.getClass();
 
         return interfaceOf(obj, interfaceClass);
     }
@@ -130,14 +133,13 @@ public class ObjectType {
      * @param obj Object to test
      * @param interfaceClass Class to test against
      */
-    public static boolean interfaceOf(Object obj, Class interfaceClass) {
-        Class objectClass = obj.getClass();
+    public static boolean interfaceOf(Object obj, Class<?> interfaceClass) {
+        Class<?> objectClass = obj.getClass();
 
         while (objectClass != null) {
-            Class[] ifaces = objectClass.getInterfaces();
-
-            for (int i = 0; i < ifaces.length; i++) {
-                if (ifaces[i] == interfaceClass) return true;
+            Class<?>[] ifaces = objectClass.getInterfaces();
+            for (Class<?> iface : ifaces) {
+                if (iface == interfaceClass) return true;
             }
             objectClass = objectClass.getSuperclass();
         }
@@ -150,7 +152,7 @@ public class ObjectType {
      * @param parentName Name of the parent class to test against
      */
     public static boolean isOrSubOf(Object obj, String parentName) throws ClassNotFoundException {
-        Class parentClass = loadClass(parentName);
+        Class<?> parentClass = loadClass(parentName);
 
         return isOrSubOf(obj, parentClass);
     }
@@ -161,7 +163,7 @@ public class ObjectType {
      * @param parentObject Object to test against
      */
     public static boolean isOrSubOf(Object obj, Object parentObject) {
-        Class parentClass = parentObject.getClass();
+        Class<?> parentClass = parentObject.getClass();
 
         return isOrSubOf(obj, parentClass);
     }
@@ -171,8 +173,8 @@ public class ObjectType {
      * @param obj Object to test
      * @param parentClass Class to test against
      */
-    public static boolean isOrSubOf(Object obj, Class parentClass) {
-        Class objectClass = obj.getClass();
+    public static boolean isOrSubOf(Object obj, Class<?> parentClass) {
+        Class<?> objectClass = obj.getClass();
 
         while (objectClass != null) {
             if (objectClass == parentClass) return true;
@@ -187,7 +189,7 @@ public class ObjectType {
      * @param typeObject Object to test against
      */
     public static boolean instanceOf(Object obj, Object typeObject) {
-        Class typeClass = typeObject.getClass();
+        Class<?> typeClass = typeObject.getClass();
 
         return instanceOf(obj, typeClass);
     }
@@ -207,7 +209,7 @@ public class ObjectType {
      * @param typeObject Object to test against
      */
     public static boolean instanceOf(Object obj, String typeName, ClassLoader loader) {
-        Class infoClass = null;
+        Class<?> infoClass = null;
 
         try {
             infoClass = ObjectType.loadClass(typeName, loader);
@@ -245,9 +247,9 @@ public class ObjectType {
      * @param obj Object to test
      * @param typeClass Class to test against
      */
-    public static boolean instanceOf(Object obj, Class typeClass) {
+    public static boolean instanceOf(Object obj, Class<?> typeClass) {
         if (obj == null) return true;
-        Class objectClass = obj.getClass();
+        Class<?> objectClass = obj.getClass();
 
         if (typeClass.isInterface()) {
             return interfaceOf(obj, typeClass);
@@ -289,12 +291,7 @@ public class ObjectType {
             }
 
             if ("Boolean".equals(type) || "java.lang.Boolean".equals(type)) {
-                Boolean value = null;
-                if (str.equalsIgnoreCase("TRUE"))
-                    value = new Boolean(true);
-                else
-                    value = new Boolean(false);
-                return value;
+                return str.equalsIgnoreCase("TRUE");
             } else if ("Locale".equals(type) || "java.util.Locale".equals(type)) {
                 Locale loc = UtilMisc.parseLocale(str);
                 if (loc != null) {
@@ -312,7 +309,7 @@ public class ObjectType {
                         nf = NumberFormat.getNumberInstance(locale);
                     Number tempNum = nf.parse(str);
 
-                    return new Double(tempNum.doubleValue());
+                    return tempNum.doubleValue();
                 } catch (ParseException e) {
                     throw new GeneralException("Could not convert " + str + " to " + type + ": ", e);
                 }
@@ -326,7 +323,7 @@ public class ObjectType {
                         nf = NumberFormat.getNumberInstance(locale);
                     Number tempNum = nf.parse(str);
 
-                    return new Float(tempNum.floatValue());
+                    return tempNum.floatValue();
                 } catch (ParseException e) {
                     throw new GeneralException("Could not convert " + str + " to " + type + ": ", e);
                 }
@@ -341,7 +338,7 @@ public class ObjectType {
                     nf.setMaximumFractionDigits(0);
                     Number tempNum = nf.parse(str);
 
-                    return new Long(tempNum.longValue());
+                    return tempNum.longValue();
                 } catch (ParseException e) {
                     throw new GeneralException("Could not convert " + str + " to " + type + ": ", e);
                 }
@@ -356,7 +353,7 @@ public class ObjectType {
                     nf.setMaximumFractionDigits(0);
                     Number tempNum = nf.parse(str);
 
-                    return new Integer(tempNum.intValue());
+                    return tempNum.intValue();
                 } catch (ParseException e) {
                     throw new GeneralException("Could not convert " + str + " to " + type + ": ", e);
                 }
@@ -465,11 +462,11 @@ public class ObjectType {
             } else if ("Double".equals(type) || "java.lang.Double".equals(type)) {
                 return obj;
             } else if ("Float".equals(type) || "java.lang.Float".equals(type)) {
-                return new Float(dbl.floatValue());
+                return dbl.floatValue();
             } else if ("Long".equals(type) || "java.lang.Long".equals(type)) {
-                return new Long(Math.round(dbl.doubleValue()));
+                return Math.round(dbl);
             } else if ("Integer".equals(type) || "java.lang.Integer".equals(type)) {
-                return new Integer((int) Math.round(dbl.doubleValue()));
+                return (int) Math.round(dbl);
             } else {
                 throw new GeneralException("Conversion from " + fromType + " to " + type + " not currently supported");
             }
@@ -486,13 +483,13 @@ public class ObjectType {
                     nf = NumberFormat.getNumberInstance(locale);
                 return nf.format(flt.doubleValue());
             } else if ("Double".equals(type)) {
-                return new Double(flt.doubleValue());
+                return flt.doubleValue();
             } else if ("Float".equals(type)) {
                 return obj;
             } else if ("Long".equals(type)) {
-                return new Long(Math.round(flt.doubleValue()));
+                return Math.round(flt.doubleValue());
             } else if ("Integer".equals(type)) {
-                return new Integer((int) Math.round(flt.doubleValue()));
+                return (int) Math.round(flt.doubleValue());
             } else {
                 throw new GeneralException("Conversion from " + fromType + " to " + type + " not currently supported");
             }
@@ -509,13 +506,13 @@ public class ObjectType {
                     nf = NumberFormat.getNumberInstance(locale);
                 return nf.format(lng.longValue());
             } else if ("Double".equals(type) || "java.lang.Double".equals(type)) {
-                return new Double(lng.doubleValue());
+                return lng.doubleValue();
             } else if ("Float".equals(type) || "java.lang.Float".equals(type)) {
-                return new Float(lng.floatValue());
+                return lng.floatValue();
             } else if ("Long".equals(type) || "java.lang.Long".equals(type)) {
                 return obj;
             } else if ("Integer".equals(type) || "java.lang.Integer".equals(type)) {
-                return new Integer(lng.intValue());
+                return lng.intValue();
             } else {
                 throw new GeneralException("Conversion from " + fromType + " to " + type + " not currently supported");
             }
@@ -532,11 +529,11 @@ public class ObjectType {
                     nf = NumberFormat.getNumberInstance(locale);
                 return nf.format(intgr.longValue());
             } else if ("Double".equals(type) || "java.lang.Double".equals(type)) {
-                return new Double(intgr.doubleValue());
+                return intgr.doubleValue();
             } else if ("Float".equals(type) || "java.lang.Float".equals(type)) {
-                return new Float(intgr.floatValue());
+                return intgr.floatValue();
             } else if ("Long".equals(type) || "java.lang.Long".equals(type)) {
-                return new Long(intgr.longValue());
+                return intgr.longValue();
             } else if ("Integer".equals(type) || "java.lang.Integer".equals(type)) {
                 return obj;
             } else {
@@ -613,10 +610,10 @@ public class ObjectType {
             } else if ("String".equals(type) || "java.lang.String".equals(type)) {
                 return bol.toString();
             } else if ("Integer".equals(type) || "java.lang.Integer".equals(type)) {
-                if (bol.booleanValue())
-                    return new Integer(1);
+                if (bol)
+                    return 1;
                 else
-                    return new Integer(0);                
+                    return 0;
             } else { 
                 throw new GeneralException("Conversion from " + fromType + " to " + type + " not currently supported");
             }
@@ -636,7 +633,7 @@ public class ObjectType {
     }
 
     public static Boolean doRealCompare(Object value1, Object value2, String operator, String type, String format,
-        List messages, Locale locale, ClassLoader loader) {
+        List<String> messages, Locale locale, ClassLoader loader) {
         boolean verboseOn = Debug.verboseOn();
 
         if (verboseOn) Debug.logVerbose("Comparing value1: \"" + value1 + "\" " + operator + " value2:\"" + value2 + "\"");
@@ -681,7 +678,7 @@ public class ObjectType {
             String str1 = (String) convertedValue1;
             String str2 = (String) convertedValue2;
 
-            if (str1.indexOf(str2) < 0) {
+            if (!str1.contains(str2)) {
                 return Boolean.FALSE;
             }
         }
@@ -691,9 +688,9 @@ public class ObjectType {
                 return Boolean.TRUE;
             if (value1 instanceof String && ((String) value1).length() == 0)
                 return Boolean.TRUE;
-            if (value1 instanceof List && ((List) value1).size() == 0)
+            if (value1 instanceof List && ((List<?>) value1).size() == 0)
                 return Boolean.TRUE;
-            if (value1 instanceof Map && ((Map) value1).size() == 0)
+            if (value1 instanceof Map && ((Map<?,?>) value1).size() == 0)
                 return Boolean.TRUE;
             return Boolean.FALSE;    
         }
@@ -703,9 +700,9 @@ public class ObjectType {
                 return Boolean.FALSE;
             if (value1 instanceof String && ((String) value1).length() == 0)
                 return Boolean.FALSE;
-            if (value1 instanceof List && ((List) value1).size() == 0)
+            if (value1 instanceof List && ((List<?>) value1).size() == 0)
                 return Boolean.FALSE;
-            if (value1 instanceof Map && ((Map) value1).size() == 0)
+            if (value1 instanceof Map && ((Map<?,?>) value1).size() == 0)
                 return Boolean.FALSE;
             return Boolean.TRUE;    
         }
@@ -747,12 +744,12 @@ public class ObjectType {
             Boolean value1Boolean = (Boolean) convertedValue1;
             Boolean value2Boolean = (Boolean) convertedValue2;
             if ("equals".equals(operator)) {
-                if ((value1Boolean.booleanValue() && value2Boolean.booleanValue()) || (!value1Boolean.booleanValue() && !value2Boolean.booleanValue()))
+                if ((value1Boolean && value2Boolean) || (!value1Boolean && !value2Boolean))
                     result = 0;
                 else
                     result = 1;
             } else if ("not-equals".equals(operator)) {
-                if ((!value1Boolean.booleanValue() && value2Boolean.booleanValue()) || (value1Boolean.booleanValue() && !value2Boolean.booleanValue()))
+                if ((!value1Boolean && value2Boolean) || (value1Boolean && !value2Boolean))
                     result = 0;
                 else
                     result = 1;

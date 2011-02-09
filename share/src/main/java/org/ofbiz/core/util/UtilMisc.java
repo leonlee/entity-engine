@@ -40,7 +40,7 @@ public class UtilMisc {
      * @param col The collection to be turned in to an iterator
      * @return The resulting Iterator
      */
-    public static Iterator toIterator(Collection col) {
+    public static <T> Iterator<T> toIterator(Collection<T> col) {
         if (col == null)
             return null;
         else
@@ -51,7 +51,7 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1) {
+    public static Map<String, Object> toMap(String name1, Object value1) {
         return new UtilMisc.SimpleMap(name1, value1);
 
         /* Map fields = new HashMap();
@@ -63,7 +63,7 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1, String name2, Object value2) {
+    public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2) {
         return new UtilMisc.SimpleMap(name1, value1, name2, value2);
 
         /* Map fields = new HashMap();
@@ -76,7 +76,7 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3) {
+    public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3) {
         return new UtilMisc.SimpleMap(name1, value1, name2, value2, name3, value3);
 
         /* Map fields = new HashMap();
@@ -90,7 +90,7 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1, String name2, Object value2, String name3,
+    public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3,
         Object value3, String name4, Object value4) {
         return new UtilMisc.SimpleMap(name1, value1, name2, value2, name3, value3, name4, value4);
 
@@ -106,9 +106,9 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
+    public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
         String name4, Object value4, String name5, Object value5) {
-        Map fields = new HashMap();
+        Map<String, Object> fields = new HashMap<String, Object>();
 
         fields.put(name1, value1);
         fields.put(name2, value2);
@@ -122,9 +122,9 @@ public class UtilMisc {
      * Create a map from passed nameX, valueX parameters
      * @return The resulting Map
      */
-    public static Map toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
+    public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
         String name4, Object value4, String name5, Object value5, String name6, Object value6) {
-        Map fields = new HashMap();
+        Map<String, Object> fields = new HashMap<String, Object>();
 
         fields.put(name1, value1);
         fields.put(name2, value2);
@@ -141,12 +141,12 @@ public class UtilMisc {
      * @param sortKeys List of Map keys to sort by.
      * @return a new List of sorted Maps.
      */
-    public static List sortMaps(List listOfMaps, List sortKeys) {
+    public static <K,V> List<Map<K, V>> sortMaps(List<Map<K, V>> listOfMaps, List<? extends K> sortKeys) {
         if (listOfMaps == null || sortKeys == null)
             return null;
-        List toSort = new LinkedList(listOfMaps);
+        List<Map<K,V>> toSort = new LinkedList<Map<K,V>>(listOfMaps);
         try {
-            MapComparator mc = new MapComparator(sortKeys);
+            MapComparator<K> mc = new MapComparator<K>(sortKeys);
             Collections.sort(toSort, mc);
         } catch (Exception e) {
             Debug.logError(e, "Problems sorting list of maps; returning null.");
@@ -159,8 +159,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1) {
-        List list = new ArrayList(1);
+    public static <T>List<T> toList(T obj1) {
+        List<T> list = new ArrayList<T>(1);
 
         list.add(obj1);
         return list;
@@ -170,8 +170,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1, Object obj2) {
-        List list = new ArrayList(2);
+    public static <T>List<T> toList(T obj1, T obj2) {
+        List<T> list = new ArrayList<T>(2);
 
         list.add(obj1);
         list.add(obj2);
@@ -182,8 +182,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1, Object obj2, Object obj3) {
-        List list = new ArrayList(3);
+    public static <T>List<T> toList(T obj1, T obj2, T obj3) {
+        List<T> list = new ArrayList<T>(3);
 
         list.add(obj1);
         list.add(obj2);
@@ -195,8 +195,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1, Object obj2, Object obj3, Object obj4) {
-        List list = new ArrayList(4);
+    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4) {
+        List<T> list = new ArrayList<T>(4);
 
         list.add(obj1);
         list.add(obj2);
@@ -209,8 +209,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1, Object obj2, Object obj3, Object obj4, Object obj5) {
-        List list = new ArrayList(5);
+    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5) {
+        List<T> list = new ArrayList<T>(5);
 
         list.add(obj1);
         list.add(obj2);
@@ -224,8 +224,8 @@ public class UtilMisc {
      * Create a list from passed objX parameters
      * @return The resulting List
      */
-    public static List toList(Object obj1, Object obj2, Object obj3, Object obj4, Object obj5, Object obj6) {
-        List list = new ArrayList(6);
+    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5, T obj6) {
+        List<T> list = new ArrayList<T>(6);
 
         list.add(obj1);
         list.add(obj2);
@@ -236,12 +236,12 @@ public class UtilMisc {
         return list;
     }
 
-    public static List toList(Collection collection) {
+    public static <T> List<T> toList(Collection<T> collection) {
         if (collection == null) return null;
         if (collection instanceof List) {
-            return (List) collection;
+            return (List<T>) collection;
         } else {
-            return new ArrayList(collection);
+            return new ArrayList<T>(collection);
         }
     }
 
@@ -254,20 +254,19 @@ public class UtilMisc {
         if (localeString == null || localeString.length() == 0)
             return null;
         
-        List splitList = StringUtil.split(localeString, "_");
+        List<String> splitList = StringUtil.split(localeString, "_");
         if (splitList.size() != 2)
             return null;
             
-        String language = (String) splitList.get(0);
-        String country = (String) splitList.get(1);
-        
-        Locale locale = new Locale(language, country);
-        return locale;
+        String language = splitList.get(0);
+        String country = splitList.get(1);
+
+        return new Locale(language, country);
     }
     
     /** This is meant to be very quick to create and use for small sized maps, perfect for how we usually use UtilMisc.toMap */
-    protected static class SimpleMap implements Map, java.io.Serializable {
-        protected Map realMapIfNeeded = null;
+    protected static class SimpleMap implements Map<String, Object>, java.io.Serializable {
+        protected Map<String, Object> realMapIfNeeded = null;
 
         String[] names;
         Object[] values;
@@ -318,7 +317,7 @@ public class UtilMisc {
         }
 
         protected void makeRealMap() {
-            realMapIfNeeded = new HashMap();
+            realMapIfNeeded = new HashMap<String, Object>();
             for (int i = 0; i < names.length; i++) {
                 realMapIfNeeded.put(names[i], values[i]);
             }
@@ -330,7 +329,7 @@ public class UtilMisc {
             if (realMapIfNeeded != null) {
                 realMapIfNeeded.clear();
             } else {
-                realMapIfNeeded = new HashMap();
+                realMapIfNeeded = new HashMap<String, Object>();
                 names = null;
                 values = null;
             }
@@ -340,9 +339,9 @@ public class UtilMisc {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.containsKey(obj);
             } else {
-                for (int i = 0; i < names.length; i++) {
-                    if (obj == null && names[i] == null) return true;
-                    if (names[i] != null && names[i].equals(obj)) return true;
+                for (String name : names) {
+                    if (obj == null && name == null) return true;
+                    if (name != null && name.equals(obj)) return true;
                 }
                 return false;
             }
@@ -360,7 +359,7 @@ public class UtilMisc {
             }
         }
 
-        public java.util.Set entrySet() {
+        public java.util.Set<Map.Entry<String, Object>> entrySet() {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.entrySet();
             } else {
@@ -390,7 +389,7 @@ public class UtilMisc {
             }
         }
 
-        public java.util.Set keySet() {
+        public java.util.Set<String> keySet() {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.keySet();
             } else {
@@ -399,7 +398,7 @@ public class UtilMisc {
             }
         }
 
-        public Object put(Object obj, Object obj1) {
+        public Object put(String obj, Object obj1) {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.put(obj, obj1);
             } else {
@@ -408,7 +407,7 @@ public class UtilMisc {
             }
         }
 
-        public void putAll(java.util.Map map) {
+        public void putAll(java.util.Map<? extends String, ?> map) {
             if (realMapIfNeeded != null) {
                 realMapIfNeeded.putAll(map);
             } else {
@@ -434,7 +433,7 @@ public class UtilMisc {
             }
         }
 
-        public java.util.Collection values() {
+        public java.util.Collection<Object> values() {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.values();
             } else {
@@ -480,7 +479,7 @@ public class UtilMisc {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.equals(obj);
             } else {
-                Map mapObj = (Map) obj;
+                Map<?,?> mapObj = (Map<?, ?>) obj;
                 
                 //first check the size
                 if (mapObj.size() != names.length) return false;

@@ -27,12 +27,7 @@ package org.ofbiz.core.entity.config;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.config.ResourceLoader;
-import org.ofbiz.core.entity.GenericDAO;
-import org.ofbiz.core.entity.GenericDelegator;
-import org.ofbiz.core.entity.GenericEntityConfException;
-import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.GenericHelperFactory;
-import org.ofbiz.core.entity.TransactionFactory;
+import org.ofbiz.core.entity.*;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 import org.ofbiz.core.util.UtilXml;
@@ -207,15 +202,15 @@ public class EntityConfigUtil
         }
 
         // not load all of the maps...
-        List childElements = null;
-        Iterator elementIter = null;
+        List<Element> childElements = null;
+        Iterator<Element> elementIter = null;
 
         // resource-loader - resourceLoaderInfos
         childElements = UtilXml.childElementList(rootElement, "resource-loader");
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             ResourceLoaderInfo resourceLoaderInfo = new EntityConfigUtil.ResourceLoaderInfo(curElement);
             this.resourceLoaderInfos.put(resourceLoaderInfo.name, resourceLoaderInfo);
         }
@@ -225,7 +220,7 @@ public class EntityConfigUtil
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             DelegatorInfo delegatorInfo = new EntityConfigUtil.DelegatorInfo(curElement);
             this.delegatorInfos.put(delegatorInfo.name, delegatorInfo);
         }
@@ -235,7 +230,7 @@ public class EntityConfigUtil
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             EntityModelReaderInfo entityModelReaderInfo = new EntityModelReaderInfo(curElement);
             entityModelReaderInfos.put(entityModelReaderInfo.name, entityModelReaderInfo);
         }
@@ -245,7 +240,7 @@ public class EntityConfigUtil
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             EntityGroupReaderInfo entityGroupReaderInfo = new EntityGroupReaderInfo(curElement);
             entityGroupReaderInfos.put(entityGroupReaderInfo.name, entityGroupReaderInfo);
         }
@@ -255,7 +250,7 @@ public class EntityConfigUtil
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             EntityEcaReaderInfo entityEcaReaderInfo = new EntityEcaReaderInfo(curElement);
             entityEcaReaderInfos.put(entityEcaReaderInfo.name, entityEcaReaderInfo);
         }
@@ -265,7 +260,7 @@ public class EntityConfigUtil
         elementIter = childElements.iterator();
         while (elementIter.hasNext())
         {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             FieldTypeInfo fieldTypeInfo = new FieldTypeInfo(curElement);
             fieldTypeInfos.put(fieldTypeInfo.name, fieldTypeInfo);
         }
@@ -279,7 +274,7 @@ public class EntityConfigUtil
             elementIter = childElements.iterator();
             while (elementIter.hasNext())
             {
-                Element curElement = (Element) elementIter.next();
+                Element curElement = elementIter.next();
                 DatasourceInfo datasourceInfo = new DatasourceInfo(curElement);
                 datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
             }
@@ -374,7 +369,7 @@ public class EntityConfigUtil
         public String distributedCacheClearUserLoginId;
         public Map<String, String> groupMap = new HashMap<String, String>();
 
-        public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map groupMap)
+        public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map<String, String> groupMap)
         {
             this.name = name;
             this.entityModelReader = entityModelReader;
@@ -402,13 +397,9 @@ public class EntityConfigUtil
                 this.distributedCacheClearUserLoginId = "admin";
             }
 
-            List groupMapList = UtilXml.childElementList(element, "group-map");
-            Iterator groupMapIter = groupMapList.iterator();
+            List<Element> groupMapList = UtilXml.childElementList(element, "group-map");
 
-            while (groupMapIter.hasNext())
-            {
-                Element groupMapElement = (Element) groupMapIter.next();
-
+            for (Element groupMapElement : groupMapList) {
                 groupMap.put(groupMapElement.getAttribute("group-name"), groupMapElement.getAttribute("datasource-name"));
             }
         }
@@ -418,7 +409,7 @@ public class EntityConfigUtil
     public static class EntityModelReaderInfo
     {
         public String name;
-        public List resourceElements;
+        public List<Element> resourceElements;
 
         public EntityModelReaderInfo(Element element)
         {
@@ -444,7 +435,7 @@ public class EntityConfigUtil
     public static class EntityEcaReaderInfo
     {
         public String name;
-        public List resourceElements;
+        public List<Element> resourceElements;
 
         public EntityEcaReaderInfo(Element element)
         {

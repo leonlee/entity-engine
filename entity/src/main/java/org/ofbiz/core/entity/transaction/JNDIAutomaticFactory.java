@@ -1,28 +1,31 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.TransactionUtil;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.config.JndiDatasourceInfo;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
-import org.ofbiz.core.entity.config.EntityConfigUtil;
-import org.ofbiz.core.util.GeneralException;
 import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.GeneralException;
 import org.ofbiz.core.util.JNDIContextFactory;
-import org.ofbiz.core.config.GenericConfigException;
 
-import javax.transaction.TransactionManager;
-import javax.transaction.UserTransaction;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.sql.XADataSource;
 import javax.sql.DataSource;
 import javax.sql.XAConnection;
+import javax.sql.XADataSource;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * A TransactionFactory that automatically resolves the transaction factory from JNDI by making
@@ -113,7 +116,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
     }
 
     static String[] parseList(String str) {
-        List list = new ArrayList();
+        List<String> list = new ArrayList<String>();
 
         int currentPosition = 0;
 
@@ -127,7 +130,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
 
         list.add(str.substring(currentPosition));
 
-       return (String[]) list.toArray(new String[] {});
+       return list.toArray(new String[list.size()]);
     }
 
 
@@ -195,15 +198,14 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
 
     private Object retrieveJNDIObject (String jndiServerName, String[] jndiNameGuesses) throws GeneralException {
 
-        for(int i = 0; i < jndiNameGuesses.length; i++ ) {
-            String jndiNameGuess = jndiNameGuesses[i];
+        for (String jndiNameGuess : jndiNameGuesses) {
             try {
                 InitialContext ic = JNDIContextFactory.getInitialContext(jndiServerName);
 
                 if (ic != null) {
                     Object jndiObject = ic.lookup(jndiNameGuess);
 
-                    if(jndiObject != null) {
+                    if (jndiObject != null) {
                         Debug.logInfo("JNDI Object found using the look-up name " + jndiNameGuess, module);
                         return jndiObject;
                     }
@@ -258,8 +260,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
 
                     String jndiSuffix = jndiName.substring(AUTO_CONFIGURE_JNDI_PREFIX.length());
 
-                    for (int i = 0; i < JNDI_PREFIX_GUESSES.length; i++) {
-                        String jndiPrefixGuess = JNDI_PREFIX_GUESSES[i];
+                    for (String jndiPrefixGuess : JNDI_PREFIX_GUESSES) {
                         con = getJndiConnection(jndiPrefixGuess + jndiSuffix, conDetails.getServerName());
 
                         if (con != null) {

@@ -25,9 +25,12 @@
 package org.ofbiz.core.entity;
 
 
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.util.UtilDateTime;
+import org.ofbiz.core.util.UtilMisc;
+import org.ofbiz.core.util.UtilValidate;
+
 import java.util.*;
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.model.*;
 
 
 /**
@@ -39,22 +42,22 @@ import org.ofbiz.core.entity.model.*;
  */
 public class EntityUtil {
 
-    public static GenericValue getFirst(List values) {
+    public static GenericValue getFirst(List<? extends GenericValue> values) {
         if ((values != null) && (values.size() > 0)) {
-            return (GenericValue) values.iterator().next();
+            return values.iterator().next();
         } else {
             return null;
         }
     }
 
-    public static GenericValue getOnly(List values) {
+    public static GenericValue getOnly(List<? extends GenericValue> values) {
         if (values != null) {
             final int size = values.size();
             if (size <= 0) {
                 return null;
             }
             if (size == 1) {
-                return (GenericValue) values.iterator().next();
+                return values.iterator().next();
             } else {
                 throw new IllegalArgumentException("Passed List had more than one value.");
             }
@@ -69,7 +72,7 @@ public class EntityUtil {
      *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
      *@return List of GenericValue's that are currently active
      */
-    public static List filterByDate(List datedValues) {
+    public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues) {
         return filterByDate(datedValues, UtilDateTime.nowTimestamp(), "fromDate", "thruDate", true);
     }
 
@@ -80,7 +83,7 @@ public class EntityUtil {
      *@param allAreSame Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
      *@return List of GenericValue's that are currently active
      */
-    public static List filterByDate(List datedValues, boolean allAreSame) {
+    public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, boolean allAreSame) {
         return filterByDate(datedValues, UtilDateTime.nowTimestamp(), "fromDate", "thruDate", allAreSame);
     }
 
@@ -91,7 +94,7 @@ public class EntityUtil {
      *@param moment the moment in question
      *@return List of GenericValue's that are active at the moment
      */
-    public static List filterByDate(List datedValues, java.util.Date moment) {
+    public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.util.Date moment) {
         return filterByDate(datedValues, new java.sql.Timestamp(moment.getTime()), "fromDate", "thruDate", true);
     }
 
@@ -102,7 +105,7 @@ public class EntityUtil {
      *@param moment the moment in question
      *@return List of GenericValue's that are active at the moment
      */
-    public static List filterByDate(List datedValues, java.sql.Timestamp moment) {
+    public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.sql.Timestamp moment) {
         return filterByDate(datedValues, moment, "fromDate", "thruDate", true);
     }
 
@@ -114,21 +117,21 @@ public class EntityUtil {
      *@param allAreSame Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
      *@return List of GenericValue's that are active at the moment
      */
-    public static List filterByDate(List datedValues, java.sql.Timestamp moment, String fromDateName, String thruDateName, boolean allAreSame) {
+    public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.sql.Timestamp moment, String fromDateName, String thruDateName, boolean allAreSame) {
         if (datedValues == null) return null;
         if (moment == null) return datedValues;
         if (fromDateName == null) throw new IllegalArgumentException("You must specify the name of the fromDate field to use this method");
         if (thruDateName == null) throw new IllegalArgumentException("You must specify the name of the thruDate field to use this method");
 
-        List result = new LinkedList();
-        Iterator iter = datedValues.iterator();
+        List<T> result = new LinkedList<T>();
+        Iterator<T> iter = datedValues.iterator();
 
         if (allAreSame) {
             ModelField fromDateField = null;
             ModelField thruDateField = null;
 
             if (iter.hasNext()) {
-                GenericValue datedValue = (GenericValue) iter.next();
+                T datedValue = iter.next();
 
                 fromDateField = datedValue.getModelEntity().getField(fromDateName);
                 if (fromDateField == null) throw new IllegalArgumentException("\"" + fromDateName + "\" is not a field of " + datedValue.getEntityName());
@@ -143,7 +146,7 @@ public class EntityUtil {
                 }// else not active at moment
             }
             while (iter.hasNext()) {
-                GenericValue datedValue = (GenericValue) iter.next();
+                T datedValue = iter.next();
                 java.sql.Timestamp fromDate = (java.sql.Timestamp) datedValue.dangerousGetNoCheckButFast(fromDateField);
                 java.sql.Timestamp thruDate = (java.sql.Timestamp) datedValue.dangerousGetNoCheckButFast(thruDateField);
 
@@ -154,7 +157,7 @@ public class EntityUtil {
         } else {
             // if not all values are known to be of the same entity, must check each one...
             while (iter.hasNext()) {
-                GenericValue datedValue = (GenericValue) iter.next();
+                T datedValue =  iter.next();
                 java.sql.Timestamp fromDate = datedValue.getTimestamp(fromDateName);
                 java.sql.Timestamp thruDate = datedValue.getTimestamp(thruDateName);
 
@@ -174,20 +177,17 @@ public class EntityUtil {
      *@param fields the field-name/value pairs that must match
      *@return List of GenericValue's that match the values in fields
      */
-    public static List filterByAnd(List values, Map fields) {
+    public static <T extends GenericEntity> List<T> filterByAnd(List<? extends T> values, Map<String, ?> fields) {
         if (values == null) return null;
 
-        List result = null;
+        List<T> result = null;
 
         if (fields == null || fields.size() == 0) {
-            result = new ArrayList(values);
+            result = new ArrayList<T>(values);
         } else {
-            result = new ArrayList(values.size());
-            Iterator iter = values.iterator();
+            result = new ArrayList<T>(values.size());
 
-            while (iter.hasNext()) {
-                GenericValue value = (GenericValue) iter.next();
-
+            for (T value : values) {
                 if (value.matchesFields(fields)) {
                     result.add(value);
                 }// else did not match
@@ -203,23 +203,21 @@ public class EntityUtil {
      *@param exprs the expressions that must validate to true
      *@return List of GenericValue's that match the values in fields
      */
-    public static List filterByAnd(List values, List exprs) {
+    public static <T extends GenericValue> List<T> filterByAnd(List<T> values, List<? extends EntityExpr> exprs) {
         if (values == null) return null;
         if (exprs == null || exprs.size() == 0) {
             // no constraints... oh well
             return values;
         }
 
-        List result = new ArrayList();
-        Iterator iter = values.iterator();
+        List<T> result = new ArrayList<T>();
 
-        while (iter.hasNext()) {
-            GenericValue value = (GenericValue) iter.next();
-            Iterator exprIter = exprs.iterator();
+        for (T value : values) {
+            Iterator<? extends EntityExpr> exprIter = exprs.iterator();
             boolean include = true;
 
             while (exprIter.hasNext()) {
-                EntityExpr expr = (EntityExpr) exprIter.next();
+                EntityExpr expr = exprIter.next();
                 Object lhs = value.get((String) expr.getLhs());
                 Object rhs = expr.getRhs();
 
@@ -312,67 +310,63 @@ public class EntityUtil {
      *      optionally add a " ASC" for ascending or " DESC" for descending
      *@return List of GenericValue's in the proper order
      */
-    public static List orderBy(List values, List orderBy) {
+    public static <T extends GenericValue> List<T> orderBy(List<T> values, List<String> orderBy) {
         if (values == null) return null;
         if (values.size() == 0) return UtilMisc.toList(values);
 
-        List result = new ArrayList(values);
+        List<T> result = new ArrayList<T>(values);
 
         Collections.sort(result, new OrderByComparator(orderBy));
         return result;
     }
 
-    public static List getRelated(String relationName, List values) throws GenericEntityException {
+    public static List<GenericValue> getRelated(String relationName, List<? extends GenericValue> values) throws GenericEntityException {
         if (values == null) return null;
 
-        List result = new ArrayList();
-        Iterator iter = values.iterator();
-
-        while (iter.hasNext()) {
-            result.addAll(((GenericValue) iter.next()).getRelated(relationName));
+        final List<GenericValue> result = new ArrayList<GenericValue>();
+        for (GenericValue value : values) {
+            result.addAll(value.getRelated(relationName));
         }
         return result;
     }
 
-    public static List getRelatedCache(String relationName, List values) throws GenericEntityException {
+    public static List<GenericValue> getRelatedCache(String relationName, List<? extends GenericValue> values) throws GenericEntityException {
         if (values == null) return null;
 
-        List result = new ArrayList();
-        Iterator iter = values.iterator();
+        List<GenericValue> result = new ArrayList<GenericValue>();
 
-        while (iter.hasNext()) {
-            result.addAll(((GenericValue) iter.next()).getRelatedCache(relationName));
+        for (GenericValue value : values) {
+            result.addAll(value.getRelatedCache(relationName));
         }
         return result;
     }
 
-    public static List getRelatedByAnd(String relationName, Map fields, List values) throws GenericEntityException {
+    public static List<GenericValue> getRelatedByAnd(String relationName, Map<String, ?> fields, List<? extends GenericValue> values) throws GenericEntityException {
         if (values == null) return null;
 
-        List result = new ArrayList();
-        Iterator iter = values.iterator();
+        List<GenericValue> result = new ArrayList<GenericValue>();
 
-        while (iter.hasNext()) {
-            result.addAll(((GenericValue) iter.next()).getRelatedByAnd(relationName, fields));
+        for (GenericValue value : values) {
+            result.addAll(value.getRelatedByAnd(relationName, fields));
         }
         return result;
     }
 
-    static class OrderByComparator implements Comparator {
+    static class OrderByComparator implements Comparator<GenericValue> {
 
         private String field;
         private ModelField modelField = null;
         private boolean descending;
-        private Comparator next = null;
+        private Comparator<GenericValue> next = null;
 
-        OrderByComparator(List orderBy) {
+        OrderByComparator(List<String> orderBy) {
             this(orderBy, 0);
         }
 
-        private OrderByComparator(List orderBy, int startIndex) {
+        private OrderByComparator(List<String> orderBy, int startIndex) {
             if (orderBy == null) throw new IllegalArgumentException("orderBy may not be empty");
             if (startIndex >= orderBy.size()) throw new IllegalArgumentException("startIndex may not be greater than or equal to orderBy size");
-            String fieldAndDirection = (String) orderBy.get(startIndex);
+            String fieldAndDirection = orderBy.get(startIndex);
             String upper = fieldAndDirection.trim().toUpperCase();
 
             if (upper.endsWith(" DESC")) {
@@ -390,8 +384,8 @@ public class EntityUtil {
             }// else keep null
         }
 
-        public int compare(java.lang.Object obj, java.lang.Object obj1) {
-            int result = compareAsc((GenericEntity) obj, (GenericEntity) obj1);
+        public int compare(GenericValue obj, GenericValue obj1) {
+            int result = compareAsc(obj, obj1);
 
             if (descending && result != 0) {
                 result = -result;
@@ -422,7 +416,7 @@ public class EntityUtil {
             return result;
         }
 
-        public boolean equals(java.lang.Object obj) {
+        public boolean equals(Object obj) {
             if ((obj != null) && (obj instanceof OrderByComparator)) {
                 OrderByComparator that = (OrderByComparator) obj;
 

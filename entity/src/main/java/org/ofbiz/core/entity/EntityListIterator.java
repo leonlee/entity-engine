@@ -23,11 +23,20 @@
 package org.ofbiz.core.entity;
 
 
-import java.sql.*;
-import java.util.*;
-import org.ofbiz.core.entity.jdbc.*;
-import org.ofbiz.core.entity.model.*;
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.entity.jdbc.SQLProcessor;
+import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.util.GeneralRuntimeException;
+
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 
 
 /**
@@ -37,18 +46,18 @@ import org.ofbiz.core.util.*;
  *@created    July 12, 2002
  *@version    1.0
  */
-public class EntityListIterator implements ListIterator {
+public class EntityListIterator implements ListIterator<GenericValue> {
 
     protected SQLProcessor sqlp;
     protected ResultSet resultSet;
     protected ModelEntity modelEntity;
-    protected List selectFields;
+    protected List<ModelField> selectFields;
     protected ModelFieldTypeReader modelFieldTypeReader;
     protected boolean closed = false;
     protected boolean haveMadeValue = false;
     protected GenericDelegator delegator = null;
 
-    public EntityListIterator(SQLProcessor sqlp, ModelEntity modelEntity, List selectFields, ModelFieldTypeReader modelFieldTypeReader) {
+    public EntityListIterator(SQLProcessor sqlp, ModelEntity modelEntity, List<ModelField> selectFields, ModelFieldTypeReader modelFieldTypeReader) {
         this.sqlp = sqlp;
         this.resultSet = sqlp.getResultSet();
         this.modelEntity = modelEntity;
@@ -95,7 +104,7 @@ public class EntityListIterator implements ListIterator {
     {
         int targetColumnIndex = -1;
         for (int j = 0; j < selectFields.size(); j++) {
-            ModelField curField = (ModelField) selectFields.get(j);
+            ModelField curField = selectFields.get(j);
             if (curField.getName().equals(entityFieldName)) {
                 targetColumnIndex = j+1;
                 break;
@@ -155,7 +164,7 @@ public class EntityListIterator implements ListIterator {
         GenericValue value = new GenericValue(modelEntity);
 
         for (int j = 0; j < selectFields.size(); j++) {
-            ModelField curField = (ModelField) selectFields.get(j);
+            ModelField curField = selectFields.get(j);
 
             SqlJdbcUtil.getValue(resultSet, j + 1, curField, value, modelFieldTypeReader);
         }
@@ -231,7 +240,7 @@ public class EntityListIterator implements ListIterator {
     }
 
     /** Moves the cursor to the next position and returns the GenericValue object for that position; if there is no next, returns null */
-    public Object next() {
+    public GenericValue next() {
         try {
             if (resultSet.next()) {
                 return currentGenericValue();
@@ -255,7 +264,7 @@ public class EntityListIterator implements ListIterator {
     }
 
     /** Moves the cursor to the previous position and returns the GenericValue object for that position; if there is no previous, returns null */
-    public Object previous() {
+    public GenericValue previous() {
         try {
             if (resultSet.previous()) {
                 return currentGenericValue();
@@ -286,15 +295,15 @@ public class EntityListIterator implements ListIterator {
         }
     }
 
-    public List getCompleteList() throws GenericEntityException {
+    public List<GenericValue> getCompleteList() throws GenericEntityException {
         try {
             // if the resultSet has been moved forward at all, move back to the beginning
             if (haveMadeValue && !resultSet.isBeforeFirst()) {
                 // do a quick check to see if the ResultSet is empty
                 resultSet.beforeFirst();
             }
-            List list = new LinkedList();
-            Object nextValue = null;
+            List<GenericValue> list = new LinkedList<GenericValue>();
+            GenericValue nextValue = null;
 
             while ((nextValue = this.next()) != null) {
                 list.add(nextValue);
@@ -310,10 +319,10 @@ public class EntityListIterator implements ListIterator {
     /** Gets a partial list of results starting at start and containing at most number elements. 
      * Start is a one based value, ie 1 is the first element. 
      */
-    public List getPartialList(int start, int number) throws GenericEntityException {
+    public List<GenericValue> getPartialList(int start, int number) throws GenericEntityException {
         try {
-            if (number == 0) return new ArrayList();
-            List list = new ArrayList(number);
+            if (number == 0) return new ArrayList<GenericValue>();
+            List<GenericValue> list = new ArrayList<GenericValue>(number);
 
             // if can't reposition to desired index, throw exception
             if (!resultSet.absolute(start)) {
@@ -323,7 +332,7 @@ public class EntityListIterator implements ListIterator {
             // get the first as the current one
             list.add(this.currentGenericValue());
 
-            Object nextValue = null;
+            GenericValue nextValue = null;
             // init numRetreived to one since we have already grabbed the initial one
             int numRetreived = 1;
 
@@ -340,7 +349,7 @@ public class EntityListIterator implements ListIterator {
         }
     }
 
-    public void add(Object obj) {
+    public void add(GenericValue obj) {
         throw new GeneralRuntimeException("CursorListIterator currently only supports read-only access");
     }
 
@@ -348,7 +357,7 @@ public class EntityListIterator implements ListIterator {
         throw new GeneralRuntimeException("CursorListIterator currently only supports read-only access");
     }
 
-    public void set(Object obj) {
+    public void set(GenericValue obj) {
         throw new GeneralRuntimeException("CursorListIterator currently only supports read-only access");
     }
 }

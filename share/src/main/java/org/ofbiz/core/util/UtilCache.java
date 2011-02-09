@@ -23,7 +23,11 @@
  */
 package org.ofbiz.core.util;
 
-import java.util.*;
+import java.lang.ref.SoftReference;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 /**
  * <p> Generalized caching utility. Provides a number of caching features:
@@ -39,22 +43,22 @@ import java.util.*;
  * @version    $Revision: 1.1 $
  * @since      2.0
  */
-public class UtilCache {
+public class UtilCache<K, V> {
 
     /** A static Map to keep track of all of the UtilCache instances. */
-    public static Map utilCacheTable = new HashMap();
+    public static Map<String, UtilCache<?, ?>> utilCacheTable = new HashMap<String, UtilCache<?, ?>>();
 
     /** An index number appended to utilCacheTable names when there are conflicts. */
-    protected static Map defaultIndices = new HashMap();
+    protected static Map<String, Integer> defaultIndices = new HashMap<String, Integer>();
 
     /** The name of the UtilCache instance, is also the key for the instance in utilCacheTable. */
     protected String name;
 
     /** A list of the elements order by Least Recent Use */
-    public LinkedList keyLRUList = new LinkedList();
+    public LinkedList<K> keyLRUList = new LinkedList<K>();
 
     /** A hashtable containing a CacheLine object with a value and a loadTime for each element. */
-    public Map cacheLineTable = new HashMap();
+    public Map<K, CacheLine<V>> cacheLineTable = new HashMap<K, CacheLine<V>>();
 
     /** A count of the number of cache hits */
     protected long hitCount = 0;
@@ -137,14 +141,14 @@ public class UtilCache {
     }
 
     protected String getNextDefaultIndex(String cacheName) {
-        Integer curInd = (Integer) UtilCache.defaultIndices.get(cacheName);
+        Integer curInd = UtilCache.defaultIndices.get(cacheName);
 
         if (curInd == null) {
-            UtilCache.defaultIndices.put(cacheName, new Integer(1));
+            UtilCache.defaultIndices.put(cacheName, 1);
             return "";
         } else {
-            UtilCache.defaultIndices.put(cacheName, new Integer(curInd.intValue() + 1));
-            return Integer.toString(curInd.intValue() + 1);
+            UtilCache.defaultIndices.put(cacheName, curInd + 1);
+            return Integer.toString(curInd + 1);
         }
     }
 
@@ -157,7 +161,7 @@ public class UtilCache {
                 Long longValue = new Long(value);
 
                 if (longValue != null) {
-                    maxSize = longValue.longValue();
+                    maxSize = longValue;
                 }
             } catch (Exception e) {}
             try {
@@ -165,7 +169,7 @@ public class UtilCache {
                 Long longValue = new Long(value);
 
                 if (longValue != null) {
-                    expireTime = longValue.longValue();
+                    expireTime = longValue;
                 }
             } catch (Exception e) {}
 
@@ -183,7 +187,7 @@ public class UtilCache {
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @param value The value of the element
      */
-    public synchronized void put(Object key, Object value) {
+    public synchronized void put(K key, V value) {
         if (key == null)
             return;
 
@@ -198,12 +202,12 @@ public class UtilCache {
         }
 
         if (expireTime > 0) {
-            cacheLineTable.put(key, new UtilCache.CacheLine(value, useSoftReference, System.currentTimeMillis()));
+            cacheLineTable.put(key, new UtilCache.CacheLine<V>(value, useSoftReference, System.currentTimeMillis()));
         } else {
-            cacheLineTable.put(key, new UtilCache.CacheLine(value, useSoftReference));
+            cacheLineTable.put(key, new UtilCache.CacheLine<V>(value, useSoftReference));
         }
         if (maxSize > 0 && cacheLineTable.size() > maxSize) {
-            Object lastKey = keyLRUList.getLast();
+            K lastKey = keyLRUList.getLast();
             remove(lastKey);
         }
     }
@@ -213,12 +217,12 @@ public class UtilCache {
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @return The value of the element specified by the key
      */
-    public Object get(Object key) {
+    public V get(K key) {
         if (key == null) {
             missCount++;
             return null;
         }
-        UtilCache.CacheLine line = (UtilCache.CacheLine) cacheLineTable.get(key);
+        UtilCache.CacheLine<V> line = cacheLineTable.get(key);
 
         if (hasExpired(line)) {
             // note that print.info in debug.properties cannot be checked through UtilProperties here, it would cause infinite recursion...
@@ -252,7 +256,7 @@ public class UtilCache {
             return null;
         }
         
-        UtilCache.CacheLine line = (UtilCache.CacheLine) cacheLineTable.remove(key);
+        UtilCache.CacheLine<V> line = cacheLineTable.remove(key);
         if (line != null) {
             if (maxSize > 0) keyLRUList.remove(key);
             return line.getValue();
@@ -271,11 +275,8 @@ public class UtilCache {
 
     /** Removes all elements from this cache */
     public static void clearAllCaches() {
-        Iterator entries = utilCacheTable.entrySet().iterator();
-        while (entries.hasNext()) {
-            Map.Entry entry = (Map.Entry) entries.next();
-            UtilCache utilCache = (UtilCache) entry.getValue();
-            utilCache.clear();
+        for (Map.Entry<String, UtilCache<?, ?>> entry : utilCacheTable.entrySet()) {
+            entry.getValue().clear();
         }
     }
 
@@ -317,18 +318,15 @@ public class UtilCache {
             keyLRUList.clear();
         } else if (maxSize > 0 && this.maxSize <= 0) {
             // if the new maxSize > 0 and the old is <= 0, fill in LRU list - order will be meaningless for now
-            Iterator keys = cacheLineTable.keySet().iterator();
-
-            while (keys.hasNext()) {
-                keyLRUList.add(keys.next());
+            for (K key : cacheLineTable.keySet()) {
+                keyLRUList.add(key);
             }
         }
 
         // if the new maxSize is less than the current cache size, shrink the cache.
         if (maxSize > 0 && cacheLineTable.size() > maxSize) {
             while (cacheLineTable.size() > maxSize) {
-                Object lastKey = keyLRUList.getLast();
-
+                K lastKey = keyLRUList.getLast();
                 remove(lastKey);
             }
         }
@@ -351,12 +349,9 @@ public class UtilCache {
         // if expire time was <= 0 and is now greater, fill expire table now
         if (this.expireTime <= 0 && expireTime > 0) {
             long currentTime = System.currentTimeMillis();
-            Iterator values = cacheLineTable.values().iterator();
 
-            while (values.hasNext()) {
-                UtilCache.CacheLine line = (UtilCache.CacheLine) values.next();
-
-                line.loadTime = currentTime;
+            for (CacheLine<V> vCacheLine : cacheLineTable.values()) {
+                vCacheLine.loadTime = currentTime;
             }
         } else if (this.expireTime <= 0 && expireTime > 0) {// if expire time was > 0 and is now <=, do nothing, just leave the load times in place, won't hurt anything...
         }
@@ -375,12 +370,9 @@ public class UtilCache {
     public void setUseSoftReference(boolean useSoftReference) {
         if (this.useSoftReference != useSoftReference) {
             this.useSoftReference = useSoftReference;
-            Iterator values = cacheLineTable.values().iterator();
 
-            while (values.hasNext()) {
-                UtilCache.CacheLine line = (UtilCache.CacheLine) values.next();
-
-                line.setUseSoftReference(useSoftReference);
+            for (CacheLine<V> vCacheLine : cacheLineTable.values()) {
+                vCacheLine.setUseSoftReference(useSoftReference);
             }
         }
     }
@@ -403,7 +395,7 @@ public class UtilCache {
      * @return True is the cache contains an element corresponding to the specified key, otherwise false
      */
     public boolean containsKey(Object key) {
-        UtilCache.CacheLine line = (UtilCache.CacheLine) cacheLineTable.get(key);
+        UtilCache.CacheLine<V> line = cacheLineTable.get(key);
 
         if (hasExpired(line)) {
             remove(key);
@@ -424,15 +416,15 @@ public class UtilCache {
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @return True is the element corresponding to the specified key has expired, otherwise false
      */
-    public boolean hasExpired(Object key) {
+    public boolean hasExpired(K key) {
         if (key == null) return false;
 
-        UtilCache.CacheLine line = (UtilCache.CacheLine) cacheLineTable.get(key);
+        UtilCache.CacheLine<V> line = cacheLineTable.get(key);
 
         return hasExpired(line);
     }
 
-    protected boolean hasExpired(UtilCache.CacheLine line) {
+    protected boolean hasExpired(UtilCache.CacheLine<V> line) {
         if (line == null) return false;
         // check this BEFORE checking to see if expireTime <= 0, ie if time expiration is enabled
         // check to see if we are using softReference first, slight performance increase
@@ -449,32 +441,25 @@ public class UtilCache {
 
     /** Clears all expired cache entries; also clear any cache entries where the SoftReference in the CacheLine object has been cleared by the gc */
     public void clearExpired() {
-        Iterator keys = cacheLineTable.keySet().iterator();
 
-        while (keys.hasNext()) {
-            Object key = keys.next();
-
-            if (hasExpired(key)) {
-                remove(key);
+        for (K k : cacheLineTable.keySet()) {
+            if (hasExpired(k)) {
+                remove(k);
             }
         }
     }
 
     /** Clears all expired cache entries from all caches */
     public static void clearExpiredFromAllCaches() {
-        Iterator entries = utilCacheTable.entrySet().iterator();
 
-        while (entries.hasNext()) {
-            Map.Entry entry = (Map.Entry) entries.next();
-            UtilCache utilCache = (UtilCache) entry.getValue();
-
-            utilCache.clearExpired();
+        for (Map.Entry<String, UtilCache<?, ?>> entry : utilCacheTable.entrySet()) {
+            entry.getValue().clearExpired();
         }
     }
     
     /** Checks for a non-expired key in a specific cache */
     public static boolean validKey(String cacheName, Object key) {
-        UtilCache cache = (UtilCache) utilCacheTable.get(cacheName);
+        UtilCache<?, ?> cache = utilCacheTable.get(cacheName);
         if (cache != null) {
             if (cache.containsKey(key))
                 return true;
@@ -482,31 +467,31 @@ public class UtilCache {
         return false;
     }
     
-    public static class CacheLine {
+    public static class CacheLine<T> {
         public Object valueRef = null;
         public long loadTime = 0;
         public boolean useSoftReference = false;
 
-        public CacheLine(Object value, boolean useSoftReference) {
+        public CacheLine(T value, boolean useSoftReference) {
             if (useSoftReference) {
-                this.valueRef = new java.lang.ref.SoftReference(value);
+                this.valueRef = new SoftReference<T>(value);
             } else {
                 this.valueRef = value;
             }
             this.useSoftReference = useSoftReference;
         }
 
-        public CacheLine(Object value, boolean useSoftReference, long loadTime) {
+        public CacheLine(T value, boolean useSoftReference, long loadTime) {
             this(value, useSoftReference);
             this.loadTime = loadTime;
         }
 
-        public Object getValue() {
+        public T getValue() {
             if (valueRef == null) return null;
             if (useSoftReference) {
-                return ((java.lang.ref.SoftReference) valueRef).get();
+                return ((SoftReference<T>) valueRef).get();
             } else {
-                return valueRef;
+                return (T) valueRef;
             }
         }
 
@@ -515,9 +500,9 @@ public class UtilCache {
                 synchronized (this) {
                     this.useSoftReference = useSoftReference;
                     if (useSoftReference) {
-                        this.valueRef = new java.lang.ref.SoftReference(this.valueRef);
+                        this.valueRef = new SoftReference<T>((T)this.valueRef);
                     } else {
-                        this.valueRef = ((java.lang.ref.SoftReference) this.valueRef).get();
+                        this.valueRef = ((SoftReference<T>) this.valueRef).get();
                     }
                 }
             }

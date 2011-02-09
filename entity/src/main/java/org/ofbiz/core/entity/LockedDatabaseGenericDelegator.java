@@ -1,23 +1,23 @@
 package org.ofbiz.core.entity;
 
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
 import org.ofbiz.core.entity.model.ModelGroupReader;
 import org.ofbiz.core.entity.model.ModelReader;
 import org.ofbiz.core.util.UtilCache;
-import org.w3c.dom.Element;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-import org.apache.log4j.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
-import java.util.List;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.net.URL;
-import java.io.IOException;
 
 /**
  * Copyright All Rights Reserved.
@@ -33,17 +33,17 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
        log.info("Constructor: must be trouble in the database...");
     }
 
-    protected void absorbList(List lst)
+    protected void absorbList(List<GenericValue> lst)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void clearAllCacheLinesByDummyPK(Collection dummyPKs)
+    public void clearAllCacheLinesByDummyPK(Collection<? extends GenericEntity> dummyPKs)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void clearAllCacheLinesByValue(Collection values)
+    public void clearAllCacheLinesByValue(Collection<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -58,7 +58,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void clearCacheLine(String entityName, Map fields)
+    public void clearCacheLine(String entityName, Map<String, ?> fields)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -93,7 +93,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericValue create(String entityName, Map fields) throws GenericEntityException
+    public GenericValue create(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -118,112 +118,112 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    protected void evalEcaRules(String event, String currentOperation, GenericEntity value, Map eventMap, boolean noEventMapFound, boolean isError) throws GenericEntityException
+    protected void evalEcaRules(String event, String currentOperation, GenericEntity value, Map<?, ?> eventMap, boolean noEventMapFound, boolean isError) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAll(String entityName) throws GenericEntityException
+    public List<GenericValue> findAll(String entityName) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAll(String entityName, List orderBy) throws GenericEntityException
+    public List<GenericValue> findAll(String entityName, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAllByPrimaryKeys(Collection primaryKeys) throws GenericEntityException
+    public List<GenericValue> findAllByPrimaryKeys(Collection<? extends GenericPK> primaryKeys) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAllByPrimaryKeysCache(Collection primaryKeys) throws GenericEntityException
+    public List<GenericValue> findAllByPrimaryKeysCache(Collection<? extends GenericPK> primaryKeys) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAllCache(String entityName) throws GenericEntityException
+    public List<GenericValue> findAllCache(String entityName) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findAllCache(String entityName, List orderBy) throws GenericEntityException
+    public List<GenericValue> findAllCache(String entityName, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAnd(String entityName, List expressions) throws GenericEntityException
+    public List<GenericValue> findByAnd(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAnd(String entityName, List expressions, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByAnd(String entityName, List<? extends EntityCondition> expressions, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAnd(String entityName, Map fields) throws GenericEntityException
+    public List<GenericValue> findByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAnd(String entityName, Map fields, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByAnd(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAnd(ModelEntity modelEntity, Map fields, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAndCache(String entityName, Map fields) throws GenericEntityException
+    public List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByAndCache(String entityName, Map fields, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByCondition(String entityName, EntityCondition entityCondition, Collection fieldsToSelect, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByCondition(String entityName, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByLike(String entityName, Map fields) throws GenericEntityException
+    public List<GenericValue> findByLike(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByLike(String entityName, Map fields, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByLike(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByOr(String entityName, List expressions) throws GenericEntityException
+    public List<GenericValue> findByOr(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByOr(String entityName, List expressions, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByOr(String entityName, List<? extends EntityCondition> expressions, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByOr(String entityName, Map fields) throws GenericEntityException
+    public List<GenericValue> findByOr(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List findByOr(String entityName, Map fields, List orderBy) throws GenericEntityException
+    public List<GenericValue> findByOr(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericValue findByPrimaryKey(String entityName, Map fields) throws GenericEntityException
+    public GenericValue findByPrimaryKey(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -233,7 +233,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericValue findByPrimaryKeyCache(String entityName, Map fields) throws GenericEntityException
+    public GenericValue findByPrimaryKeyCache(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -243,17 +243,17 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set keys) throws GenericEntityException
+    public GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set<String> keys) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition entityCondition, Collection fieldsToSelect, List orderBy) throws GenericEntityException
+    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition whereEntityCondition, EntityCondition havingEntityCondition, Collection fieldsToSelect, List orderBy, EntityFindOptions findOptions) throws GenericEntityException
+    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition whereEntityCondition, EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -263,12 +263,12 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public UtilCache getAllCache()
+    public UtilCache<String, List<GenericValue>> getAllCache()
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public UtilCache getAndCache()
+    public UtilCache<GenericPK, List<GenericValue>> getAndCache()
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -283,7 +283,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    protected Map getEcaEntityEventMap(String entityName)
+    protected Map<?, ?> getEcaEntityEventMap(String entityName)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -293,7 +293,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public Collection getEntityFieldTypeNames(ModelEntity entity) throws GenericEntityException
+    public Collection<String> getEntityFieldTypeNames(ModelEntity entity) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -323,22 +323,22 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public Set getFieldNameSetsCopy(String entityName)
+    public Set<Set<String>> getFieldNameSetsCopy(String entityName)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getFromAllCache(String entityName)
+    public List<GenericValue> getFromAllCache(String entityName)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getFromAndCache(ModelEntity entity, Map fields)
+    public List<GenericValue> getFromAndCache(ModelEntity entity, Map<String, ?> fields)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getFromAndCache(String entityName, Map fields)
+    public List<GenericValue> getFromAndCache(String entityName, Map<String, ?> fields)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -353,7 +353,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getModelEntitiesByGroup(String groupName)
+    public List<ModelEntity> getModelEntitiesByGroup(String groupName)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -363,7 +363,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public Map getModelEntityMapByGroup(String groupName)
+    public Map<String, ModelEntity> getModelEntityMapByGroup(String groupName)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -378,12 +378,12 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo) throws GenericEntityException
+    public List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo, List orderBy) throws GenericEntityException
+    public List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo, List<String> orderBy) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -393,32 +393,32 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public UtilCache getPrimaryKeyCache()
+    public UtilCache<GenericEntity, GenericValue> getPrimaryKeyCache()
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getRelated(String relationName, Map byAndFields, List orderBy, GenericValue value) throws GenericEntityException
+    public List<GenericValue> getRelated(String relationName, Map<String, ?> byAndFields, List<String> orderBy, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getRelated(String relationName, GenericValue value) throws GenericEntityException
+    public List<GenericValue> getRelated(String relationName, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getRelatedByAnd(String relationName, Map byAndFields, GenericValue value) throws GenericEntityException
+    public List<GenericValue> getRelatedByAnd(String relationName, Map<String, ?> byAndFields, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getRelatedCache(String relationName, GenericValue value) throws GenericEntityException
+    public List<GenericValue> getRelatedCache(String relationName, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericPK getRelatedDummyPK(String relationName, Map byAndFields, GenericValue value) throws GenericEntityException
+    public GenericPK getRelatedDummyPK(String relationName, Map<String, ?> byAndFields, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -433,7 +433,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List getRelatedOrderBy(String relationName, List orderBy, GenericValue value) throws GenericEntityException
+    public List<GenericValue> getRelatedOrderBy(String relationName, List<String> orderBy, GenericValue value) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -443,7 +443,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericPK makePK(String entityName, Map fields)
+    public GenericPK makePK(String entityName, Map<String, ?> fields)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -453,37 +453,37 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public GenericValue makeValue(String entityName, Map fields)
+    public GenericValue makeValue(String entityName, Map<String, ?> fields)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public List makeValues(Document document)
+    public List<GenericValue> makeValues(Document document)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void putAllInPrimaryKeyCache(List values)
+    public void putAllInPrimaryKeyCache(List<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void putInAllCache(ModelEntity entity, List values)
+    public void putInAllCache(ModelEntity entity, List<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void putInAllCache(String entityName, List values)
+    public void putInAllCache(String entityName, List<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void putInAndCache(ModelEntity entity, Map fields, List values)
+    public void putInAndCache(ModelEntity entity, Map<String, ?> fields, List<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public void putInAndCache(String entityName, Map fields, List values)
+    public void putInAndCache(String entityName, Map<String, ?> fields, List<? extends GenericValue> values)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -494,7 +494,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
     }
 
     // ======= XML Related Methods ========
-    public List readXmlDocument(URL url) throws SAXException, ParserConfigurationException, IOException
+    public List<GenericValue> readXmlDocument(URL url) throws SAXException, ParserConfigurationException, IOException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -514,22 +514,22 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int removeAll(List dummyPKs) throws GenericEntityException
+    public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int removeAll(List dummyPKs, boolean doCacheClear) throws GenericEntityException
+    public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int removeByAnd(String entityName, Map fields) throws GenericEntityException
+    public int removeByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int removeByAnd(String entityName, Map fields, boolean doCacheClear) throws GenericEntityException
+    public int removeByAnd(String entityName, Map<String, ?> fields, boolean doCacheClear) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -579,12 +579,12 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int storeAll(List values) throws GenericEntityException
+    public int storeAll(List<? extends GenericValue> values) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    public int storeAll(List values, boolean doCacheClear) throws GenericEntityException
+    public int storeAll(List<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException
     {
         throw new UnsupportedOperationException(MESSAGE);
     }

@@ -24,10 +24,14 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
 
-import org.ofbiz.core.entity.model.*;
-import org.ofbiz.core.entity.jdbc.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Encapsulates simple expressions used for specifying queries
@@ -38,12 +42,12 @@ import org.ofbiz.core.entity.jdbc.*;
  */
 public class EntityFieldMap extends EntityCondition {
 
-    protected Map fieldMap;
+    protected Map<String, ?> fieldMap;
     protected EntityOperator operator;
 
     protected EntityFieldMap() {}
 
-    public EntityFieldMap(Map fieldMap, EntityOperator operator) {
+    public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator) {
         this.fieldMap = fieldMap;
         this.operator = operator;
     }
@@ -60,17 +64,17 @@ public class EntityFieldMap extends EntityCondition {
         return this.fieldMap.containsKey(name);
     }
     
-    public Iterator getFieldKeyIterator() {
+    public Iterator<String> getFieldKeyIterator() {
         return this.fieldMap.keySet().iterator();
     }
     
-    public Iterator getFieldEntryIterator() {
+    public Iterator<? extends Map.Entry<String, ?>> getFieldEntryIterator() {
         return this.fieldMap.entrySet().iterator();
     }
     
-    public String makeWhereString(ModelEntity modelEntity, List entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
-        List whereFields = new ArrayList();
+        List<ModelField> whereFields = new ArrayList<ModelField>();
 
         if (fieldMap != null && fieldMap.size() > 0) {
             for (int fi = 0; fi < modelEntity.getFieldsSize(); fi++) {

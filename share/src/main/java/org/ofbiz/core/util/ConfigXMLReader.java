@@ -23,10 +23,18 @@
  */
 package org.ofbiz.core.util;
 
-import java.net.*;
-import java.io.*;
-import java.util.*;
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * ConfigXMLReader.java - Reads and parses the XML site config files.
@@ -39,10 +47,10 @@ public class ConfigXMLReader {
 
     public static final String module = ConfigXMLReader.class.getName();
 
-    public static UtilCache requestCache = new UtilCache("webapp.ConfigXMLReader.Request");
-    public static UtilCache viewCache = new UtilCache("webapp.ConfigXMLReader.View");
-    public static UtilCache headCache = new UtilCache("webapp.ConfigXMLReader.Config");
-    public static UtilCache handlerCache = new UtilCache("webapp.ConfigXMLReader.Handler");
+    public static UtilCache<URL, HashMap<String, HashMap<String, String>>> requestCache = new UtilCache<URL, HashMap<String, HashMap<String, String>>>("webapp.ConfigXMLReader.Request");
+    public static UtilCache<URL, Map<String, Map<String, String>>> viewCache = new UtilCache<URL, Map<String, Map<String, String>>>("webapp.ConfigXMLReader.View");
+    public static UtilCache<URL, Map<String, Object>> headCache = new UtilCache<URL, Map<String, Object>>("webapp.ConfigXMLReader.Config");
+    public static UtilCache<URL, Map<String, Map<String, String>>> handlerCache = new UtilCache<URL, Map<String, Map<String, String>>>("webapp.ConfigXMLReader.Handler");
 
     /** Site Config Variables */
     public static final String DEFAULT_ERROR_PAGE = "errorpage";
@@ -117,14 +125,14 @@ public class ConfigXMLReader {
     }
 
     /** Gets a HashMap of request mappings. */
-    public static HashMap getRequestMap(URL xml) {
-        HashMap requestMap = (HashMap) requestCache.get(xml);
+    public static HashMap<String, HashMap<String, String>> getRequestMap(URL xml) {
+        HashMap<String, HashMap<String, String>> requestMap = requestCache.get(xml);
 
         if (requestMap == null) // don't want to block here
         {
             synchronized (ConfigXMLReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                requestMap = (HashMap) requestCache.get(xml);
+                requestMap = requestCache.get(xml);
                 if (requestMap == null) {
                     requestMap = loadRequestMap(xml);
                     requestCache.put(xml, requestMap);
@@ -132,13 +140,13 @@ public class ConfigXMLReader {
             }
         }
         // never return null, just an empty map...
-        if (requestMap == null) requestMap = new HashMap();
+        if (requestMap == null) requestMap = new HashMap<String, HashMap<String, String>>();
         return requestMap;
     }
 
     /** Gets a HashMap of request mappings. */
-    public static HashMap loadRequestMap(URL xml) {
-        HashMap map = new HashMap();
+    public static HashMap<String, HashMap<String, String>> loadRequestMap(URL xml) {
+        HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
         Element root = loadDocument(xml);
 
         if (root == null) return map;
@@ -159,7 +167,7 @@ public class ConfigXMLReader {
                     File newFile = new java.io.File("" + oldFile.getParent() + java.io.File.separator + includeFile);
 
                     try {
-                        HashMap subMap = loadRequestMap(newFile.toURL());
+                        HashMap<String, HashMap<String, String>> subMap = loadRequestMap(newFile.toURL());
 
                         map.putAll(subMap);
                     } catch (MalformedURLException mue) {
@@ -171,7 +179,7 @@ public class ConfigXMLReader {
 
                 if ((includeURL != null) && (includeURL.length() > 0)) {
                     try {
-                        HashMap subMap = loadRequestMap(new URL(includeURL));
+                        HashMap<String, HashMap<String, String>> subMap = loadRequestMap(new URL(includeURL));
 
                         map.putAll(subMap);
                     } catch (MalformedURLException mue) {
@@ -185,7 +193,7 @@ public class ConfigXMLReader {
         list = root.getElementsByTagName(REQUEST_MAPPING);
         for (int rootCount = 0; rootCount < list.getLength(); rootCount++) {
             // Create a URI-MAP for each element found.
-            HashMap uriMap = new HashMap();
+            HashMap<String, String> uriMap = new HashMap<String, String>();
             // Get the node.
             Node node = list.item(rootCount);
 
@@ -289,22 +297,15 @@ public class ConfigXMLReader {
 
         /* Debugging */
         if (Debug.verboseOn()) Debug.logVerbose("-------- Request Mappings --------", module);
-        HashMap debugMap = map;
-        Set debugSet = debugMap.keySet();
-        Iterator i = debugSet.iterator();
+        Set<String> debugSet = map.keySet();
 
-        while (i.hasNext()) {
-            Object o = i.next();
-            String request = (String) o;
-            HashMap thisURI = (HashMap) debugMap.get(o);
+        for (String request : debugSet) {
+            HashMap<String, String> thisURI = map.get(request);
 
             if (Debug.verboseOn()) Debug.logVerbose(request, module);
-            Iterator debugIter = ((Set) thisURI.keySet()).iterator();
 
-            while (debugIter.hasNext()) {
-                Object lo = debugIter.next();
-                String name = (String) lo;
-                String value = (String) thisURI.get(lo);
+            for (String name : thisURI.keySet()) {
+                String value = thisURI.get(name);
 
                 if (Debug.verboseOn()) Debug.logVerbose("\t" + name + " -> " + value, module);
             }
@@ -318,14 +319,14 @@ public class ConfigXMLReader {
     }
 
     /** Gets a HashMap of view mappings. */
-    public static Map getViewMap(URL xml) {
-        Map viewMap = (Map) viewCache.get(xml);
+    public static Map<String, Map<String, String>> getViewMap(URL xml) {
+        Map<String, Map<String, String>> viewMap =  viewCache.get(xml);
 
         if (viewMap == null) // don't want to block here
         {
             synchronized (ConfigXMLReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                viewMap = (HashMap) viewCache.get(xml);
+                viewMap = viewCache.get(xml);
                 if (viewMap == null) {
                     viewMap = loadViewMap(xml);
                     viewCache.put(xml, viewMap);
@@ -333,13 +334,13 @@ public class ConfigXMLReader {
             }
         }
         // never return null, just an empty map...
-        if (viewMap == null) viewMap = new HashMap();
+        if (viewMap == null) viewMap = new HashMap<String, Map<String, String>>();
         return viewMap;
     }
 
     /** Gets a HashMap of view mappings. */
-    public static Map loadViewMap(URL xml) {
-        HashMap map = new HashMap();
+    public static Map<String, Map<String, String>> loadViewMap(URL xml) {
+        HashMap<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
         Element root = loadDocument(xml);
 
         if (root == null)
@@ -361,7 +362,7 @@ public class ConfigXMLReader {
                     File newFile = new java.io.File("" + oldFile.getParent() + java.io.File.separator + includeFile);
 
                     try {
-                        Map subMap = loadViewMap(newFile.toURL());
+                        Map<String, Map<String, String>> subMap = loadViewMap(newFile.toURL());
 
                         map.putAll(subMap);
                     } catch (MalformedURLException mue) {
@@ -373,7 +374,7 @@ public class ConfigXMLReader {
 
                 if ((includeURL != null) && (includeURL.length() > 0)) {
                     try {
-                        Map subMap = loadViewMap(new URL(includeURL));
+                        Map<String, Map<String, String>> subMap = loadViewMap(new URL(includeURL));
 
                         map.putAll(subMap);
                     } catch (MalformedURLException mue) {
@@ -387,7 +388,7 @@ public class ConfigXMLReader {
         list = root.getElementsByTagName(VIEW_MAPPING);
         for (int rootCount = 0; rootCount < list.getLength(); rootCount++) {
             // Create a URI-MAP for each element found.
-            HashMap uriMap = new HashMap();
+            HashMap<String, String> uriMap = new HashMap<String, String>();
             // Get the node.
             Node node = list.item(rootCount);
 
@@ -441,22 +442,15 @@ public class ConfigXMLReader {
 
         /* Debugging */
         Debug.logVerbose("-------- View Mappings --------", module);
-        HashMap debugMap = map;
-        Set debugSet = debugMap.keySet();
-        Iterator i = debugSet.iterator();
+        Set<String> debugSet = map.keySet();
 
-        while (i.hasNext()) {
-            Object o = i.next();
-            String request = (String) o;
-            HashMap thisURI = (HashMap) debugMap.get(o);
+        for (String request : debugSet) {
+            Map<String, String> thisURI =  map.get(request);
 
             Debug.logVerbose(request, module);
-            Iterator debugIter = ((Set) thisURI.keySet()).iterator();
 
-            while (debugIter.hasNext()) {
-                Object lo = debugIter.next();
-                String name = (String) lo;
-                String value = (String) thisURI.get(lo);
+            for (String name : (thisURI.keySet())) {
+                String value = thisURI.get(name);
 
                 if (Debug.verboseOn()) Debug.logVerbose("\t" + name + " -> " + value, module);
             }
@@ -470,14 +464,14 @@ public class ConfigXMLReader {
     }
 
     /** Gets a HashMap of site configuration variables. */
-    public static Map getConfigMap(URL xml) {
-        Map configMap = (Map) headCache.get(xml);
+    public static Map<String, Object> getConfigMap(URL xml) {
+        Map<String, Object> configMap =  headCache.get(xml);
 
         if (configMap == null) // don't want to block here
         {
             synchronized (ConfigXMLReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                configMap = (HashMap) headCache.get(xml);
+                configMap = headCache.get(xml);
                 if (configMap == null) {
                     configMap = loadConfigMap(xml);
                     headCache.put(xml, configMap);
@@ -485,13 +479,13 @@ public class ConfigXMLReader {
             }
         }
         // never return null, just an empty map...
-        if (configMap == null) configMap = new HashMap();
+        if (configMap == null) configMap = new HashMap<String, Object>();
         return configMap;
     }
 
     /** Gets a HashMap of site configuration variables. */
-    public static Map loadConfigMap(URL xml) {
-        HashMap map = new HashMap();
+    public static Map<String, Object> loadConfigMap(URL xml) {
+        HashMap<String, Object> map = new HashMap<String, Object>();
         Element root = loadDocument(xml);
         NodeList list = null;
 
@@ -532,7 +526,7 @@ public class ConfigXMLReader {
             // first visit events
             list = root.getElementsByTagName(FIRSTVISIT);
             if (list.getLength() > 0) {
-                ArrayList eventList = new ArrayList();
+                ArrayList<Map<String, String>> eventList = new ArrayList<Map<String, String>>();
                 Node node = list.item(0);
 
                 if (node instanceof Element) {
@@ -548,7 +542,7 @@ public class ConfigXMLReader {
                             String path = event.getAttribute(EVENT_PATH);
                             String invoke = event.getAttribute(EVENT_METHOD);
 
-                            HashMap eventMap = new HashMap();
+                            HashMap<String, String> eventMap = new HashMap<String, String>();
 
                             eventMap.put(EVENT_TYPE, type);
                             eventMap.put(EVENT_PATH, path);
@@ -563,7 +557,7 @@ public class ConfigXMLReader {
             // preprocessor events
             list = root.getElementsByTagName(PREPROCESSOR);
             if (list.getLength() > 0) {
-                ArrayList eventList = new ArrayList();
+                ArrayList<Map<String, String>> eventList = new ArrayList<Map<String, String>>();
                 Node node = list.item(0);
 
                 if (node instanceof Element) {
@@ -579,7 +573,7 @@ public class ConfigXMLReader {
                             String path = event.getAttribute(EVENT_PATH);
                             String invoke = event.getAttribute(EVENT_METHOD);
 
-                            HashMap eventMap = new HashMap();
+                            HashMap<String, String> eventMap = new HashMap<String, String>();
 
                             eventMap.put(EVENT_TYPE, type);
                             eventMap.put(EVENT_PATH, path);
@@ -594,7 +588,7 @@ public class ConfigXMLReader {
             // postprocessor events
             list = root.getElementsByTagName(POSTPROCESSOR);
             if (list.getLength() > 0) {
-                ArrayList eventList = new ArrayList();
+                ArrayList<Map<String, String>> eventList = new ArrayList<Map<String, String>>();
                 Node node = list.item(0);
 
                 if (node instanceof Element) {
@@ -610,7 +604,7 @@ public class ConfigXMLReader {
                             String path = event.getAttribute(EVENT_PATH);
                             String invoke = event.getAttribute(EVENT_METHOD);
 
-                            HashMap eventMap = new HashMap();
+                            HashMap<String, String> eventMap = new HashMap<String, String>();
 
                             eventMap.put(EVENT_TYPE, type);
                             eventMap.put(EVENT_PATH, path);
@@ -654,14 +648,14 @@ public class ConfigXMLReader {
     }
 
     /** Gets a HashMap of handler mappings. */
-    public static Map getHandlerMap(URL xml) {
-        Map handlerMap = (Map) handlerCache.get(xml);
+    public static Map<String, Map<String, String>> getHandlerMap(URL xml) {
+        Map<String, Map<String, String>> handlerMap = handlerCache.get(xml);
 
         if (handlerMap == null) // don't want to block here
         {
             synchronized (ConfigXMLReader.class) {
                 // must check if null again as one of the blocked threads can still enter
-                handlerMap = (HashMap) handlerCache.get(xml);
+                handlerMap = handlerCache.get(xml);
                 if (handlerMap == null) {
                     handlerMap = loadHandlerMap(xml);
                     handlerCache.put(xml, handlerMap);
@@ -669,18 +663,18 @@ public class ConfigXMLReader {
             }
         }
         // never return null, just an empty map...
-        if (handlerMap == null) handlerMap = new HashMap();
+        if (handlerMap == null) handlerMap = new HashMap<String, Map<String, String>>();
         return handlerMap;
     }
 
-    public static Map loadHandlerMap(URL xml) {
-        HashMap map = new HashMap();
+    public static Map<String, Map<String, String>> loadHandlerMap(URL xml) {
+        HashMap<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
         Element root = loadDocument(xml);
         NodeList list = null;
 
         if (root != null) {
-            Map rMap = new HashMap();
-            Map vMap = new HashMap();
+            Map<String, String> rMap = new HashMap<String, String>();
+            Map<String, String> vMap = new HashMap<String, String>();
 
             list = root.getElementsByTagName(HANDLER);
             for (int i = 0; i < list.getLength(); i++) {
@@ -700,31 +694,25 @@ public class ConfigXMLReader {
 
         /* Debugging */
         Debug.logVerbose("-------- Handler Mappings --------", module);
-        Map debugMap = (Map) map.get("event");
+        Map<String, String> debugMap = map.get("event");
 
         if (debugMap != null && debugMap.size() > 0) {
             Debug.logVerbose("-------------- EVENT -------------", module);
-            Set debugSet = debugMap.keySet();
-            Iterator i = debugSet.iterator();
+            Set<String> debugSet = debugMap.keySet();
 
-            while (i.hasNext()) {
-                Object o = i.next();
-                String handlerName = (String) o;
-                String className = (String) debugMap.get(o);
+            for (String handlerName : debugSet) {
+                String className = debugMap.get(handlerName);
 
                 if (Debug.verboseOn()) Debug.logVerbose("[EH] : " + handlerName + " => " + className, module);
             }
         }
-        debugMap = (Map) map.get("view");
+        debugMap = map.get("view");
         if (debugMap != null && debugMap.size() > 0) {
             Debug.logVerbose("-------------- VIEW --------------", module);
-            Set debugSet = debugMap.keySet();
-            Iterator i = debugSet.iterator();
+            Set<String> debugSet = debugMap.keySet();
 
-            while (i.hasNext()) {
-                Object o = i.next();
-                String handlerName = (String) o;
-                String className = (String) debugMap.get(o);
+            for (String handlerName : debugSet) {
+                String className = debugMap.get(handlerName);
 
                 if (Debug.verboseOn()) Debug.logVerbose("[VH] : " + handlerName + " => " + className, module);
             }
@@ -775,22 +763,16 @@ public class ConfigXMLReader {
         System.out.println("----------------------------------");
         System.out.println("Request Mappings:");
         System.out.println("----------------------------------");
-        java.util.HashMap debugMap = getRequestMap(new URL(args[0]));
-        java.util.Set debugSet = debugMap.keySet();
-        java.util.Iterator i = debugSet.iterator();
+        HashMap<String, HashMap<String, String>> debugMap = getRequestMap(new URL(args[0]));
+        java.util.Set<String> debugSet = debugMap.keySet();
 
-        while (i.hasNext()) {
-            Object o = i.next();
-            String request = (String) o;
-            HashMap thisURI = (java.util.HashMap) debugMap.get(o);
+        for (String request : debugSet) {
+            HashMap<String, String> thisURI = debugMap.get(request);
 
             System.out.println(request);
-            java.util.Iterator list = ((java.util.Set) thisURI.keySet()).iterator();
 
-            while (list.hasNext()) {
-                Object lo = list.next();
-                String name = (String) lo;
-                String value = (String) thisURI.get(lo);
+            for (String name : thisURI.keySet()) {
+                String value = thisURI.get(name);
 
                 System.out.println("\t" + name + " -> " + value);
             }

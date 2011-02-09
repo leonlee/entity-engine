@@ -23,10 +23,12 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import org.ofbiz.core.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Generic Entity - FieldType model class
@@ -50,7 +52,7 @@ public class ModelFieldType {
     protected String sqlTypeAlias = null;
 
     /** validators to be called when an update is done */
-    protected List validators = new ArrayList();
+    protected List<String> validators = new ArrayList<String>();
 
     /** Default Constructor */
     public ModelFieldType() {}
@@ -92,7 +94,7 @@ public class ModelFieldType {
     }
 
     /** validators to be called when an update is done */
-    public List getValidators() {
+    public List<String> getValidators() {
         return this.validators;
     }
 
@@ -100,7 +102,7 @@ public class ModelFieldType {
      * @return max length of a String representing the Field value
      */
     public int stringLength() {
-        if (sqlType.indexOf("VARCHAR") >= 0) {
+        if (sqlType.contains("VARCHAR")) {
             if (sqlType.indexOf("(") > 0 && sqlType.indexOf(")") > 0) {
                 String length = sqlType.substring(sqlType.indexOf("(") + 1, sqlType.indexOf(")"));
 
@@ -108,7 +110,7 @@ public class ModelFieldType {
             } else {
                 return 255;
             }
-        } else if (sqlType.indexOf("CHAR") >= 0) {
+        } else if (sqlType.contains("CHAR")) {
             if (sqlType.indexOf("(") > 0 && sqlType.indexOf(")") > 0) {
                 String length = sqlType.substring(sqlType.indexOf("(") + 1, sqlType.indexOf(")"));
 
@@ -116,7 +118,7 @@ public class ModelFieldType {
             } else {
                 return 255;
             }
-        } else if (sqlType.indexOf("TEXT") >= 0 || sqlType.indexOf("LONG") >= 0) {
+        } else if (sqlType.contains("TEXT") || sqlType.contains("LONG")) {
             return 5000;
         }
         return 20;

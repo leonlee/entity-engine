@@ -23,11 +23,12 @@
  */
 package org.ofbiz.core.util;
 
-import java.util.*;
-import javax.naming.*;
+import org.ofbiz.core.config.GenericConfigException;
+import org.ofbiz.core.config.JNDIConfigUtil;
 
-import org.ofbiz.core.config.*;
-import org.ofbiz.core.util.*;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import java.util.Hashtable;
 
 /**
  * JNDIContextFactory - central source for JNDI Contexts by helper name
@@ -38,18 +39,18 @@ import org.ofbiz.core.util.*;
  * @since      2.0
  */
 public class JNDIContextFactory {
-    static UtilCache contexts = new UtilCache("entity.JNDIContexts", 0, 0);
+    static UtilCache<String, InitialContext> contexts = new UtilCache<String, InitialContext>("entity.JNDIContexts", 0, 0);
 
     /** 
      * Return the initial context according to the entityengine.xml parameters that correspond to the given prefix
      * @return the JNDI initial context
      */
     public static InitialContext getInitialContext(String jndiServerName) throws GenericConfigException {
-        InitialContext ic = (InitialContext) contexts.get(jndiServerName);
+        InitialContext ic = contexts.get(jndiServerName);
 
         if (ic == null) {
             synchronized (JNDIContextFactory.class) {
-                ic = (InitialContext) contexts.get(jndiServerName);
+                ic = contexts.get(jndiServerName);
 
                 if (ic == null) {
                     JNDIConfigUtil.JndiServerInfo jndiServerInfo = JNDIConfigUtil.getJndiServerInfo(jndiServerName);
@@ -62,7 +63,7 @@ public class JNDIContextFactory {
                         if (UtilValidate.isEmpty(jndiServerInfo.contextProviderUrl)) {
                             ic = new InitialContext();
                         } else {
-                            Hashtable h = new Hashtable();
+                            Hashtable<String, Object> h = new Hashtable<String, Object>();
 
                             h.put(Context.INITIAL_CONTEXT_FACTORY, jndiServerInfo.initialContextFactory);
                             h.put(Context.PROVIDER_URL, jndiServerInfo.contextProviderUrl);
@@ -97,7 +98,7 @@ public class JNDIContextFactory {
      * @param jndiServerName
      */
     public static void clearInitialContext(String jndiServerName) {
-        InitialContext ic = (InitialContext) contexts.get(jndiServerName);
+        InitialContext ic = contexts.get(jndiServerName);
         if (ic != null) 
             contexts.remove(jndiServerName);
     }

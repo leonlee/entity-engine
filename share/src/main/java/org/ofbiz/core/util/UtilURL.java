@@ -23,8 +23,8 @@
  */
 package org.ofbiz.core.util;
 
-import java.net.*;
-import java.io.*;
+import java.io.File;
+import java.net.URL;
 
 /**
  * URL Utilities - Simple Class for flexibly working with properties files
@@ -35,7 +35,7 @@ import java.io.*;
  */
 public class UtilURL {
 
-    public static URL fromClass(Class contextClass) {
+    public static URL fromClass(Class<?> contextClass) {
         String resourceName = contextClass.getName();
         int dotIndex = resourceName.lastIndexOf('.');
 
@@ -49,7 +49,7 @@ public class UtilURL {
         return fromResource(resourceName, null);
     }
 
-    public static URL fromResource(Class contextClass, String resourceName) {
+    public static URL fromResource(Class<?> contextClass, String resourceName) {
         if (contextClass == null)
             return fromResource(resourceName, null);
         else

@@ -23,11 +23,16 @@
  */
 package org.ofbiz.core.util;
 
-import java.io.*;
-import java.util.*;
-import java.text.DateFormat;
+import org.apache.log4j.Category;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
-import org.apache.log4j.*;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Configurable Debug logging wrapper class
@@ -55,9 +60,9 @@ public final class Debug {
 
     public static final String[] levels = {"Always", "Verbose", "Timing", "Info", "Important", "Warning", "Error", "Fatal"};
     public static final String[] levelProps = {"", "print.verbose", "print.timing", "print.info", "print.important", "print.warning", "print.error", "print.fatal"};
-    public static final Priority[] levelObjs = {Priority.INFO, Priority.DEBUG, Priority.DEBUG, Priority.INFO, Priority.INFO, Priority.WARN, Priority.ERROR, Priority.FATAL};
+    public static final Level[] levelObjs = {Level.INFO, Level.DEBUG, Level.DEBUG, Level.INFO, Level.INFO, Level.WARN, Level.ERROR, Level.FATAL};
 
-    protected static Map levelStringMap = new HashMap();
+    protected static Map<String, Integer> levelStringMap = new HashMap<String, Integer>();
     
     protected static PrintStream printStream = System.out;
     protected static PrintWriter printWriter = new PrintWriter(printStream);
@@ -66,14 +71,14 @@ public final class Debug {
     protected static final boolean useLevelOnCache = true;
 
     static {
-        levelStringMap.put("verbose", new Integer(Debug.VERBOSE));
-        levelStringMap.put("timing", new Integer(Debug.TIMING));
-        levelStringMap.put("info", new Integer(Debug.INFO));
-        levelStringMap.put("important", new Integer(Debug.IMPORTANT));
-        levelStringMap.put("warning", new Integer(Debug.WARNING));
-        levelStringMap.put("error", new Integer(Debug.ERROR));
-        levelStringMap.put("fatal", new Integer(Debug.FATAL));
-        levelStringMap.put("always", new Integer(Debug.ALWAYS));
+        levelStringMap.put("verbose", Debug.VERBOSE);
+        levelStringMap.put("timing", Debug.TIMING);
+        levelStringMap.put("info", Debug.INFO);
+        levelStringMap.put("important", Debug.IMPORTANT);
+        levelStringMap.put("warning", Debug.WARNING);
+        levelStringMap.put("error", Debug.ERROR);
+        levelStringMap.put("fatal", Debug.FATAL);
+        levelStringMap.put("always", Debug.ALWAYS);
         
         // initialize Log4J
         PropertyConfigurator.configure(FlexibleProperties.makeFlexibleProperties(UtilURL.fromResource("debug")));
@@ -84,7 +89,7 @@ public final class Debug {
         }
     }
 
-    static Category root = Category.getRoot();
+    static Logger root = Logger.getRootLogger();
 
     public static PrintStream getPrintStream() {
         return printStream;
@@ -99,9 +104,9 @@ public final class Debug {
         return printWriter;
     }
 
-    public static Category getLogger(String module) {
+    public static Logger getLogger(String module) {
         if (module != null && module.length() > 0) {
-            return Category.getInstance(module);
+            return Logger.getLogger(module);
         } else {
             return root;
         }
@@ -110,7 +115,7 @@ public final class Debug {
     /** Gets an Integer representing the level number from a String representing the level name; will return null if not found */
     public static Integer getLevelFromString(String levelName) {
         if (levelName == null) return null;
-        return (Integer) levelStringMap.get(levelName.toLowerCase());
+        return levelStringMap.get(levelName.toLowerCase());
     }
     
     /** Gets an int representing the level number from a String representing the level name; if level not found defaults to Debug.INFO */
@@ -119,7 +124,7 @@ public final class Debug {
         if (levelInt == null) {
             return Debug.INFO;
         } else {
-            return levelInt.intValue();
+            return levelInt;
         }
     }
     

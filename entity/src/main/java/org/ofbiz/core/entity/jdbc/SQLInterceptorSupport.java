@@ -69,7 +69,7 @@ class SQLInterceptorSupport
         {
             try
             {
-                Class interceptorFactoryClass = ClassLoaderUtils.loadClass(className, SQLInterceptorSupport.class);
+                Class<?> interceptorFactoryClass = ClassLoaderUtils.loadClass(className, SQLInterceptorSupport.class);
                 if (SQLInterceptorFactory.class.isAssignableFrom(interceptorFactoryClass))
                 {
                     // create a new instance

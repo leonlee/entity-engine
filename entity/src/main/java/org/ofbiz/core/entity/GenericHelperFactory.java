@@ -63,7 +63,7 @@ public class GenericHelperFactory {
                             throw new IllegalStateException("Could not find datasource definition with name " + helperName);
                         }
                         String helperClassName = datasourceInfo.getHelperClass();
-                        Class helperClass = null;
+                        Class<?> helperClass = null;
 
                         if (helperClassName != null && helperClassName.length() > 0) {
                             try {
@@ -75,10 +75,10 @@ public class GenericHelperFactory {
                             }
                         }
 
-                        Class[] paramTypes = new Class[] {String.class};
+                        Class<?>[] paramTypes = new Class<?>[] {String.class};
                         Object[] params = new Object[] {helperName};
 
-                        java.lang.reflect.Constructor helperConstructor = null;
+                        java.lang.reflect.Constructor<?> helperConstructor = null;
 
                         if (helperClass != null) {
                             try {

@@ -24,9 +24,11 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.util.Debug;
 
-import org.ofbiz.core.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Makes it easier to deal with entities that follow the
@@ -38,12 +40,11 @@ import org.ofbiz.core.util.*;
  */
 public class EntityTypeUtil {
 
-    public static boolean isType(Collection thisCollection, String typeRelation, GenericValue targetType) {
-        Iterator iter = thisCollection.iterator();
+    public static boolean isType(Collection<GenericValue> thisCollection, String typeRelation, GenericValue targetType) {
 
-        while (iter.hasNext()) {
+        for (GenericValue value : thisCollection) {
             try {
-                GenericValue related = ((GenericValue) iter.next()).getRelatedOne(typeRelation);
+                GenericValue related = value.getRelatedOne(typeRelation);
 
                 if (isType(related, targetType)) {
                     return true;
@@ -84,12 +85,12 @@ public class EntityTypeUtil {
         }
     }
 
-    public static List getDescendantTypes(GenericValue typeValue) {
+    public static List<GenericValue> getDescendantTypes(GenericValue typeValue) {
         // assumes Child relation is "Child<entityName>"
-        List descendantTypes = new ArrayList();
+        List<GenericValue> descendantTypes = new ArrayList<GenericValue>();
 
         // first get all childrenTypes ...
-        List childrenTypes = null;
+        List<GenericValue> childrenTypes = null;
         try {
             childrenTypes = typeValue.getRelatedCache("Child" + typeValue.getEntityName());
         } catch (GenericEntityException e) {
@@ -103,10 +104,8 @@ public class EntityTypeUtil {
         descendantTypes.addAll(childrenTypes);
 
         // then add all descendants of the children
-        Iterator childrenTypeIter = childrenTypes.iterator();
-        while (childrenTypeIter.hasNext()) {
-            GenericValue childType = (GenericValue) childrenTypeIter.next();
-            List childTypeDescendants = getDescendantTypes(childType);
+        for (GenericValue childrenType : childrenTypes) {
+            List<GenericValue> childTypeDescendants = getDescendantTypes(childrenType);
             if (childTypeDescendants != null) {
                 descendantTypes.addAll(childTypeDescendants);
             }

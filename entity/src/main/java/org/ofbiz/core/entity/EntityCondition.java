@@ -25,9 +25,10 @@
 package org.ofbiz.core.entity;
 
 
-import java.io.*;
-import java.util.*;
-import org.ofbiz.core.entity.model.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+
+import java.io.Serializable;
+import java.util.List;
 
 
 /**
@@ -46,7 +47,7 @@ import org.ofbiz.core.entity.model.*;
  *@version    1.0
  */
 public abstract class EntityCondition implements Serializable {
-    abstract public String makeWhereString(ModelEntity modelEntity, List entityConditionParams);
+    abstract public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams);
 
     abstract public void checkCondition(ModelEntity modelEntity) throws GenericModelException;
 }

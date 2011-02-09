@@ -24,9 +24,12 @@
  */
 package org.ofbiz.core.entity;
 
-import java.util.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
 
-import org.ofbiz.core.entity.model.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Encapsulates simple expressions used for specifying queries
@@ -108,12 +111,12 @@ public class EntityExpr extends EntityCondition {
         return rhs;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuffer whereStringBuffer = new StringBuffer();
 
         if (lhs instanceof String) {
-            ModelField field = (ModelField) modelEntity.getField((String) this.getLhs());
+            ModelField field = modelEntity.getField((String) this.getLhs());
 
             if (field != null) {
                 if (this.getRhs() == null) {
@@ -138,7 +141,7 @@ public class EntityExpr extends EntityCondition {
                         whereStringBuffer.append('(');
 
                         if (rhs instanceof Collection) {
-                            Iterator rhsIter = ((Collection) rhs).iterator();
+                            Iterator<?> rhsIter = ((Collection<?>) rhs).iterator();
 
                             while (rhsIter.hasNext()) {
                                 Object inObj = rhsIter.next();
@@ -179,7 +182,7 @@ public class EntityExpr extends EntityCondition {
                     }
                 }
             } else {
-                throw new IllegalArgumentException("ModelField with field name " + (String) this.getLhs() + " not found");
+                throw new IllegalArgumentException("ModelField with field name " + this.getLhs() + " not found");
             }
         } else if (lhs instanceof EntityCondition) {
             // then rhs MUST also be an EntityCondition

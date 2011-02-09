@@ -24,10 +24,15 @@
  */
 package org.ofbiz.core.config;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-import org.ofbiz.core.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * JNDIConfigUtil
@@ -39,7 +44,7 @@ import org.ofbiz.core.util.*;
 public class JNDIConfigUtil {
 
     public static final String JNDI_CONFIG_XML_FILENAME = "jndiservers.xml";
-    protected static Map jndiServerInfos = new HashMap();
+    protected static Map<String, JndiServerInfo> jndiServerInfos = new HashMap<String, JndiServerInfo>();
 
     protected static Element getXmlRootElement() throws GenericConfigException {
         try {
@@ -65,14 +70,14 @@ public class JNDIConfigUtil {
         }
     }
     public static void initialize(Element rootElement) throws GenericConfigException {
-        List childElements = null;
-        Iterator elementIter = null;
+        List<Element> childElements = null;
+        Iterator<Element> elementIter = null;
 
         // jndi-server - jndiServerInfos
         childElements = UtilXml.childElementList(rootElement, "jndi-server");
         elementIter = childElements.iterator();
         while (elementIter.hasNext()) {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             JNDIConfigUtil.JndiServerInfo jndiServerInfo = new JNDIConfigUtil.JndiServerInfo(curElement);
 
             JNDIConfigUtil.jndiServerInfos.put(jndiServerInfo.name, jndiServerInfo);
@@ -80,7 +85,7 @@ public class JNDIConfigUtil {
     }
 
     public static JNDIConfigUtil.JndiServerInfo getJndiServerInfo(String name) {
-        return (JNDIConfigUtil.JndiServerInfo) jndiServerInfos.get(name);
+        return jndiServerInfos.get(name);
     }
 
     public static class JndiServerInfo {

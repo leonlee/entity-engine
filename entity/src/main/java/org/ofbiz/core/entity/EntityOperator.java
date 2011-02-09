@@ -68,7 +68,7 @@ public class EntityOperator implements java.io.Serializable {
         public boolean compare(Object o1, Object o2)
         {
             Comparable c1 = null;
-            if (o1 != null && o1 instanceof Comparable)
+            if (o1 != null && o1 instanceof Comparable<?>)
             {
                 c1 = (Comparable) o1;
                 return c1.compareTo(o1) < 0;
@@ -135,7 +135,7 @@ public class EntityOperator implements java.io.Serializable {
                     String s2 = (String) o2;
                     // Not a good way of doing it as it ignores the '%' inside the match.
                     // Should do for now :(
-                    return s1.indexOf(s2) > -1;
+                    return s1.contains(s2);
                 }
             }
         }

@@ -24,10 +24,11 @@
  
 package org.ofbiz.core.util;
 
-import java.sql.*;
-import java.util.*;
-
-import org.ofbiz.core.util.*;
+import java.sql.Timestamp;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * MapComparator.java
@@ -36,43 +37,24 @@ import org.ofbiz.core.util.*;
  * @created    Oct 14, 2002
  * @version    2.0
  */
-public class MapComparator implements Comparator {
+public class MapComparator<K> implements Comparator<Map<K, ?>> {
 
-    private List keys;
+    private List<? extends K> keys;
 
     /**
      * Method MapComparator.
      * @param keys List of Map keys to sort on
      */
-    public MapComparator(List keys) {
+    public MapComparator(List<? extends K> keys) {
         this.keys = keys;
     }
 
-    /**
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    public boolean equals(Object obj) {
-        return obj.equals(this);
-    }
-
-    /**
-     * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
-     */
-    public int compare(Object obj1, Object obj2) {
-        Map map1, map2;
-        try {
-            map1 = (Map) obj1;
-            map2 = (Map) obj2;
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException("Objects not from the Map interface");
-        }
+    public int compare(Map<K, ?> map1, Map<K, ?> map2) {
 
         if (keys == null || keys.size() < 1)
             throw new IllegalArgumentException("No sort fields defined");
 
-        Iterator i = keys.iterator();
-        while (i.hasNext()) {
-            Object key = i.next();
+        for (K key : keys) {
             if (testValue(map1, key) && !testValue(map2, key))
                 return -1;
             if (!testValue(map1, key) && testValue(map2, key))
@@ -110,8 +92,8 @@ public class MapComparator implements Comparator {
                         if (!t1.equals(t2))
                             return t1.compareTo(t2);
                     } else if (ObjectType.instanceOf(o1, "java.util.Date")) {
-                        java.util.Date d1 = (java.util.Date) o1;
-                        java.util.Date d2 = (java.util.Date) o2;
+                        Date d1 = (Date) o1;
+                        Date d2 = (Date) o2;
                         if (!d1.equals(d2))
                             return d1.compareTo(d2);
                     }
@@ -123,8 +105,15 @@ public class MapComparator implements Comparator {
         }
         return 0;
     }
+
+    /**
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    public boolean equals(Object obj) {
+        return obj.equals(this);
+    }
     
-    private boolean testValue(Map map, Object key) {
+    private boolean testValue(Map<K, ?> map, K key) {
         if (!map.containsKey(key))
             return false;
         if (map.get(key) == null)

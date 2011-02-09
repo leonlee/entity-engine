@@ -24,14 +24,19 @@
  */
 package org.ofbiz.core.entity;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import javax.xml.parsers.*;
+import org.ofbiz.core.util.Debug;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
-import org.xml.sax.*;
-
-import org.ofbiz.core.util.*;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * SAX XML Parser Content Handler for Entity Engine XML files
@@ -55,7 +60,7 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
     protected int valuesPerMessage = 1000;
     protected int transactionTimeout = 7200;
 
-    protected List valuesToWrite = new ArrayList(valuesPerWrite);
+    protected List<GenericValue> valuesToWrite = new ArrayList<GenericValue>(valuesPerWrite);
 
     protected EntitySaxReader() {}
 

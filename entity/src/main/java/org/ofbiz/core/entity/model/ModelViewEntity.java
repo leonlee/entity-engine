@@ -23,11 +23,15 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilTimer;
+import org.ofbiz.core.util.UtilValidate;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.jdbc.*;
+import java.util.*;
 
 /**
  * This class extends ModelEntity and provides additional information appropriate to view entities
@@ -41,24 +45,24 @@ public class ModelViewEntity extends ModelEntity {
     public static final String module = ModelViewEntity.class.getName();
 
     /** Contains member-entity alias name definitions: key is alias, value is ModelMemberEntity */
-    protected Map memberModelMemberEntities = new HashMap();
+    protected Map<String, ModelMemberEntity> memberModelMemberEntities = new HashMap<String, ModelMemberEntity>();
 
     /** A list of all ModelMemberEntity entries; this is mainly used to preserve the original order of member entities from the XML file */
-    protected List allModelMemberEntities = new LinkedList();
+    protected List<ModelMemberEntity> allModelMemberEntities = new LinkedList<ModelMemberEntity>();
 
     /** Contains member-entity ModelEntities: key is alias, value is ModelEntity; populated with fields */
-    protected Map memberModelEntities = null;
+    protected Map<String, ModelEntity> memberModelEntities = null;
 
     /** List of aliases with information in addition to what is in the standard field list */
-    protected List aliases = new ArrayList();
+    protected List<ModelAlias> aliases = new ArrayList<ModelAlias>();
 
     /** List of view links to define how entities are connected (or "joined") */
-    protected List viewLinks = new ArrayList();
+    protected List<ModelViewLink> viewLinks = new ArrayList<ModelViewLink>();
 
     /** A List of the Field objects for the View Entity, one for each GROUP BY field */
-    protected List groupBys = new ArrayList();
+    protected List<ModelField> groupBys = new ArrayList<ModelField>();
 
-    public ModelViewEntity(ModelReader reader, Element entityElement, Element docElement, UtilTimer utilTimer, Hashtable docElementValues) {
+    public ModelViewEntity(ModelReader reader, Element entityElement, Element docElement, UtilTimer utilTimer, Hashtable<String, String> docElementValues) {
         this.modelReader = reader;
 
         if (utilTimer != null) utilTimer.timerString("  createModelViewEntity: before general/basic info");
@@ -109,24 +113,24 @@ public class ModelViewEntity extends ModelEntity {
         this.tableName = null;
     }
 
-    public Map getMemberModelMemberEntities() {
+    public Map<String, ModelMemberEntity> getMemberModelMemberEntities() {
         return this.memberModelMemberEntities;
     }
 
-    public List getAllModelMemberEntities() {
+    public List<ModelMemberEntity> getAllModelMemberEntities() {
         return this.allModelMemberEntities;
     }
 
     public ModelMemberEntity getMemberModelMemberEntity(String alias) {
-        return (ModelMemberEntity) this.memberModelMemberEntities.get(alias);
+        return this.memberModelMemberEntities.get(alias);
     }
 
     public ModelEntity getMemberModelEntity(String alias) {
         if (this.memberModelEntities == null) {
-            this.memberModelEntities = new HashMap();
+            this.memberModelEntities = new HashMap<String, ModelEntity>();
             populateFields(this.getModelReader().entityCache);
         }
-        return (ModelEntity) this.memberModelEntities.get(alias);
+        return this.memberModelEntities.get(alias);
     }
 
     public void addMemberModelMemberEntity(ModelMemberEntity modelMemberEntity) {
@@ -135,7 +139,7 @@ public class ModelViewEntity extends ModelEntity {
     }
 
     public void removeMemberModelMemberEntity(String alias) {
-        ModelMemberEntity modelMemberEntity = (ModelMemberEntity) this.memberModelMemberEntities.remove(alias);
+        ModelMemberEntity modelMemberEntity = this.memberModelMemberEntities.remove(alias);
 
         if (modelMemberEntity == null) return;
         this.allModelMemberEntities.remove(modelMemberEntity);
@@ -143,81 +147,76 @@ public class ModelViewEntity extends ModelEntity {
 
     /** List of aliases with information in addition to what is in the standard field list */
     public ModelAlias getAlias(int index) {
-        return (ModelAlias) this.aliases.get(index);
+        return this.aliases.get(index);
     }
 
     public int getAliasesSize() {
         return this.aliases.size();
     }
 
-    public Iterator getAliasesIterator() {
+    public Iterator<ModelAlias> getAliasesIterator() {
         return this.aliases.iterator();
     }
 
-    public List getAliasesCopy() {
-        return new ArrayList(this.aliases);
+    public List<ModelAlias> getAliasesCopy() {
+        return new ArrayList<ModelAlias>(this.aliases);
     }
 
-    public List getGroupBysCopy() {
-        return new ArrayList(this.groupBys);
+    public List<ModelField> getGroupBysCopy() {
+        return new ArrayList<ModelField>(this.groupBys);
     }
 
     /** List of view links to define how entities are connected (or "joined") */
     public ModelViewLink getViewLink(int index) {
-        return (ModelViewLink) this.viewLinks.get(index);
+        return this.viewLinks.get(index);
     }
 
     public int getViewLinksSize() {
         return this.viewLinks.size();
     }
 
-    public Iterator getViewLinksIterator() {
+    public Iterator<ModelViewLink> getViewLinksIterator() {
         return this.viewLinks.iterator();
     }
 
-    public List getViewLinksCopy() {
-        return new ArrayList(this.viewLinks);
+    public List<ModelViewLink> getViewLinksCopy() {
+        return new ArrayList<ModelViewLink>(this.viewLinks);
     }
 
     public void addViewLink(ModelViewLink viewLink) {
         this.viewLinks.add(viewLink);
     }
 
-    public void populateFields(Map entityCache) {
+    public void populateFields(Map<String, ModelEntity> entityCache) {
         if (this.memberModelEntities == null) {
-            this.memberModelEntities = new HashMap();
+            this.memberModelEntities = new HashMap<String, ModelEntity>();
         }
-        Iterator meIter = memberModelMemberEntities.entrySet().iterator();
 
-        while (meIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) meIter.next();
-
-            ModelMemberEntity modelMemberEntity = (ModelMemberEntity) entry.getValue();
+        for (Map.Entry<String, ModelMemberEntity> entry : memberModelMemberEntities.entrySet()) {
+            ModelMemberEntity modelMemberEntity = entry.getValue();
             String aliasedEntityName = modelMemberEntity.getEntityName();
-            ModelEntity aliasedEntity = (ModelEntity) entityCache.get(aliasedEntityName);
+            ModelEntity aliasedEntity = entityCache.get(aliasedEntityName);
 
             if (aliasedEntity == null) {
                 Debug.logError("[ModelViewEntity.populateFields] ERROR: could not find ModelEntity for entity name: " +
-                    aliasedEntityName);
+                        aliasedEntityName);
                 continue;
             }
             memberModelEntities.put(entry.getKey(), aliasedEntity);
         }
 
-        for (int i = 0; i < aliases.size(); i++) {
-            ModelAlias alias = (ModelAlias) aliases.get(i);
-
-            ModelMemberEntity modelMemberEntity = (ModelMemberEntity) memberModelMemberEntities.get(alias.entityAlias);
+        for (ModelAlias alias : aliases) {
+            ModelMemberEntity modelMemberEntity = memberModelMemberEntities.get(alias.entityAlias);
 
             if (modelMemberEntity == null) {
                 Debug.logError("No member entity with alias " + alias.entityAlias + " found in view-entity " + this.getEntityName() + "; this view-entity will NOT be usable...");
             }
             String aliasedEntityName = modelMemberEntity.getEntityName();
-            ModelEntity aliasedEntity = (ModelEntity) entityCache.get(aliasedEntityName);
+            ModelEntity aliasedEntity = entityCache.get(aliasedEntityName);
 
             if (aliasedEntity == null) {
                 Debug.logError("[ModelViewEntity.populateFields] ERROR: could not find ModelEntity for entity name: " +
-                    aliasedEntityName);
+                        aliasedEntityName);
                 continue;
             }
 
@@ -225,7 +224,7 @@ public class ModelViewEntity extends ModelEntity {
 
             if (aliasedField == null) {
                 Debug.logError("[ModelViewEntity.populateFields] ERROR: could not find ModelField for field name \"" +
-                    alias.field + "\" on entity with name: " + aliasedEntityName);
+                        alias.field + "\" on entity with name: " + aliasedEntityName);
                 continue;
             }
 
@@ -233,7 +232,7 @@ public class ModelViewEntity extends ModelEntity {
 
             field.name = alias.name;
             if (alias.isPk != null) {
-                field.isPk = alias.isPk.booleanValue();
+                field.isPk = alias.isPk;
             } else {
                 field.isPk = aliasedField.isPk;
             }
@@ -332,7 +331,7 @@ public class ModelViewEntity extends ModelEntity {
             String primKeyValue = UtilXml.checkEmpty(aliasElement.getAttribute("prim-key"));
 
             if (UtilValidate.isNotEmpty(primKeyValue)) {
-                this.isPk = new Boolean("true".equals(primKeyValue));
+                this.isPk = "true".equals(primKeyValue);
             } else {
                 this.isPk = null;
             }
@@ -379,7 +378,7 @@ public class ModelViewEntity extends ModelEntity {
         protected String entityAlias = "";
         protected String relEntityAlias = "";
         protected boolean relOptional = false;
-        protected List keyMaps = new ArrayList();
+        protected List<ModelKeyMap> keyMaps = new ArrayList<ModelKeyMap>();
 
         protected ModelViewLink() {}
 
@@ -399,7 +398,7 @@ public class ModelViewEntity extends ModelEntity {
             }
         }
 
-        public ModelViewLink(String entityAlias, String relEntityAlias, List keyMaps) {
+        public ModelViewLink(String entityAlias, String relEntityAlias, List<? extends ModelKeyMap> keyMaps) {
             this.entityAlias = entityAlias;
             this.relEntityAlias = relEntityAlias;
             this.keyMaps.addAll(keyMaps);
@@ -418,19 +417,19 @@ public class ModelViewEntity extends ModelEntity {
         }
 
         public ModelKeyMap getKeyMap(int index) {
-            return (ModelKeyMap) this.keyMaps.get(index);
+            return this.keyMaps.get(index);
         }
 
         public int getKeyMapsSize() {
             return this.keyMaps.size();
         }
 
-        public Iterator getKeyMapsIterator() {
+        public Iterator<ModelKeyMap> getKeyMapsIterator() {
             return this.keyMaps.iterator();
         }
 
-        public List getKeyMapsCopy() {
-            return new ArrayList(this.keyMaps);
+        public List<ModelKeyMap> getKeyMapsCopy() {
+            return new ArrayList<ModelKeyMap>(this.keyMaps);
         }
     }
 }

@@ -23,7 +23,8 @@
  */
 package org.ofbiz.core.util;
 
-import java.text.*;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
 
 /**
  * General output formatting functions - mainly for helping in JSPs
@@ -163,7 +164,7 @@ public class UtilFormatOut {
         if (timestamp == null)
             return "";
         DateFormat df = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.FULL);
-        java.util.Date date = (java.util.Date) timestamp;
+        java.util.Date date = timestamp;
         return df.format(date);        
     }
 

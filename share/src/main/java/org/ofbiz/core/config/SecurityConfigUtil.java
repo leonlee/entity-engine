@@ -24,9 +24,15 @@
 package org.ofbiz.core.config;
 
 
-import java.util.*;
-import org.w3c.dom.*;
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -46,7 +52,7 @@ public class SecurityConfigUtil {
     /** The security config filename */
     public static final String SECURITY_CONFIG_XML_FILENAME = "security.xml";
 
-    protected static Map securityInfos = new HashMap();
+    protected static Map<String, SecurityInfo> securityInfos = new HashMap<String, SecurityInfo>();
 
     /**
      * Returns the XmlRootElement for the security config
@@ -83,14 +89,14 @@ public class SecurityConfigUtil {
      * @throws GenericConfigException
      */
     public static void initialize(Element rootElement) throws GenericConfigException {
-        List childElements = null;
-        Iterator elementIter = null;
+        List<Element> childElements = null;
+        Iterator<Element> elementIter = null;
 
         // security-config - securityInfos
         childElements = UtilXml.childElementList(rootElement, "security");
         elementIter = childElements.iterator();
         while (elementIter.hasNext()) {
-            Element curElement = (Element) elementIter.next();
+            Element curElement = elementIter.next();
             SecurityConfigUtil.SecurityInfo securityInfo = new SecurityConfigUtil.SecurityInfo(curElement);
 
             if (Debug.verboseOn()) Debug.logVerbose("LOADED SECURITY CONFIG FROM XML -  NAME: " + securityInfo.name + " ClassName: " + securityInfo.className);
@@ -105,7 +111,7 @@ public class SecurityConfigUtil {
      * @return
      */
     public static SecurityConfigUtil.SecurityInfo getSecurityInfo(String name) {
-        return (SecurityConfigUtil.SecurityInfo) securityInfos.get(name);
+        return securityInfos.get(name);
     }
 
     /**

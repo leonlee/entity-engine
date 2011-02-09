@@ -6,14 +6,15 @@ import org.ofbiz.core.util.Debug;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * This class provides methods for finding the correct database type for a given connection object.
  */
 public class DatabaseTypeFactory {
 
-    static final Collection DATABASE_TYPES = new ArrayList();
+    static final Collection<DatabaseType> DATABASE_TYPES = new ArrayList<DatabaseType>();
 
 
     public static final DatabaseType DB2 = new DB2DatabaseType();
@@ -64,9 +65,7 @@ public class DatabaseTypeFactory {
      */
     public static DatabaseType getTypeForConnection(Connection con) {
 
-        for (Iterator iterator = DATABASE_TYPES.iterator(); iterator.hasNext();) {
-            DatabaseType databaseType = (DatabaseType) iterator.next();
-
+        for (DatabaseType databaseType : DATABASE_TYPES) {
             try {
                 if (databaseType.matchesConnection(con)) {
                     Debug.logInfo("Returning DatabaseType " + databaseType);

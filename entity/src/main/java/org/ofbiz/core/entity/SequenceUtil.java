@@ -23,12 +23,20 @@
  */
 package org.ofbiz.core.entity;
 
-import java.sql.*;
-import java.util.*;
-import javax.transaction.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.util.Debug;
 
-import org.ofbiz.core.util.*;
-import org.ofbiz.core.entity.model.*;
+import javax.transaction.InvalidTransactionException;
+import javax.transaction.SystemException;
+import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Hashtable;
+import java.util.Map;
 
 /**
  * Sequence Utility to get unique sequences from named sequence banks
@@ -42,7 +50,7 @@ public class SequenceUtil {
 
     public static final String module = SequenceUtil.class.getName();
 
-    Map sequences = new Hashtable();
+    Map<String, SequenceBank> sequences = new Hashtable<String, SequenceBank>();
     String helperName;
     ModelEntity seqEntity;
     String tableName;
@@ -75,7 +83,7 @@ public class SequenceUtil {
     }
 
     public Long getNextSeqId(String seqName) {
-        SequenceBank bank = (SequenceBank) sequences.get(seqName);
+        SequenceBank bank = sequences.get(seqName);
 
         if (bank == null) {
             bank = constructSequenceBank(seqName);
@@ -89,7 +97,7 @@ public class SequenceUtil {
     private synchronized SequenceBank constructSequenceBank(String seqName)
     {
         // check the cache first in-case someone has already populated 
-        SequenceBank bank = (SequenceBank) sequences.get(seqName);
+        SequenceBank bank = sequences.get(seqName);
         if (bank == null) {
             bank = new SequenceBank(seqName, this);
             sequences.put(seqName, bank);
@@ -120,14 +128,14 @@ public class SequenceUtil {
 
         public synchronized Long getNextSeqId() {
             if (curSeqId < maxSeqId) {
-                Long retSeqId = new Long(curSeqId);
+                Long retSeqId = curSeqId;
 
                 curSeqId++;
                 return retSeqId;
             } else {
                 fillBank();
                 if (curSeqId < maxSeqId) {
-                    Long retSeqId = new Long(curSeqId);
+                    Long retSeqId = curSeqId;
 
                     curSeqId++;
                     return retSeqId;

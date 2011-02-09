@@ -1,11 +1,11 @@
 package org.ofbiz.core.entity.comparator;
 
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericValue;
-import org.apache.log4j.Category;
 
-public class OFBizFieldComparator implements java.util.Comparator
+public class OFBizFieldComparator implements java.util.Comparator<GenericValue>
 {
-    private static final Category log = Category.getInstance(OFBizFieldComparator.class);
+    private static final Logger log = Logger.getLogger(OFBizFieldComparator.class);
 
     String fieldname;
 
@@ -14,22 +14,19 @@ public class OFBizFieldComparator implements java.util.Comparator
         this.fieldname = fieldname;
     }
 
-    public int compare(Object o1, Object o2)
+    public int compare(GenericValue o1, GenericValue o2)
     {
         try
         {
-            GenericValue i1 = (GenericValue) o1;
-            GenericValue i2 = (GenericValue) o2;
-
-            if (i1 == null && i2 == null)
+            if (o1 == null && o2 == null)
                 return 0;
-            else if (i2 == null) // any value is less than null
+            else if (o2 == null) // any value is less than null
                 return -1;
-            else if (i1 == null) // null is greater than any value
+            else if (o1 == null) // null is greater than any value
                 return 1;
 
-            String s1 = i1.getString(fieldname);
-            String s2 = i2.getString(fieldname);
+            String s1 = o1.getString(fieldname);
+            String s2 = o2.getString(fieldname);
 
             if (s1 == null && s2 == null)
                 return 0;

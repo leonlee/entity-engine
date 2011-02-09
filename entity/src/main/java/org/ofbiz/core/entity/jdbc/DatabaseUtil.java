@@ -102,18 +102,18 @@ public class DatabaseUtil {
      * @param messages a thing to collect errors.
      * @param addMissing if true, will attempt to add tables and columns, fks, indices etc are added always.
      */
-    public void checkDb(Map modelEntities, Collection messages, boolean addMissing) {
+    public void checkDb(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) {
 
         UtilTimer timer = new UtilTimer();
 
         timer.timerString("Start - Before Get Database Meta Data");
 
         // get ALL tables from this database
-        TreeSet tableNames = this.getTableNames(messages);
-        TreeSet fkTableNames = tableNames == null ? null : new TreeSet(tableNames);
-        TreeSet indexTableNames = tableNames == null ? null : new TreeSet(tableNames);
+        TreeSet<String> tableNames = this.getTableNames(messages);
+        TreeSet<String> fkTableNames = tableNames == null ? null : new TreeSet<String>(tableNames);
+        TreeSet<String> indexTableNames = tableNames == null ? null : new TreeSet<String>(tableNames);
         // keep track of entities whose tables already existed
-        Map existingTableEntities = new HashMap();
+        Map<String, ModelEntity> existingTableEntities = new HashMap<String, ModelEntity>();
 
         if (tableNames == null) {
 
@@ -123,7 +123,7 @@ public class DatabaseUtil {
         timer.timerString("After Get All Table Names");
 
         // get ALL column info, put into hashmap by table name
-        Map colInfo = this.getColumnInfo(tableNames, messages);
+        Map<String, List<ColumnCheckInfo>> colInfo = this.getColumnInfo(tableNames, messages);
         if (colInfo == null) {
 
             error("Could not get column information from the database, aborting.", messages);
@@ -140,19 +140,19 @@ public class DatabaseUtil {
 
         timer.timerString("Before Individual Table/Column Check");
 
-        ArrayList modelEntityList = new ArrayList(modelEntities.values());
+        ArrayList<ModelEntity> modelEntityList = new ArrayList<ModelEntity>(modelEntities.values());
 
         // sort using compareTo method on ModelEntity
         Collections.sort(modelEntityList);
 
-        Iterator modelEntityIter = modelEntityList.iterator();
+        Iterator<ModelEntity> modelEntityIter = modelEntityList.iterator();
         int curEnt = 0;
         int totalEnt = modelEntityList.size();
-        List entitiesAdded = new LinkedList();
+        List<ModelEntity> entitiesAdded = new LinkedList<ModelEntity>();
 
         while (modelEntityIter.hasNext()) {
             curEnt++;
-            ModelEntity entity = (ModelEntity) modelEntityIter.next();
+            ModelEntity entity = modelEntityIter.next();
             String entityName = entity.getEntityName();
 
             // if this is a view entity, do not check it...
@@ -174,24 +174,24 @@ public class DatabaseUtil {
                 existingTableEntities.put(entity.getPlainTableName(), entity);
 
                 if (colInfo != null) {
-                    Map fieldColNames = new HashMap();
+                    Map<String, ModelField> fieldColNames = new HashMap<String, ModelField>();
                     for (int fnum = 0; fnum < entity.getFieldsSize(); fnum++) {
                         ModelField field = entity.getField(fnum);
                         fieldColNames.put(field.getColName().toUpperCase(), field);
                     }
 
-                    List colList = (List) colInfo.get(upperTableName);
+                    List<ColumnCheckInfo> colList = colInfo.get(upperTableName);
                     int numCols = 0;
 
                     if (colList != null) {
                         for (; numCols < colList.size(); numCols++) {
-                            ColumnCheckInfo ccInfo = (ColumnCheckInfo) colList.get(numCols);
+                            ColumnCheckInfo ccInfo = colList.get(numCols);
 
                             // -list all columns that do not have a corresponding field
                             if (fieldColNames.containsKey(ccInfo.columnName)) {
                                 ModelField field = null;
 
-                                field = (ModelField) fieldColNames.remove(ccInfo.columnName);
+                                field = fieldColNames.remove(ccInfo.columnName);
                                 checkFieldType(entity, field, ccInfo, messages);
                             } else {
 
@@ -209,11 +209,9 @@ public class DatabaseUtil {
                     }
 
                     // -list all fields that do not have a corresponding column
-                    Iterator fcnIter = fieldColNames.keySet().iterator();
 
-                    while (fcnIter.hasNext()) {
-                        String colName = (String) fcnIter.next();
-                        ModelField field = (ModelField) fieldColNames.get(colName);
+                    for (String s : fieldColNames.keySet()) {
+                        ModelField field = fieldColNames.get(s);
 
                         warn("Field \"" + field.getName() + "\" of entity \"" + entityName + "\" is missing its corresponding column \"" + field.getColName() + "\"", messages);
 
@@ -252,20 +250,18 @@ public class DatabaseUtil {
         timer.timerString("After Individual Table/Column Check");
 
         // -list all tables that do not have a corresponding entity
-        Iterator tableNamesIter = tableNames.iterator();
+        Iterator<String> tableNamesIter = tableNames.iterator();
 
         while (tableNamesIter != null && tableNamesIter.hasNext()) {
-            String tableName = (String) tableNamesIter.next();
+            String tableName = tableNamesIter.next();
 
             warn("Table named \"" + tableName + "\" exists in the database but has no corresponding entity", messages);
         }
 
         // for each newly added table, add fks
         if (datasourceInfo.isUseFks()) {
-            Iterator eaIter = entitiesAdded.iterator();
 
-            while (eaIter.hasNext()) {
-                ModelEntity curEntity = (ModelEntity) eaIter.next();
+            for (ModelEntity curEntity : entitiesAdded) {
                 String errMsg = this.createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                 if (errMsg != null && errMsg.length() > 0) {
@@ -280,10 +276,8 @@ public class DatabaseUtil {
         }
         // for each newly added table, add fk indices
         if (datasourceInfo.isUseFkIndices()) {
-            Iterator eaIter = entitiesAdded.iterator();
 
-            while (eaIter.hasNext()) {
-                ModelEntity curEntity = (ModelEntity) eaIter.next();
+            for (ModelEntity curEntity : entitiesAdded) {
                 String indErrMsg = this.createForeignKeyIndices(curEntity, datasourceInfo.getConstraintNameClipLength());
 
                 if (indErrMsg != null && indErrMsg.length() > 0) {
@@ -299,10 +293,8 @@ public class DatabaseUtil {
 
         if (datasourceInfo.isUseIndices()) {
             // for each newly added table, add declared indexes
-            Iterator eaIter = entitiesAdded.iterator();
 
-            while (eaIter.hasNext()) {
-                ModelEntity curEntity = (ModelEntity) eaIter.next();
+            for (ModelEntity curEntity : entitiesAdded) {
                 String indErrMsg = this.createDeclaredIndices(curEntity);
 
                 if (indErrMsg != null && indErrMsg.length() > 0) {
@@ -323,16 +315,14 @@ public class DatabaseUtil {
             // TODO: check each key-map to make sure it exists in the FK, if any differences warn and then remove FK and recreate it
 
             // get ALL column info, put into hashmap by table name
-            Map refTableInfoMap = this.getReferenceInfo(fkTableNames, messages);
+            Map<String, Map<String, ReferenceCheckInfo>> refTableInfoMap = this.getReferenceInfo(fkTableNames, messages);
 
             // Debug.logVerbose("Ref Info Map: " + refTableInfoMap);
 
             if (refTableInfoMap == null) {// uh oh, something happened while getting info...
             } else {
-                Iterator refModelEntityIter = modelEntityList.iterator();
 
-                while (refModelEntityIter.hasNext()) {
-                    ModelEntity entity = (ModelEntity) refModelEntityIter.next();
+                for (ModelEntity entity : modelEntityList) {
                     String entityName = entity.getEntityName();
 
                     // if this is a view entity, do not check it...
@@ -343,34 +333,35 @@ public class DatabaseUtil {
                     }
 
                     // get existing FK map for this table
-                    Map rcInfoMap = (Map) refTableInfoMap.get(entity.getTableName(datasourceInfo));
+                    Map<String, ReferenceCheckInfo> rcInfoMap = refTableInfoMap.get(entity.getTableName(datasourceInfo));
                     // Debug.logVerbose("Got ref info for table " + entity.getTableName(datasourceInfo) + ": " + rcInfoMap);
 
                     // go through each relation to see if an FK already exists
-                    Iterator relations = entity.getRelationsIterator();
+                    Iterator<ModelRelation> relations = entity.getRelationsIterator();
                     boolean createdConstraints = false;
 
                     while (relations.hasNext()) {
-                        ModelRelation modelRelation = (ModelRelation) relations.next();
+                        ModelRelation modelRelation = relations.next();
 
                         if (!"one".equals(modelRelation.getType())) {
                             continue;
                         }
 
-                        ModelEntity relModelEntity = (ModelEntity) modelEntities.get(modelRelation.getRelEntityName());
+                        ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
 
                         String relConstraintName = makeFkConstraintName(modelRelation, datasourceInfo.getConstraintNameClipLength());
                         ReferenceCheckInfo rcInfo = null;
 
                         if (rcInfoMap != null) {
-                            rcInfo = (ReferenceCheckInfo) rcInfoMap.get(relConstraintName);
+                            rcInfo = rcInfoMap.get(relConstraintName);
                         }
 
                         if (rcInfo != null) {
                             rcInfoMap.remove(relConstraintName);
                         } else {
                             // if not, create one
-                            if (Debug.verboseOn()) Debug.logVerbose("No Foreign Key Constraint " + relConstraintName + " found in entity " + entityName);
+                            if (Debug.verboseOn())
+                                Debug.logVerbose("No Foreign Key Constraint " + relConstraintName + " found in entity " + entityName);
                             String errMsg = createForeignKey(entity, modelRelation, relModelEntity, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                             if (errMsg != null && errMsg.length() > 0) {
@@ -393,11 +384,8 @@ public class DatabaseUtil {
 
                     // show foreign key references that exist but are unknown
                     if (rcInfoMap != null) {
-                        Iterator rcInfoKeysLeft = rcInfoMap.keySet().iterator();
 
-                        while (rcInfoKeysLeft.hasNext()) {
-                            String rcKeyLeft = (String) rcInfoKeysLeft.next();
-
+                        for (String rcKeyLeft : rcInfoMap.keySet()) {
                             Debug.logImportant("Unknown Foreign Key Constraint " + rcKeyLeft + " found in table " + entity.getTableName(datasourceInfo));
                         }
                     }
@@ -414,16 +402,14 @@ public class DatabaseUtil {
             // TODO: also check the declared indices on start, if the datasourceInfo.checkIndicesOnStart flag is set
 
             // get ALL column info, put into hashmap by table name
-            Map tableIndexListMap = this.getIndexInfo(indexTableNames, messages);
+            Map<String, Set<String>> tableIndexListMap = this.getIndexInfo(indexTableNames, messages);
 
             // Debug.logVerbose("Ref Info Map: " + refTableInfoMap);
 
             if (tableIndexListMap == null) {// uh oh, something happened while getting info...
             } else {
-                Iterator refModelEntityIter = modelEntityList.iterator();
 
-                while (refModelEntityIter.hasNext()) {
-                    ModelEntity entity = (ModelEntity) refModelEntityIter.next();
+                for (ModelEntity entity : modelEntityList) {
                     String entityName = entity.getEntityName();
 
                     // if this is a view entity, do not check it...
@@ -434,7 +420,7 @@ public class DatabaseUtil {
                     }
 
                     // get existing index list for this table
-                    TreeSet tableIndexList = (TreeSet) tableIndexListMap.get(entity.getTableName(datasourceInfo));
+                    Set<String> tableIndexList = tableIndexListMap.get(entity.getTableName(datasourceInfo));
 
                     // Debug.logVerbose("Got ind info for table " + entity.getTableName(datasourceInfo) + ": " + tableIndexList);
 
@@ -455,10 +441,10 @@ public class DatabaseUtil {
                     } else {
                         // go through each relation to see if an FK already exists
                         boolean createdConstraints = false;
-                        Iterator relations = entity.getRelationsIterator();
+                        Iterator<ModelRelation> relations = entity.getRelationsIterator();
 
                         while (relations.hasNext()) {
-                            ModelRelation modelRelation = (ModelRelation) relations.next();
+                            ModelRelation modelRelation = relations.next();
 
                             if (!"one".equals(modelRelation.getType())) {
                                 continue;
@@ -470,7 +456,8 @@ public class DatabaseUtil {
                                 tableIndexList.remove(relConstraintName);
                             } else {
                                 // if not, create one
-                                if (Debug.verboseOn()) Debug.logVerbose("No Index " + relConstraintName + " found for entity " + entityName);
+                                if (Debug.verboseOn())
+                                    Debug.logVerbose("No Index " + relConstraintName + " found for entity " + entityName);
                                 String errMsg = createForeignKeyIndex(entity, modelRelation, datasourceInfo.getConstraintNameClipLength());
 
                                 if (errMsg != null && errMsg.length() > 0) {
@@ -496,11 +483,8 @@ public class DatabaseUtil {
 
                     // show foreign key references that exist but are unknown
                     if (tableIndexList != null) {
-                        Iterator tableIndexListIter = tableIndexList.iterator();
 
-                        while (tableIndexListIter.hasNext()) {
-                            String indexLeft = (String) tableIndexListIter.next();
-
+                        for (String indexLeft : tableIndexList) {
                             Debug.logImportant("Unknown Index " + indexLeft + " found in table " + entity.getTableName(datasourceInfo));
                         }
                     }
@@ -516,7 +500,7 @@ public class DatabaseUtil {
      * Checks the given {@link org.ofbiz.core.entity.model.ModelEntity entity's} @{link ModelField field} to see that
      * its type matches the given ColumnCheckInfo. Error messages are added to messages.
      */
-    void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection messages) {
+    void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection<String> messages) {
         ModelFieldType modelFieldType = modelFieldTypeReader.getModelFieldType(field.getType());
 
         if (modelFieldType != null) {
@@ -604,7 +588,7 @@ public class DatabaseUtil {
      * @param tableToModelEntities a map of table name to corresponding model entity.
      * @param messages error messages go here
      */
-    void createMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection messages) {
+    void createMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection<String> messages) {
         // get the actual db index names per table
         final Map<String, Set<String>> indexInfo = getIndexInfo(tableToModelEntities.keySet(), messages, true);
 
@@ -613,12 +597,12 @@ public class DatabaseUtil {
             final Set<String> actualIndexes = indexInfoEntry.getValue();
 
             final ModelEntity modelEntity = tableToModelEntities.get(tableName);
-            final Iterator indexesIterator = modelEntity.getIndexesIterator();
+            final Iterator<ModelIndex> indexesIterator = modelEntity.getIndexesIterator();
 
             final StringBuffer retMsgsBuffer = new StringBuffer();
 
             while (indexesIterator.hasNext()) {
-                ModelIndex modelIndex = (ModelIndex) indexesIterator.next();
+                ModelIndex modelIndex = indexesIterator.next();
                 if (!actualIndexes.contains(modelIndex.getName().toUpperCase())) {
                     if (Debug.infoOn()) {
                         Debug.logInfo("Missing index '" + modelIndex.getName() + "' on existing table '" + tableName + "' ...creating");
@@ -642,24 +626,22 @@ public class DatabaseUtil {
 
 
     /** Creates a list of ModelEntity objects based on meta data from the database */
-    public List induceModelFromDb(Collection messages) {
+    public List<ModelEntity> induceModelFromDb(Collection<String> messages) {
         // get ALL tables from this database
-        TreeSet tableNames = this.getTableNames(messages);
+        TreeSet<String> tableNames = this.getTableNames(messages);
 
         // get ALL column info, put into hashmap by table name
-        Map colInfo = this.getColumnInfo(tableNames, messages);
+        Map<String, List<ColumnCheckInfo>> colInfo = this.getColumnInfo(tableNames, messages);
 
         // go through each table and make a ModelEntity object, add to list
         // for each entity make corresponding ModelField objects
         // then print out XML for the entities/fields
-        List newEntList = new LinkedList();
+        List<ModelEntity> newEntList = new LinkedList<ModelEntity>();
 
         // iterate over the table names is alphabetical order
-        Iterator tableNamesIter = new TreeSet(colInfo.keySet()).iterator();
 
-        while (tableNamesIter.hasNext()) {
-            String tableName = (String) tableNamesIter.next();
-            List colList = (ArrayList) colInfo.get(tableName);
+        for (String tableName : new TreeSet<String>(colInfo.keySet())) {
+            List<ColumnCheckInfo> colList = colInfo.get(tableName);
 
             ModelEntity newEntity = new ModelEntity(tableName, colList, modelFieldTypeReader);
 
@@ -669,7 +651,7 @@ public class DatabaseUtil {
         return newEntList;
     }
 
-    public TreeSet getTableNames(Collection messages) {
+    public TreeSet<String> getTableNames(Collection<String> messages) {
         Connection connection = null;
 
         try {
@@ -708,7 +690,7 @@ public class DatabaseUtil {
         if (Debug.infoOn()) Debug.logInfo("Getting Table Info From Database");
 
         // get ALL tables from this database
-        TreeSet tableNames = new TreeSet();
+        TreeSet<String> tableNames = new TreeSet<String>();
         ResultSet tableSet = null;
 
         try {
@@ -780,10 +762,10 @@ public class DatabaseUtil {
         return lookupSchemaName;
     }
 
-    public Map getColumnInfo(Set tableNames, Collection messages) {
+    public Map<String, List<ColumnCheckInfo>> getColumnInfo(Set<String> tableNames, Collection<String> messages) {
         // if there are no tableNames, don't even try to get the columns
         if (tableNames.size() == 0) {
-            return new HashMap();
+            return new HashMap<String, List<ColumnCheckInfo>>();
         }
 
         Connection connection = null;
@@ -829,7 +811,7 @@ public class DatabaseUtil {
 
         if (Debug.infoOn()) Debug.logInfo("Getting Column Info From Database");
 
-        Map colInfo = new HashMap();
+        Map<String, List<ColumnCheckInfo>> colInfo = new HashMap<String, List<ColumnCheckInfo>>();
 
         try {
             String lookupSchemaName = lookupSchemaName(dbData);
@@ -861,10 +843,10 @@ public class DatabaseUtil {
                     ccInfo.isNullable = rsCols.getString("IS_NULLABLE");
                     ccInfo.isNullable = (ccInfo.isNullable == null) ? null : ccInfo.isNullable.toUpperCase();
 
-                    List tableColInfo = (List) colInfo.get(ccInfo.tableName);
+                    List<ColumnCheckInfo> tableColInfo = colInfo.get(ccInfo.tableName);
 
                     if (tableColInfo == null) {
-                        tableColInfo = new ArrayList();
+                        tableColInfo = new ArrayList<ColumnCheckInfo>();
                         colInfo.put(ccInfo.tableName, tableColInfo);
                     }
                     tableColInfo.add(ccInfo);
@@ -892,7 +874,7 @@ public class DatabaseUtil {
         return colInfo;
     }
 
-    public Map getReferenceInfo(Set tableNames, Collection messages) {
+    public Map<String, Map<String, ReferenceCheckInfo>> getReferenceInfo(Set<String> tableNames, Collection<String> messages) {
         Connection connection = null;
         try {
             connection = getConnection();
@@ -934,7 +916,7 @@ public class DatabaseUtil {
 
         if (Debug.infoOn()) Debug.logInfo("Getting Foreign Key (Reference) Info From Database");
 
-        Map refInfo = new HashMap();
+        Map<String, Map<String, ReferenceCheckInfo>> refInfo = new HashMap<String, Map<String, ReferenceCheckInfo>>();
 
         try {
             // ResultSet rsCols = dbData.getCrossReference(null, null, null, null, null, null);
@@ -971,10 +953,10 @@ public class DatabaseUtil {
 
                     if (Debug.verboseOn()) Debug.logVerbose("Got: " + rcInfo.toString());
 
-                    Map tableRefInfo = (Map) refInfo.get(rcInfo.fkTableName);
+                    Map<String, ReferenceCheckInfo> tableRefInfo = refInfo.get(rcInfo.fkTableName);
 
                     if (tableRefInfo == null) {
-                        tableRefInfo = new HashMap();
+                        tableRefInfo = new HashMap<String, ReferenceCheckInfo>();
                         refInfo.put(rcInfo.fkTableName, tableRefInfo);
                         if (Debug.verboseOn()) Debug.logVerbose("Adding new Map for table: " + rcInfo.fkTableName);
                     }
@@ -1007,7 +989,7 @@ public class DatabaseUtil {
         return refInfo;
     }
 
-    public Map getIndexInfo(Set tableNames, Collection messages) {
+    public Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages) {
 
         // preserving backwards compatibility of this method while providing a new version that can
         // return unique indexes.
@@ -1024,7 +1006,7 @@ public class DatabaseUtil {
      * @param includeUnique if true, the index info will include unique indexes which could include pk indexes.
      * @return a map of table names to sets of index names or null on failure.
      */
-    Map getIndexInfo(Set tableNames, Collection messages, boolean includeUnique) {
+    Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages, boolean includeUnique) {
 
         Connection connection = null;
 
@@ -1050,16 +1032,16 @@ public class DatabaseUtil {
 
         if (Debug.infoOn()) Debug.logInfo("Getting Index Info From Database");
 
-        Map<String, TreeSet<String>> indexInfo = new HashMap<String, TreeSet<String>>();
+        Map<String, Set<String>> indexInfo = new HashMap<String, Set<String>>();
 
         try {
             int totalIndices = 0;
-            Iterator tableNamesIter = tableNames.iterator();
+            Iterator<String> tableNamesIter = tableNames.iterator();
 
             String lookupSchemaName = lookupSchemaName(dbData);
 
             while (tableNamesIter.hasNext()) {
-                String curTableName = (String) tableNamesIter.next();
+                String curTableName = tableNamesIter.next();
 
                 ResultSet rsCols = null;
                 String queryTableName;
@@ -1097,7 +1079,7 @@ public class DatabaseUtil {
 
                         indexName = (indexName == null) ? null : indexName.toUpperCase();
 
-                        TreeSet<String> tableIndexList = indexInfo.get(curTableName);
+                        Set<String> tableIndexList = indexInfo.get(curTableName);
 
                         if (tableIndexList == null) {
                             tableIndexList = new TreeSet<String>();
@@ -1138,7 +1120,7 @@ public class DatabaseUtil {
     /* ====================================================================== */
 
     /* ====================================================================== */
-    public String createTable(ModelEntity entity, Map modelEntities, boolean addFks, boolean usePkConstraintNames, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
+    public String createTable(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, boolean addFks, boolean usePkConstraintNames, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
         }
@@ -1195,13 +1177,13 @@ public class DatabaseUtil {
             // NOTE: This is kind of a bad idea anyway since ordering table creations is crazy, if not impossible
 
             // go through the relationships to see if any foreign keys need to be added
-            Iterator relationsIter = entity.getRelationsIterator();
+            Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
 
             while (relationsIter.hasNext()) {
-                ModelRelation modelRelation = (ModelRelation) relationsIter.next();
+                ModelRelation modelRelation = relationsIter.next();
 
                 if ("one".equals(modelRelation.getType())) {
-                    ModelEntity relModelEntity = (ModelEntity) modelEntities.get(modelRelation.getRelEntityName());
+                    ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
 
                     if (relModelEntity == null) {
                         Debug.logError("Error adding foreign key: ModelEntity was null for related entity name " + modelRelation.getRelEntityName());
@@ -1305,7 +1287,7 @@ public class DatabaseUtil {
     /* ====================================================================== */
 
     /* ====================================================================== */
-    public String createForeignKeys(ModelEntity entity, Map modelEntities, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
+    public String createForeignKeys(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create foreign keys for a table";
         }
@@ -1316,13 +1298,13 @@ public class DatabaseUtil {
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         // go through the relationships to see if any foreign keys need to be added
-        Iterator relationsIter = entity.getRelationsIterator();
+        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
 
         while (relationsIter.hasNext()) {
-            ModelRelation modelRelation = (ModelRelation) relationsIter.next();
+            ModelRelation modelRelation = relationsIter.next();
 
             if ("one".equals(modelRelation.getType())) {
-                ModelEntity relModelEntity = (ModelEntity) modelEntities.get(modelRelation.getRelEntityName());
+                ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
 
                 if (relModelEntity == null) {
                     Debug.logError("Error adding foreign key: ModelEntity was null for related entity name " + modelRelation.getRelEntityName());
@@ -1382,12 +1364,12 @@ public class DatabaseUtil {
 
     public String makeFkConstraintClause(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
         // make the two column lists
-        Iterator keyMapsIter = modelRelation.getKeyMapsIterator();
+        Iterator<ModelKeyMap> keyMapsIter = modelRelation.getKeyMapsIterator();
         StringBuffer mainCols = new StringBuffer();
         StringBuffer relCols = new StringBuffer();
 
         while (keyMapsIter.hasNext()) {
-            ModelKeyMap keyMap = (ModelKeyMap) keyMapsIter.next();
+            ModelKeyMap keyMap = keyMapsIter.next();
 
             ModelField mainField = entity.getField(keyMap.getFieldName());
 
@@ -1447,7 +1429,7 @@ public class DatabaseUtil {
         return sqlBuf.toString();
     }
 
-    public String deleteForeignKeys(ModelEntity entity, Map modelEntities, int constraintNameClipLength) {
+    public String deleteForeignKeys(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, int constraintNameClipLength) {
         if (entity == null) {
             return "ModelEntity was null and is required to delete foreign keys for a table";
         }
@@ -1456,14 +1438,14 @@ public class DatabaseUtil {
         }
 
         // go through the relationships to see if any foreign keys need to be added
-        Iterator relationsIter = entity.getRelationsIterator();
+        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         while (relationsIter.hasNext()) {
-            ModelRelation modelRelation = (ModelRelation) relationsIter.next();
+            ModelRelation modelRelation = relationsIter.next();
 
             if ("one".equals(modelRelation.getType())) {
-                ModelEntity relModelEntity = (ModelEntity) modelEntities.get(modelRelation.getRelEntityName());
+                ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
 
                 if (relModelEntity == null) {
                     Debug.logError("Error removing foreign key: ModelEntity was null for related entity name " + modelRelation.getRelEntityName());
@@ -1539,9 +1521,9 @@ public class DatabaseUtil {
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         // go through the indexes to see if any need to be added
-        Iterator indexesIter = entity.getIndexesIterator();
+        Iterator<ModelIndex> indexesIter = entity.getIndexesIterator();
         while (indexesIter.hasNext()) {
-            ModelIndex modelIndex = (ModelIndex) indexesIter.next();
+            ModelIndex modelIndex = indexesIter.next();
 
             String retMsg = createDeclaredIndex(entity, modelIndex);
 
@@ -1587,11 +1569,11 @@ public class DatabaseUtil {
     }
 
     public String makeIndexClause(ModelEntity entity, ModelIndex modelIndex) {
-        Iterator fieldNamesIter = modelIndex.getIndexFieldsIterator();
+        Iterator<String> fieldNamesIter = modelIndex.getIndexFieldsIterator();
         StringBuffer mainCols = new StringBuffer();
 
         while (fieldNamesIter.hasNext()) {
-            String fieldName = (String) fieldNamesIter.next();
+            String fieldName = fieldNamesIter.next();
             ModelField mainField = entity.getField(fieldName);
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
@@ -1626,9 +1608,9 @@ public class DatabaseUtil {
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         // go through the relationships to see if any foreign keys need to be added
-        Iterator indexesIter = entity.getIndexesIterator();
+        Iterator<ModelIndex> indexesIter = entity.getIndexesIterator();
         while (indexesIter.hasNext()) {
-            ModelIndex modelIndex = (ModelIndex) indexesIter.next();
+            ModelIndex modelIndex = indexesIter.next();
             String retMsg = deleteDeclaredIndex(entity, modelIndex);
             if (retMsg != null && retMsg.length() > 0) {
                 if (retMsgsBuffer.length() > 0) {
@@ -1693,10 +1675,10 @@ public class DatabaseUtil {
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         // go through the relationships to see if any foreign keys need to be added
-        Iterator relationsIter = entity.getRelationsIterator();
+        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
 
         while (relationsIter.hasNext()) {
-            ModelRelation modelRelation = (ModelRelation) relationsIter.next();
+            ModelRelation modelRelation = relationsIter.next();
 
             if ("one".equals(modelRelation.getType())) {
                 String retMsg = createForeignKeyIndex(entity, modelRelation, constraintNameClipLength);
@@ -1744,11 +1726,11 @@ public class DatabaseUtil {
     }
 
     public String makeFkIndexClause(ModelEntity entity, ModelRelation modelRelation, int constraintNameClipLength) {
-        Iterator keyMapsIter = modelRelation.getKeyMapsIterator();
+        Iterator<ModelKeyMap> keyMapsIter = modelRelation.getKeyMapsIterator();
         StringBuffer mainCols = new StringBuffer();
 
         while (keyMapsIter.hasNext()) {
-            ModelKeyMap keyMap = (ModelKeyMap) keyMapsIter.next();
+            ModelKeyMap keyMap = keyMapsIter.next();
 
             ModelField mainField = entity.getField(keyMap.getFieldName());
 
@@ -1783,10 +1765,10 @@ public class DatabaseUtil {
         StringBuffer retMsgsBuffer = new StringBuffer();
 
         // go through the relationships to see if any foreign keys need to be added
-        Iterator relationsIter = entity.getRelationsIterator();
+        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
 
         while (relationsIter.hasNext()) {
-            ModelRelation modelRelation = (ModelRelation) relationsIter.next();
+            ModelRelation modelRelation = relationsIter.next();
 
             if ("one".equals(modelRelation.getType())) {
                 String retMsg = deleteForeignKeyIndex(entity, modelRelation, constraintNameClipLength);
@@ -1902,7 +1884,7 @@ public class DatabaseUtil {
      * @param connection to be closed.
      * @param messages for writing messages.
      */
-    private void cleanup(final Connection connection, final Collection messages) {
+    private void cleanup(final Connection connection, final Collection<String> messages) {
         try {
             connection.close();
         } catch (SQLException sqle2) {
@@ -1910,27 +1892,27 @@ public class DatabaseUtil {
         }
     }
 
-    void error(final String message, final Collection messages) {
+    void error(final String message, final Collection<String> messages) {
         Debug.logError(message, module);
         if (messages != null)
             messages.add(message);
     }
 
-    void warn(final String message, final Collection messages) {
+    void warn(final String message, final Collection<String> messages) {
         Debug.logWarning(message, module);
         if (messages != null) {
             messages.add(message);
         }
     }
 
-    void important(final String message, final Collection messages) {
+    void important(final String message, final Collection<String> messages) {
         Debug.logImportant(message, module);
         if (messages != null) {
             messages.add(message);
         }
     }
 
-    void verbose(final String message, final Collection messages) {
+    void verbose(final String message, final Collection<String> messages) {
         Debug.logVerbose(message, module);
         if (messages != null) messages.add(message);
     }

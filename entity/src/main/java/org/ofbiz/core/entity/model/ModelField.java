@@ -23,11 +23,13 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.util.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.entity.jdbc.DatabaseUtil;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import org.ofbiz.core.entity.jdbc.*;
-import org.ofbiz.core.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Generic Entity - Field model class
@@ -51,7 +53,7 @@ public class ModelField {
     protected boolean isPk = false;
 
     /** validators to be called when an update is done */
-    protected List validators = new ArrayList();
+    protected List<String> validators = new ArrayList<String>();
 
     /** Default Constructor */
     public ModelField() {}
@@ -126,7 +128,7 @@ public class ModelField {
 
     /** validators to be called when an update is done */
     public String getValidator(int index) {
-        return (String) this.validators.get(index);
+        return this.validators.get(index);
     }
 
     public int getValidatorsSize() {
@@ -138,6 +140,6 @@ public class ModelField {
     }
 
     public String removeValidator(int index) {
-        return (String) this.validators.remove(index);
+        return this.validators.remove(index);
     }
 }

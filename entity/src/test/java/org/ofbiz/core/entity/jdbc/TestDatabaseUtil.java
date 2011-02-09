@@ -12,28 +12,12 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static junit.framework.Assert.*;
-import static junit.framework.Assert.fail;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit test for {@link org.ofbiz.core.entity.jdbc.DatabaseUtil}.
@@ -55,7 +39,7 @@ public class TestDatabaseUtil {
         final Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
-        ModelEntity modelEntity = new ModelEntity("testable", Collections.emptyList(), null);
+        ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
         final ModelField modelField = new ModelField();
         modelField.setColName("nicecolumn");
         modelField.setName("fieldname");
@@ -104,17 +88,17 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dsi, new MyConnectionProvider(connection)) {
             @Override
-            public TreeSet getTableNames(final Collection messages) {
+            public TreeSet<String> getTableNames(final Collection<String> messages) {
                 return tables;
             }
 
             @Override
-            public Map getColumnInfo(final Set tableNames, final Collection messages) {
+            public Map<String, List<ColumnCheckInfo>> getColumnInfo(final Set<String> tableNames, final Collection<String> messages) {
                 return columnInfo;
             }
 
             @Override
-            void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection messages) {
+            void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection<String> messages) {
                 // do nothing... we're not testing field types here
             }
         };
@@ -153,11 +137,11 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
 
-        ArrayList messages = new ArrayList();
+        ArrayList<String> messages = new ArrayList<String>();
         HashSet<String> tableNames = new HashSet<String>(Arrays.asList("t1", "t2", "t3"));
 
         // the call to the production method
-        final Map indexInfo = du.getIndexInfo(tableNames, messages);
+        final Map<String, Set<String>> indexInfo = du.getIndexInfo(tableNames, messages);
 
         // the assertions...
         verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
@@ -200,11 +184,11 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
 
-        ArrayList messages = new ArrayList();
+        ArrayList<String> messages = new ArrayList<String>();
         HashSet<String> tableNames = new HashSet<String>(Arrays.asList("t1", "t2", "t3"));
 
         // the call to the production method
-        final Map indexInfo = du.getIndexInfo(tableNames, messages, true);
+        final Map<String, Set<String>> indexInfo = du.getIndexInfo(tableNames, messages, true);
 
         // the assertions...
         verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
@@ -222,7 +206,7 @@ public class TestDatabaseUtil {
     public void testMissingIndices() {
 
         // record requests for index info
-        final AtomicReference<Set> tableNamesReceived = new AtomicReference<Set>();
+        final AtomicReference<Set<String>> tableNamesReceived = new AtomicReference<Set<String>>();
         final AtomicBoolean includeUniqueReceived = new AtomicBoolean();
 
         final Map<String, Set<String>> indexInfo = new HashMap<String, Set<String>>();
@@ -235,7 +219,7 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
             @Override
-            Map getIndexInfo(final Set tableNames, final Collection messages, final boolean includeUnique) {
+            Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
                 tableNamesReceived.set(tableNames);
                 if (includeUniqueReceived.get()) {
                     fail("unexpected second call (breaks test invariant)");
@@ -258,7 +242,7 @@ public class TestDatabaseUtil {
                 return null;
             }
         };
-        ArrayList messages = new ArrayList();
+        ArrayList<String> messages = new ArrayList<String>();
         HashMap<String, ModelEntity> modelEntities = new HashMap<String, ModelEntity>();
 
         {
@@ -325,7 +309,7 @@ public class TestDatabaseUtil {
 
         ArrayList<String> expected = new ArrayList<String>();
         expected.add("mesg");
-        ArrayList in = new ArrayList();
+        ArrayList<String> in = new ArrayList<String>();
         du.error("mesg", in);
         assertEquals(expected, in);
         du.error("mesg2", in);
@@ -340,7 +324,7 @@ public class TestDatabaseUtil {
 
         ArrayList<String> expected = new ArrayList<String>();
         expected.add("mesg");
-        ArrayList in = new ArrayList();
+        ArrayList<String> in = new ArrayList<String>();
         du.important("mesg", in);
         assertEquals(expected, in);
         du.important("mesg2", in);
@@ -355,7 +339,7 @@ public class TestDatabaseUtil {
 
         ArrayList<String> expected = new ArrayList<String>();
         expected.add("mesg");
-        ArrayList in = new ArrayList();
+        ArrayList<String> in = new ArrayList<String>();
         du.warn("mesg", in);
         assertEquals(expected, in);
         du.warn("mesg2", in);
@@ -370,7 +354,7 @@ public class TestDatabaseUtil {
 
         ArrayList<String> expected = new ArrayList<String>();
         expected.add("mesg");
-        ArrayList in = new ArrayList();
+        ArrayList<String> in = new ArrayList<String>();
         du.verbose("mesg", in);
         assertEquals(expected, in);
         du.verbose("mesg2", in);

@@ -23,7 +23,8 @@
  */
 package org.ofbiz.core.util;
 
-import java.net.*;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 
 /**
@@ -72,14 +73,14 @@ public class StringUtil {
      * @param delim the delimiter character(s) to use. (null value will join with no delimiter)
      * @return a String of all values in the list seperated by the delimiter
      */
-    public static String join(List list, String delim) {
+    public static String join(List<String> list, String delim) {
         if (list == null || list.size() < 1)
             return null;
         StringBuffer buf = new StringBuffer();
-        Iterator i = list.iterator();
+        Iterator<String> i = list.iterator();
 
         while (i.hasNext()) {
-            buf.append((String) i.next());
+            buf.append(i.next());
             if (i.hasNext())
                 buf.append(delim);
         }
@@ -92,8 +93,8 @@ public class StringUtil {
      * @param delim the delimiter character(s) to join on (null will split on whitespace)
      * @return a list of Strings
      */
-    public static List split(String str, String delim) {
-        List splitList = null;
+    public static List<String> split(String str, String delim) {
+        List<String> splitList = null;
         StringTokenizer st = null;
 
         if (str == null)
@@ -105,7 +106,7 @@ public class StringUtil {
             st = new StringTokenizer(str);
 
         if (st != null && st.hasMoreTokens()) {
-            splitList = new ArrayList();
+            splitList = new ArrayList<String>();
 
             while (st.hasMoreTokens())
                 splitList.add(st.nextToken());
@@ -117,14 +118,13 @@ public class StringUtil {
      * Encloses each of a List of Strings in quotes.
      * @param list List of String(s) to quote.
      */
-    public static List quoteStrList(List list) {
-        List tmpList = list;
+    public static List<String> quoteStrList(List<String> list) {
+        List<String> tmpList = list;
 
-        list = new ArrayList();
-        Iterator i = tmpList.iterator();
+        list = new ArrayList<String>();
 
-        while (i.hasNext()) {
-            String str = (String) i.next();
+        for (String aTmpList : tmpList) {
+            String str = aTmpList;
 
             str = "'" + str + "''";
             list.add(str);
@@ -137,20 +137,18 @@ public class StringUtil {
      * @param str The string to decode and format
      * @return a Map of name/value pairs
      */
-    public static Map strToMap(String str) {
+    public static Map<String, String> strToMap(String str) {
         if (str == null) return null;
-        Map decodedMap = new HashMap();
-        List elements = split(str, "|");
-        Iterator i = elements.iterator();
+        Map<String, String> decodedMap = new HashMap<String, String>();
+        List<String> elements = split(str, "|");
 
-        while (i.hasNext()) {
-            String s = (String) i.next();
-            List e = split(s, "=");
+        for (String element : elements) {
+            List<String> e = split(element, "=");
 
             if (e.size() != 2)
                 continue;
-            String name = (String) e.get(0);
-            String value = (String) e.get(1);
+            String name = e.get(0);
+            String value = e.get(1);
 
             decodedMap.put(URLDecoder.decode(name), URLDecoder.decode(value));
         }
@@ -162,11 +160,11 @@ public class StringUtil {
      * @param map The Map of name/value pairs
      * @return String The encoded String
      */
-    public static String mapToStr(Map map) {
+    public static String mapToStr(Map<?, ?> map) {
         if (map == null) return null;
         StringBuffer buf = new StringBuffer();
-        Set keySet = map.keySet();
-        Iterator i = keySet.iterator();
+        Set<?> keySet = map.keySet();
+        Iterator<?> i = keySet.iterator();
         boolean first = true;
 
         while (i.hasNext()) {
