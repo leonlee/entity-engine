@@ -151,10 +151,13 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
     public Object get(String name) {
-        if (getModelEntity().getField(name) == null) {
+        Object value = fields.get(name);
+        // We test for a valid field name after trying to retrieve the value, because this method is called a trillion times
+        // and even a small increase in performance for this method is really worthwhile.
+        if (value == null && getModelEntity().getField(name) == null) {
             throw new IllegalArgumentException("[GenericEntity.get] \"" + name + "\" is not a field of " + entityName);
         }
-        return fields.get(name);
+        return value;
     }
 
     /** Returns true if the entity contains all of the primary key fields, but NO others. */
