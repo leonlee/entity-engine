@@ -142,7 +142,6 @@ public class DatabaseUtil
 
         if (tableNames == null)
         {
-
             error("Could not get table name information from the database, aborting.", messages);
             return;
         }
@@ -152,7 +151,6 @@ public class DatabaseUtil
         Map<String, List<ColumnCheckInfo>> colInfo = this.getColumnInfo(tableNames, messages);
         if (colInfo == null)
         {
-
             error("Could not get column information from the database, aborting.", messages);
             return;
         }
@@ -231,7 +229,6 @@ public class DatabaseUtil
                             }
                             else
                             {
-
                                 warn("Column \"" + ccInfo.columnName + "\" of table \"" + tableName + "\" of entity \"" + entityName + "\" exists in the database but has no corresponding field", messages);
                             }
                         }
@@ -274,7 +271,6 @@ public class DatabaseUtil
             }
             else
             {
-
                 warn("Entity \"" + entityName + "\" has no table in the database", messages);
 
                 if (addMissing)
@@ -304,27 +300,23 @@ public class DatabaseUtil
         while (tableNamesIter != null && tableNamesIter.hasNext())
         {
             String tableName = tableNamesIter.next();
-
             warn("Table named \"" + tableName + "\" exists in the database but has no corresponding entity", messages);
         }
 
         // for each newly added table, add fks
         if (datasourceInfo.isUseFks())
         {
-
             for (ModelEntity curEntity : entitiesAdded)
             {
                 String errMsg = this.createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                 if (errMsg != null && errMsg.length() > 0)
                 {
-
                     error("Could not create foreign keys for entity \"" + curEntity.getEntityName() + "\"", messages);
                     error(errMsg, messages);
                 }
                 else
                 {
-
                     important("Created foreign keys for entity \"" + curEntity.getEntityName() + "\"", messages);
                 }
             }
@@ -332,20 +324,17 @@ public class DatabaseUtil
         // for each newly added table, add fk indices
         if (datasourceInfo.isUseFkIndices())
         {
-
             for (ModelEntity curEntity : entitiesAdded)
             {
                 String indErrMsg = this.createForeignKeyIndices(curEntity, datasourceInfo.getConstraintNameClipLength());
 
                 if (indErrMsg != null && indErrMsg.length() > 0)
                 {
-
                     error("Could not create foreign key indices for entity \"" + curEntity.getEntityName() + "\"", messages);
                     error(indErrMsg, messages);
                 }
                 else
                 {
-
                     important("Created foreign key indices for entity \"" + curEntity.getEntityName() + "\"", messages);
                 }
             }
@@ -390,7 +379,6 @@ public class DatabaseUtil
             }
             else
             {
-
                 for (ModelEntity entity : modelEntityList)
                 {
                     String entityName = entity.getEntityName();
@@ -398,7 +386,6 @@ public class DatabaseUtil
                     // if this is a view entity, do not check it...
                     if (entity instanceof ModelViewEntity)
                     {
-
                         verbose("NOT Checking View Entity " + entity.getEntityName(), messages);
                         continue;
                     }
@@ -445,13 +432,11 @@ public class DatabaseUtil
 
                             if (errMsg != null && errMsg.length() > 0)
                             {
-
                                 error("Could not create foreign key " + relConstraintName + " for entity \"" + entity.getEntityName() + "\"", messages);
                                 error(errMsg, messages);
                             }
                             else
                             {
-
                                 verbose("Created foreign key " + relConstraintName + " for entity \"" + entity.getEntityName() + "\"", messages);
 
                                 createdConstraints = true;
@@ -461,14 +446,12 @@ public class DatabaseUtil
                     }
                     if (createdConstraints)
                     {
-
                         important("Created foreign key(s) for entity \"" + entity.getEntityName() + "\"", messages);
                     }
 
                     // show foreign key references that exist but are unknown
                     if (rcInfoMap != null)
                     {
-
                         for (String rcKeyLeft : rcInfoMap.keySet())
                         {
                             Debug.logImportant("Unknown Foreign Key Constraint " + rcKeyLeft + " found in table " + entity.getTableName(datasourceInfo));
@@ -500,7 +483,6 @@ public class DatabaseUtil
             }
             else
             {
-
                 for (ModelEntity entity : modelEntityList)
                 {
                     String entityName = entity.getEntityName();
@@ -508,7 +490,6 @@ public class DatabaseUtil
                     // if this is a view entity, do not check it...
                     if (entity instanceof ModelViewEntity)
                     {
-
                         verbose("NOT Checking View Entity " + entity.getEntityName(), messages);
                         continue;
                     }
@@ -595,7 +576,6 @@ public class DatabaseUtil
                     // show foreign key references that exist but are unknown
                     if (tableIndexList != null)
                     {
-
                         for (String indexLeft : tableIndexList)
                         {
                             Debug.logImportant("Unknown Index " + indexLeft + " found in table " + entity.getTableName(datasourceInfo));
@@ -867,7 +847,6 @@ public class DatabaseUtil
         }
         catch (SQLException sqle)
         {
-
             error("Unable to get list of table information, let's try the create anyway... Error was:" + sqle.toString(), messages);
 
             cleanup(connection, messages);
@@ -904,7 +883,6 @@ public class DatabaseUtil
                 }
                 catch (SQLException sqle)
                 {
-
                     error("Error getting table information... Error was:" + sqle.toString(), messages);
                 }
             }
@@ -1063,13 +1041,11 @@ public class DatabaseUtil
             }
             catch (SQLException sqle)
             {
-
                 error("Unable to close ResultSet for column list, continuing anyway... Error was:" + sqle.toString(), messages);
             }
         }
         catch (SQLException sqle)
         {
-
             error("Error getting column metadata for Error was:" + sqle.toString() + ". Not checking columns.", messages);
             // we are returning an empty set in this case because databases like SapDB throw an exception when there are no tables in the database
             // colInfo = null;
@@ -1106,7 +1082,6 @@ public class DatabaseUtil
         }
         catch (SQLException sqle)
         {
-
             error("Unable to get database metadata... Error was:" + sqle.toString(), messages);
 
             cleanup(connection, messages);
@@ -1219,7 +1194,6 @@ public class DatabaseUtil
         }
         catch (SQLException sqle)
         {
-
             error("Error getting fk reference metadata Error was:" + sqle.toString() + ". Not checking fk refs.", messages);
             refInfo = null;
         }
@@ -1250,9 +1224,7 @@ public class DatabaseUtil
      */
     Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages, boolean includeUnique)
     {
-
         Connection connection = null;
-
         try
         {
             connection = getConnection();
@@ -1365,7 +1337,6 @@ public class DatabaseUtil
                     }
                     catch (SQLException sqle)
                     {
-
                         error("Error getting fk reference info for table. Error was:" + sqle.toString(), messages);
                     }
                 }
