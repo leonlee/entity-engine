@@ -106,7 +106,7 @@ public class DatabaseUtil {
 
         UtilTimer timer = new UtilTimer();
 
-        timer.timerString("Start - Before Get Database Meta Data");
+        timer.timerString("Start - Before Get Database metadata");
 
         // get ALL tables from this database
         TreeSet<String> tableNames = this.getTableNames(messages);
@@ -625,7 +625,7 @@ public class DatabaseUtil {
     }
 
 
-    /** Creates a list of ModelEntity objects based on meta data from the database */
+    /** Creates a list of ModelEntity objects based on metadata from the database */
     public List<ModelEntity> induceModelFromDb(Collection<String> messages) {
         // get ALL tables from this database
         TreeSet<String> tableNames = this.getTableNames(messages);
@@ -657,17 +657,15 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-
-            error("Unable to esablish a connection with the database... Error was:" + sqle.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + sqle.toString(), messages);
             return null;
         } catch (GenericEntityException e) {
-
-            error("Unable to esablish a connection with the database... Error was:" + e.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + e.toString(), messages);
             return null;
         }
 
         if (connection == null) {
-            error("Unable to esablish a connection with the database, no additional information available.", messages);
+            error("Unable to establish a connection with the database, no additional information available.", messages);
             return null;
         }
 
@@ -676,13 +674,12 @@ public class DatabaseUtil {
         try {
             dbData = connection.getMetaData();
         } catch (SQLException sqle) {
-
-            error("Unable to get database meta data... Error was:" + sqle.toString(), messages);
+            error("Unable to get database metadata... Error was:" + sqle.toString(), messages);
             return null;
         }
 
         if (dbData == null) {
-            Debug.logWarning("Unable to get database meta data; method returned null", module);
+            Debug.logWarning("Unable to get database metadata; method returned null", module);
         }
 
         logDbInfo(dbData);
@@ -733,7 +730,6 @@ public class DatabaseUtil {
                 } catch (SQLException sqle) {
 
                     error("Error getting table information... Error was:" + sqle.toString(), messages);
-                    continue;
                 }
             }
         } catch (SQLException sqle) {
@@ -773,12 +769,10 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-
-            error("Unable to esablish a connection with the database... Error was:" + sqle.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + sqle.toString(), messages);
             return null;
         } catch (GenericEntityException e) {
-
-            error("Unable to esablish a connection with the database... Error was:" + e.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + e.toString(), messages);
             return null;
         }
 
@@ -787,9 +781,7 @@ public class DatabaseUtil {
         try {
             dbData = connection.getMetaData();
         } catch (SQLException sqle) {
-
-            error("Unable to get database meta data... Error was:" + sqle.toString(), messages);
-
+            error("Unable to get database metadata... Error was:" + sqle.toString(), messages);
             cleanup(connection, messages);
             return null;
         }
@@ -853,7 +845,6 @@ public class DatabaseUtil {
                 } catch (SQLException sqle) {
 
                     error("Error getting column info for column. Error was:" + sqle.toString(), messages);
-                    continue;
                 }
             }
 
@@ -865,7 +856,7 @@ public class DatabaseUtil {
             }
         } catch (SQLException sqle) {
 
-            error("Error getting column meta data for Error was:" + sqle.toString() + ". Not checking columns.", messages);
+            error("Error getting column metadata for Error was:" + sqle.toString() + ". Not checking columns.", messages);
             // we are returning an empty set in this case because databases like SapDB throw an exception when there are no tables in the database
             // colInfo = null;
         } finally {
@@ -879,12 +870,10 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-
-            error("Unable to esablish a connection with the database... Error was:" + sqle.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + sqle.toString(), messages);
             return null;
         } catch (GenericEntityException e) {
-
-            error("Unable to esablish a connection with the database... Error was:" + e.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + e.toString(), messages);
             return null;
         }
 
@@ -893,7 +882,7 @@ public class DatabaseUtil {
             dbData = connection.getMetaData();
         } catch (SQLException sqle) {
 
-            error("Unable to get database meta data... Error was:" + sqle.toString(), messages);
+            error("Unable to get database metadata... Error was:" + sqle.toString(), messages);
 
             cleanup(connection, messages);
             return null;
@@ -965,23 +954,20 @@ public class DatabaseUtil {
                 } catch (SQLException sqle) {
 
                     error("Error getting fk reference info for table. Error was:" + sqle.toString(), messages);
-                    continue;
                 }
             }
 
-            // if (Debug.infoOn()) Debug.logInfo("There are " + totalFkRefs + " in the database");
             try {
                 rsCols.close();
             } catch (SQLException sqle) {
 
                 error("Unable to close ResultSet for fk reference list, continuing anyway... Error was:" + sqle.toString(), messages);
             }
-            // }
             if (Debug.infoOn()) Debug.logInfo("There are " + totalFkRefs + " foreign key refs in the database");
 
         } catch (SQLException sqle) {
 
-            error("Error getting fk reference meta data Error was:" + sqle.toString() + ". Not checking fk refs.", messages);
+            error("Error getting fk reference metadata Error was:" + sqle.toString() + ". Not checking fk refs.", messages);
             refInfo = null;
         } finally {
             cleanup(connection, messages);
@@ -1013,10 +999,10 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            error("Unable to esablish a connection with the database... Error was:" + sqle.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + sqle.toString(), messages);
             return null;
         } catch (GenericEntityException e) {
-            error("Unable to esablish a connection with the database... Error was:" + e.toString(), messages);
+            error("Unable to establish a connection with the database... Error was:" + e.toString(), messages);
             return null;
         }
 
@@ -1025,7 +1011,7 @@ public class DatabaseUtil {
         try {
             dbData = connection.getMetaData();
         } catch (SQLException sqle) {
-            error("Unable to get database meta data... Error was:" + sqle.toString(), messages);
+            error("Unable to get database metadata... Error was:" + sqle.toString(), messages);
             cleanup(connection, messages);
             return null;
         }
@@ -1091,7 +1077,6 @@ public class DatabaseUtil {
                     } catch (SQLException sqle) {
 
                         error("Error getting fk reference info for table. Error was:" + sqle.toString(), messages);
-                        continue;
                     }
                 }
 
@@ -1109,7 +1094,7 @@ public class DatabaseUtil {
 
         } catch (SQLException sqle) {
 
-            error("Error getting fk reference meta data Error was:" + sqle.toString() + ". Not checking fk refs.", messages);
+            error("Error getting fk reference metadata Error was:" + sqle.toString() + ". Not checking fk refs.", messages);
             indexInfo = null;
         } finally {
             cleanup(connection, messages);
@@ -1117,9 +1102,6 @@ public class DatabaseUtil {
         return indexInfo;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
     public String createTable(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, boolean addFks, boolean usePkConstraintNames, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
@@ -1134,9 +1116,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         StringBuffer sqlBuf = new StringBuffer("CREATE TABLE ");
@@ -1226,9 +1208,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         ModelFieldType type = modelFieldTypeReader.getModelFieldType(field.getType());
@@ -1266,9 +1248,6 @@ public class DatabaseUtil {
         return null;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
     public String makeFkConstraintName(ModelRelation modelRelation, int constraintNameClipLength) {
         String relConstraintName = modelRelation.getFkName();
 
@@ -1284,9 +1263,6 @@ public class DatabaseUtil {
         return relConstraintName;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
     public String createForeignKeys(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create foreign keys for a table";
@@ -1339,9 +1315,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         // now add constraint clause
@@ -1480,9 +1456,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
@@ -1549,9 +1525,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         String createIndexSql = makeIndexClause(entity, modelIndex);
@@ -1634,12 +1610,12 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
-        // TODO: also remove the constraing if this was a unique index, in most databases dropping the index does not drop the constraint
+        // TODO: also remove the constraint if this was a unique index, in most databases dropping the index does not drop the constraint
 
         StringBuffer indexSqlBuf = new StringBuffer("DROP INDEX ");
         indexSqlBuf.append(entity.getTableName(datasourceInfo));
@@ -1661,9 +1637,6 @@ public class DatabaseUtil {
         return null;
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
     public String createForeignKeyIndices(ModelEntity entity, int constraintNameClipLength) {
         if (entity == null) {
             return "ModelEntity was null and is required to create foreign keys indices for a table";
@@ -1705,9 +1678,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         String createIndexSql = makeFkIndexClause(entity, modelRelation, constraintNameClipLength);
@@ -1795,9 +1768,9 @@ public class DatabaseUtil {
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
-            return "Unable to esablish a connection with the database... Error was: " + sqle.toString();
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
-            return "Unable to esablish a connection with the database... Error was: " + e.toString();
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         StringBuffer indexSqlBuf = new StringBuffer("DROP INDEX ");
@@ -1917,9 +1890,6 @@ public class DatabaseUtil {
         if (messages != null) messages.add(message);
     }
 
-    /* ====================================================================== */
-
-    /* ====================================================================== */
     public static class ColumnCheckInfo {
         public String tableName;
         public String columnName;
