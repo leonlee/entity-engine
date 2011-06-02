@@ -222,9 +222,7 @@ public class DatabaseUtil
                             // -list all columns that do not have a corresponding field
                             if (fieldColNames.containsKey(ccInfo.columnName))
                             {
-                                ModelField field = null;
-
-                                field = fieldColNames.remove(ccInfo.columnName);
+                                ModelField field = fieldColNames.remove(ccInfo.columnName);
                                 checkFieldType(entity, field, ccInfo, messages);
                             }
                             else
@@ -308,7 +306,7 @@ public class DatabaseUtil
         {
             for (ModelEntity curEntity : entitiesAdded)
             {
-                String errMsg = this.createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
+                String errMsg = createForeignKeys(curEntity, modelEntities, datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                 if (errMsg != null && errMsg.length() > 0)
                 {
@@ -326,7 +324,7 @@ public class DatabaseUtil
         {
             for (ModelEntity curEntity : entitiesAdded)
             {
-                String indErrMsg = this.createForeignKeyIndices(curEntity, datasourceInfo.getConstraintNameClipLength());
+                String indErrMsg = createForeignKeyIndices(curEntity, datasourceInfo.getConstraintNameClipLength());
 
                 if (indErrMsg != null && indErrMsg.length() > 0)
                 {
@@ -343,10 +341,9 @@ public class DatabaseUtil
         if (datasourceInfo.isUseIndices())
         {
             // for each newly added table, add declared indexes
-
             for (ModelEntity curEntity : entitiesAdded)
             {
-                String indErrMsg = this.createDeclaredIndices(curEntity);
+                String indErrMsg = createDeclaredIndices(curEntity);
 
                 if (indErrMsg != null && indErrMsg.length() > 0)
                 {
