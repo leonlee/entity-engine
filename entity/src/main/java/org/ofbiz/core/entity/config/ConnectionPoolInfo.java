@@ -12,11 +12,11 @@ public class ConnectionPoolInfo
     private final long deadLockMaxWait;
     private final long deadLockRetryWait;
     private final String validationQuery;
-    private final long minEvictableTimeMillis;
-    private final long timeBetweenEvictionRunsMillis;
+    private final Long minEvictableTimeMillis;
+    private final Long timeBetweenEvictionRunsMillis;
 
     public ConnectionPoolInfo(Integer maxSize, Integer minSize, long sleepTime, long lifeTime, long deadLockMaxWait,
-            long deadLockRetryWait, String validationQuery, long minEvictableTimeMillis, long timeBetweenEvictionRunsMillis)
+            long deadLockRetryWait, String validationQuery, Long minEvictableTimeMillis, Long timeBetweenEvictionRunsMillis)
     {
         this.maxSize = maxSize;
         this.minSize = minSize;
@@ -64,12 +64,12 @@ public class ConnectionPoolInfo
         return validationQuery;
     }
 
-    public long getMinEvictableTimeMillis()
+    public Long getMinEvictableTimeMillis()
     {
         return minEvictableTimeMillis;
     }
 
-    public long getTimeBetweenEvictionRunsMillis()
+    public Long getTimeBetweenEvictionRunsMillis()
     {
         return timeBetweenEvictionRunsMillis;
     }

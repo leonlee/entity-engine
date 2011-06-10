@@ -192,14 +192,13 @@ public class DatasourceInfo
             // These defaults are copied out of entity-config.dtd
             int maxSize = getIntValueFromElement(jdbcDatasourceElement, "pool-maxsize", 50);
             int minSize = getIntValueFromElement(jdbcDatasourceElement, "pool-minsize", 2);
-            long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", 300000);
-            long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", 600000);
-            long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", 300000);
-            long deadLockRetryWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-retrywait", 10000);
+            long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", 300000L);
+            long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", 600000L);
+            long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", 300000L);
+            long deadLockRetryWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-retrywait", 10000L);
             String validationQuery = jdbcDatasourceElement.getAttribute("pool-validationQuery");
-            long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", -1);
-            long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", -1);
-
+            Long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", null);
+            Long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", null);
             ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, sleepTime, lifeTime,
                     deadLockMaxWait, deadLockRetryWait, validationQuery, minEvictableTimeMillis, timeBetweenEvictionRunsMillis);
 
@@ -227,7 +226,7 @@ public class DatasourceInfo
         }
     }
 
-    private long getLongValueFromElement(Element element, String attributeName, long defaultValue)
+    private Long getLongValueFromElement(Element element, String attributeName, Long defaultValue)
     {
         String value = element.getAttribute(attributeName);
         if (value == null)
