@@ -23,21 +23,21 @@
  */
 package org.ofbiz.core.entity.transaction;
 
-import java.util.*;
-import java.sql.*;
-import javax.sql.*;
-
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
-import org.ofbiz.core.util.*;
-
 import org.apache.commons.dbcp.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp.PoolableConnectionFactory;
 import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.pool.impl.GenericObjectPool;
 import org.apache.commons.pool.ObjectPool;
+import org.apache.commons.pool.impl.GenericObjectPool;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.ConnectionPoolInfo;
+import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
+import org.ofbiz.core.util.Debug;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
+import javax.sql.DataSource;
 
 /**
  * DBCP ConnectionFactory - central source for JDBC connections from DBCP
@@ -70,8 +70,10 @@ public class DBCPConnectionFactory {
                     return dataSource.getConnection();
                 }
 
+                ConnectionPoolInfo connectionPoolInfo = jdbcDatasource.getConnectionPoolInfo();
+
                 // First, we'll need a ObjectPool that serves as the actual pool of connections.
-                ObjectPool connectionPool = new GenericObjectPool(null);
+                ObjectPool connectionPool = new GenericObjectPool(null, connectionPoolInfo.getMaxSize());
                 connectionPoolCache.put(helperName, connectionPool);
 
                 // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
