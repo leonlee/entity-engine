@@ -34,8 +34,8 @@ public class TestDatasourceInfo
         assertEquals(30000, poolInfo.getDeadLockMaxWait());
         assertEquals(40000, poolInfo.getDeadLockRetryWait());
         assertEquals("select 1", poolInfo.getValidationQuery());
-        assertEquals(4000L, poolInfo.getMinEvictableTimeMillis());
-        assertEquals(5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
+        assertEquals((Object) 4000L, poolInfo.getMinEvictableTimeMillis());
+        assertEquals((Object) 5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
     }
 
     @Test
