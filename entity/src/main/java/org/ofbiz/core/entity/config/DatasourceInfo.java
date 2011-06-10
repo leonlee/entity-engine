@@ -196,8 +196,12 @@ public class DatasourceInfo
             long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", 600000);
             long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", 300000);
             long deadLockRetryWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-retrywait", 10000);
+            String validationQuery = jdbcDatasourceElement.getAttribute("pool-validationQuery");
+            long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", -1);
+            long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", -1);
+
             ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, sleepTime, lifeTime,
-                    deadLockMaxWait, deadLockRetryWait);
+                    deadLockMaxWait, deadLockRetryWait, validationQuery, minEvictableTimeMillis, timeBetweenEvictionRunsMillis);
 
             jdbcDatasource = new JdbcDatasourceInfo(uri, driverClassName, username, password, transIso, connectionPoolInfo);
         }

@@ -6,7 +6,8 @@ import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  */
@@ -26,12 +27,15 @@ public class TestDatasourceInfo
         assertEquals("password", jdbcInfo.getPassword());
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
-        assertEquals(20, poolInfo.getMaxSize());
-        assertEquals(10, poolInfo.getMinSize());
+        assertEquals((Integer) 20, poolInfo.getMaxSize());
+        assertEquals((Integer) 10, poolInfo.getMinSize());
         assertEquals(10000, poolInfo.getSleepTime());
         assertEquals(20000, poolInfo.getLifeTime());
         assertEquals(30000, poolInfo.getDeadLockMaxWait());
         assertEquals(40000, poolInfo.getDeadLockRetryWait());
+        assertEquals("select 1", poolInfo.getValidationQuery());
+        assertEquals(4000L, poolInfo.getMinEvictableTimeMillis());
+        assertEquals(5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
     }
 
     @Test
@@ -48,8 +52,8 @@ public class TestDatasourceInfo
         assertEquals("password", jdbcInfo.getPassword());
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
-        assertEquals(50, poolInfo.getMaxSize());
-        assertEquals(2, poolInfo.getMinSize());
+        assertEquals((Integer) 50, poolInfo.getMaxSize());
+        assertEquals((Integer) 2, poolInfo.getMinSize());
         assertEquals(300000, poolInfo.getSleepTime());
         assertEquals(600000, poolInfo.getLifeTime());
         assertEquals(300000, poolInfo.getDeadLockMaxWait());

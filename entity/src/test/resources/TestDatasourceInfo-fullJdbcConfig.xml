@@ -10,5 +10,8 @@
                pool-lifetime="20000"
                pool-deadlock-maxwait="30000"
                pool-deadlock-retrywait="40000"
+               pool-validationQuery="select 1"
+               pool-minEvictableIdleTimeMillis="4000"
+               pool-timeBetweenEvictionRunsMillis="5000"
           />
 </ofbiz-datasource>
