@@ -27,8 +27,8 @@ public class TestDatasourceInfo
         assertEquals("password", jdbcInfo.getPassword());
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
-        assertEquals((Integer) 20, poolInfo.getMaxSize());
-        assertEquals((Integer) 10, poolInfo.getMinSize());
+        assertEquals(20, poolInfo.getMaxSize());
+        assertEquals(10, poolInfo.getMinSize());
         assertEquals(10000, poolInfo.getSleepTime());
         assertEquals(20000, poolInfo.getLifeTime());
         assertEquals(30000, poolInfo.getDeadLockMaxWait());
@@ -52,8 +52,8 @@ public class TestDatasourceInfo
         assertEquals("password", jdbcInfo.getPassword());
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
-        assertEquals((Integer) 50, poolInfo.getMaxSize());
-        assertEquals((Integer) 2, poolInfo.getMinSize());
+        assertEquals(50, poolInfo.getMaxSize());
+        assertEquals(2, poolInfo.getMinSize());
         assertEquals(300000, poolInfo.getSleepTime());
         assertEquals(600000, poolInfo.getLifeTime());
         assertEquals(300000, poolInfo.getDeadLockMaxWait());

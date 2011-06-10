@@ -29,12 +29,12 @@ public class ConnectionPoolInfo
         this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
     }
 
-    public Integer getMaxSize()
+    public int getMaxSize()
     {
         return maxSize;
     }
 
-    public Integer getMinSize()
+    public int getMinSize()
     {
         return minSize;
     }
