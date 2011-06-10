@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>com.atlassian.ofbiz</groupId>
 		<artifactId>entityengine-parent</artifactId>
-	    <version>1.0.8-m2</version>
+	    <version>1.0.8-SNAPSHOT</version>
 	</parent>
 
 	<dependencies>
