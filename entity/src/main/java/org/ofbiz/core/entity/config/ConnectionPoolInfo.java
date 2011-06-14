@@ -73,4 +73,21 @@ public class ConnectionPoolInfo
     {
         return timeBetweenEvictionRunsMillis;
     }
+
+    public String toString()
+    {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("ConnectionPoolInfo");
+        sb.append("{maxSize=").append(maxSize);
+        sb.append(", minSize=").append(minSize);
+        sb.append(", sleepTime=").append(sleepTime);
+        sb.append(", lifeTime=").append(lifeTime);
+        sb.append(", deadLockMaxWait=").append(deadLockMaxWait);
+        sb.append(", deadLockRetryWait=").append(deadLockRetryWait);
+        sb.append(", validationQuery='").append(validationQuery).append('\'');
+        sb.append(", minEvictableTimeMillis=").append(minEvictableTimeMillis);
+        sb.append(", timeBetweenEvictionRunsMillis=").append(timeBetweenEvictionRunsMillis);
+        sb.append('}');
+        return sb.toString();
+    }
 }

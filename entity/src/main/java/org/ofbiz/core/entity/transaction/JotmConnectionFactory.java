@@ -114,10 +114,11 @@ public class JotmConnectionFactory {
                 pds.setLifeTime(poolInfo.getLifeTime());
                 pds.setDeadLockMaxWait(poolInfo.getDeadLockMaxWait());
                 pds.setDeadLockRetryWait(poolInfo.getDeadLockRetryWait());
+                pds.setJdbcTestStmt(poolInfo.getValidationQuery());
             }
             catch (Exception e)
             {
-                Debug.logError(e, "Problems with pool settings", module);
+                Debug.logError(e, "Problems with pool settings: " + poolInfo, module);
             }
             // TODO: set the test statement to test connections
             //pds.setJdbcTestStmt("select sysdate from dual");

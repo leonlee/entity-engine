@@ -52,4 +52,19 @@ public class JdbcDatasourceInfo
     {
         return connectionPoolInfo;
     }
+
+    @Override
+    public String toString()
+    {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("JdbcDatasourceInfo");
+        sb.append("{uri='").append(uri).append('\'');
+        sb.append(", driverClassName='").append(driverClassName).append('\'');
+        sb.append(", username='").append(username).append('\'');
+        sb.append(", password='").append("********").append('\'');
+        sb.append(", isolationLevel='").append(isolationLevel).append('\'');
+        sb.append(", connectionPoolInfo=").append(connectionPoolInfo);
+        sb.append('}');
+        return sb.toString();
+    }
 }

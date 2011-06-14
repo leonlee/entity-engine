@@ -72,10 +72,8 @@ public class DBCPConnectionFactory {
                     return dataSource.getConnection();
                 }
 
-                ConnectionPoolInfo connectionPoolInfo = jdbcDatasource.getConnectionPoolInfo();
-
                 // First, we'll need a ObjectPool that serves as the actual pool of connections.
-                ObjectPool connectionPool = new GenericObjectPool(null, connectionPoolInfo.getMaxSize());
+                GenericObjectPool connectionPool = new GenericObjectPool(null);
                 connectionPoolCache.put(helperName, connectionPool);
 
                 // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
@@ -87,10 +85,30 @@ public class DBCPConnectionFactory {
                 // Now we'll create the PoolableConnectionFactory, which wraps
                 // the "real" Connections created by the ConnectionFactory with
                 // the classes that implement the pooling functionality.
-                PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory,connectionPool,null,null,false,true);
+                PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory, connectionPool, null, null, false, true);
                 if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
                 {
                     poolableConnectionFactory.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
+                }
+
+                // set connection pool attributes
+                ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
+                if (poolInfo != null)
+                {
+                    connectionPool.setMaxActive(poolInfo.getMaxSize());
+                    if (isNotEmpty(poolInfo.getValidationQuery()))
+                    {
+                        connectionPool.setTestOnBorrow(true);
+                        poolableConnectionFactory.setValidationQuery(poolInfo.getValidationQuery());
+                    }
+                    if (poolInfo.getMinEvictableTimeMillis() != null)
+                    {
+                        connectionPool.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
+                    }
+                    if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
+                    {
+                        connectionPool.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
+                    }
                 }
 
                 // Finally, we create the PoolingDriver itself,
@@ -104,8 +122,7 @@ public class DBCPConnectionFactory {
                 return dataSource.getConnection();
             }
         } catch (Exception e) {
-            String errorMsg = "Error getting datasource via DBCP.";
-            Debug.logError(e, errorMsg);
+            Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
         }
 
         return null;
