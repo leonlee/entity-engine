@@ -98,7 +98,8 @@ public class TestDatabaseUtil {
             }
 
             @Override
-            void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection<String> messages) {
+            void checkFieldType(ModelEntity entity, String fieldType, ColumnCheckInfo ccInfo, Collection<String> messages)
+            {
                 // do nothing... we're not testing field types here
             }
         };

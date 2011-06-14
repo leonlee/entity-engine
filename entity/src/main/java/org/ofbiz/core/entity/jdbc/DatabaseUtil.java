@@ -223,7 +223,7 @@ public class DatabaseUtil
                             if (fieldColNames.containsKey(ccInfo.columnName))
                             {
                                 ModelField field = fieldColNames.remove(ccInfo.columnName);
-                                checkFieldType(entity, field, ccInfo, messages);
+                                checkFieldType(entity, field.getType(), ccInfo, messages);
                             }
                             else
                             {
@@ -565,7 +565,6 @@ public class DatabaseUtil
                         }
                         if (createdConstraints)
                         {
-
                             important("Created foreign key index/indices for entity \"" + entity.getEntityName() + "\"", messages);
                         }
                     }
@@ -590,12 +589,12 @@ public class DatabaseUtil
     }
 
     /**
-     * Checks the given {@link org.ofbiz.core.entity.model.ModelEntity entity's} @{link ModelField field} to see that
-     * its type matches the given ColumnCheckInfo. Error messages are added to messages.
+     * Checks the given {@link org.ofbiz.core.entity.model.ModelEntity entity's}  fieldType to see that
+     * it matches the given ColumnCheckInfo. Error messages are added to messages.
      */
-    void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection<String> messages)
+    void checkFieldType(final ModelEntity entity, final String fieldType, final ColumnCheckInfo ccInfo, final Collection<String> messages)
     {
-        ModelFieldType modelFieldType = modelFieldTypeReader.getModelFieldType(field.getType());
+        ModelFieldType modelFieldType = modelFieldTypeReader.getModelFieldType(fieldType);
 
         if (modelFieldType != null)
         {
@@ -689,7 +688,7 @@ public class DatabaseUtil
         else
         {
             String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() +
-                    "\" has a field type name of \"" + field.getType() + "\" which is not found in the field type definitions";
+                    "\" has a field type name of \"" + fieldType + "\" which is not found in the field type definitions";
 
             error(message, messages);
         }
@@ -1298,6 +1297,7 @@ public class DatabaseUtil
                 while (rsCols != null && rsCols.next())
                 {
                     // NOTE: The code in this block may look funny, but it is designed so that the wrapping loop can be removed
+                    // REPLY: Well you fucked that up then
                     try
                     {
                         // skip all index info for statistics
@@ -1338,7 +1338,6 @@ public class DatabaseUtil
                     }
                 }
 
-                // if (Debug.infoOn()) Debug.logInfo("There are " + totalIndices + " indices in the database");
                 if (rsCols != null)
                 {
                     try
