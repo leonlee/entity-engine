@@ -3,6 +3,7 @@ package org.ofbiz.core.entity.config;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
+import java.util.Properties;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -25,6 +26,12 @@ public class TestDatasourceInfo
         assertEquals("org.postgresql.Driver", jdbcInfo.getDriverClassName());
         assertEquals("jira", jdbcInfo.getUsername());
         assertEquals("password", jdbcInfo.getPassword());
+
+        Properties propertiesInXML = new Properties();
+        propertiesInXML.setProperty("portNumber", "5432");
+        propertiesInXML.setProperty("defaultAutoCommit", "true");
+        assertEquals(propertiesInXML, jdbcInfo.getConnectionProperties());
+
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
         assertEquals(20, poolInfo.getMaxSize());

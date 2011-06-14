@@ -13,6 +13,8 @@ import org.w3c.dom.Element;
 import java.sql.Connection;
 import java.util.Properties;
 
+import static org.ofbiz.core.util.UtilValidate.isEmpty;
+
 /**
  * Info about a datasource
 */
@@ -199,10 +201,11 @@ public class DatasourceInfo
             String validationQuery = jdbcDatasourceElement.getAttribute("pool-validationQuery");
             Long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", null);
             Long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", null);
+            Properties connectionProperties = parsePropertyString(jdbcDatasourceElement.getAttribute("jdbc-connectionProperties"));
             ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, sleepTime, lifeTime,
                     deadLockMaxWait, deadLockRetryWait, validationQuery, minEvictableTimeMillis, timeBetweenEvictionRunsMillis);
 
-            jdbcDatasource = new JdbcDatasourceInfo(uri, driverClassName, username, password, transIso, connectionPoolInfo);
+            jdbcDatasource = new JdbcDatasourceInfo(uri, driverClassName, username, password, transIso, connectionProperties, connectionPoolInfo);
         }
         tyrexDataSourceElement = UtilXml.firstChildElement(element, "tyrex-dataSource");
     }
@@ -243,6 +246,28 @@ public class DatasourceInfo
             Debug.logError(attributeName + " was not a number, but was \"" + value + "\", defaulting to " + defaultValue);
             return defaultValue;
         }
+    }
+
+    private Properties parsePropertyString(String propertiesString)
+    {
+        if (isEmpty(propertiesString))
+        {
+            return null;
+        }
+
+        Properties properties = new Properties();
+        for (String keyValue : propertiesString.split(";"))
+        {
+            String[] values = keyValue.split("=");
+            if (values.length != 2)
+            {
+                Debug.logError("Bad property format (must be name=value): " + keyValue, DatasourceInfo.class.getName());
+            }
+
+            properties.setProperty(values[0], values[1]);
+        }
+
+        return properties;
     }
 
     public String getFieldTypeName()

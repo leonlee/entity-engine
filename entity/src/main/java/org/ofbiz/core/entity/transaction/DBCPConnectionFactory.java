@@ -24,6 +24,7 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import org.apache.commons.dbcp.ConnectionFactory;
 import org.apache.commons.dbcp.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp.PoolableConnectionFactory;
 import org.apache.commons.dbcp.PoolingDataSource;
@@ -37,8 +38,10 @@ import org.ofbiz.core.util.Debug;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Properties;
 import javax.sql.DataSource;
 
+import static org.ofbiz.core.entity.util.PropertyUtils.copyOf;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
@@ -79,8 +82,13 @@ public class DBCPConnectionFactory {
                 // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
                 ClassLoader loader = Thread.currentThread().getContextClassLoader();
                 loader.loadClass(jdbcDatasource.getDriverClassName());
-                org.apache.commons.dbcp.ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(
-                        jdbcDatasource.getUri(), jdbcDatasource.getUsername(), jdbcDatasource.getPassword());
+
+                // Sets the connection properties. At least 'user' and 'password' should be set.
+                Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
+                if (jdbcDatasource.getUsername() != null) { info.setProperty("user", jdbcDatasource.getUsername()); }
+                if (jdbcDatasource.getPassword() != null) { info.setProperty("password", jdbcDatasource.getPassword()); }
+                
+                ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcDatasource.getUri(), info);
 
                 // Now we'll create the PoolableConnectionFactory, which wraps
                 // the "real" Connections created by the ConnectionFactory with
