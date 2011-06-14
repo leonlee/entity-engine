@@ -39,6 +39,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import javax.sql.DataSource;
 
+import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
+
 /**
  * DBCP ConnectionFactory - central source for JDBC connections from DBCP
  *
@@ -86,6 +88,10 @@ public class DBCPConnectionFactory {
                 // the "real" Connections created by the ConnectionFactory with
                 // the classes that implement the pooling functionality.
                 PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory,connectionPool,null,null,false,true);
+                if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
+                {
+                    poolableConnectionFactory.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
+                }
 
                 // Finally, we create the PoolingDriver itself,
                 // passing in the object pool we created.

@@ -37,6 +37,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
+import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
+
 /**
  * JotmFactory - Central source for JOTM JDBC Objects
  *
@@ -89,20 +91,11 @@ public class JotmConnectionFactory {
             ds.setUser(jdbcDatasource.getUsername());
             ds.setPassword(jdbcDatasource.getPassword());
             ds.setDescription(helperName);  
-            ds.setTransactionManager(TransactionFactory.getTransactionManager()); 
+            ds.setTransactionManager(TransactionFactory.getTransactionManager());
             String transIso = jdbcDatasource.getIsolationLevel();
-            if (transIso != null && transIso.length() > 0) {
-                if ("Serializable".equals(transIso)) {
-                    ds.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-                } else if ("RepeatableRead".equals(transIso)) {
-                    ds.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-                } else if ("ReadUncommitted".equals(transIso)) {
-                    ds.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-                } else if ("ReadCommitted".equals(transIso)) {
-                    ds.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-                } else if ("None".equals(transIso)) {
-                    ds.setTransactionIsolation(Connection.TRANSACTION_NONE);
-                }                                            
+            if (isNotEmpty(transIso))
+            {
+                ds.setTransactionIsolation(TransactionIsolations.fromString(transIso));
             }
             // set the datasource in the pool
             pds.setDataSource(ds);
