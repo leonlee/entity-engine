@@ -28,6 +28,7 @@ import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
@@ -1262,32 +1263,16 @@ public class DatabaseUtil
             Iterator<String> tableNamesIter = tableNames.iterator();
 
             String lookupSchemaName = lookupSchemaName(dbData);
+            DatabaseType databaseType = DatabaseTypeFactory.getTypeForConnection(connection);
 
             while (tableNamesIter.hasNext())
             {
                 String curTableName = tableNamesIter.next();
 
                 ResultSet rsCols = null;
-                String queryTableName;
                 try
                 {
-
-                    // ORACLE's table names are case sensitive when used as a parameter to getIndexInfo call
-                    // however when a table is created and the table name is not quoted then oracle automatically uppercase it.
-                    // i.e
-                    // 'create table issues' will create table with name ISSUES and inside getIndexInfo 'ISSUES' must be used.
-                    // OFBiz does not put table names in quotes when it creates them thus for oracle they are always uppercased.
-                    // (in postgres on the other case table names are case sensitive and are created as 'written')
-                    if (DatabaseTypeFactory.ORACLE_10G == DatabaseTypeFactory.getTypeForConnection(connection)
-                            || DatabaseTypeFactory.ORACLE_8I == DatabaseTypeFactory.getTypeForConnection(connection))
-                    {
-                        rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName.toUpperCase(), false, true);
-                    }
-                    else
-                    {
-                        rsCols = dbData.getIndexInfo(null, lookupSchemaName, curTableName, false, true);
-                    }
-
+                    rsCols = getIndexInfo(dbData, databaseType, lookupSchemaName, curTableName);
                 }
                 catch (Exception e)
                 {
@@ -1368,6 +1353,50 @@ public class DatabaseUtil
             cleanup(connection, messages);
         }
         return indexInfo;
+    }
+
+    /**
+     * Gets the index info for the given schema and table from the given dbData, taking into account the wacky
+     * upper/lowercase rules for table names for the database type, e.g. Oracle and Postgres.
+     *
+     * @param dbData the DatabaseMetaData to get the index info through.
+     * @param dbType the type of the databaes, e.g. {@link DatabaseTypeFactory#ORACLE_10G}
+     * @param schemaName the name of the schema.
+     * @param tableName the name of the table whose indexes are being queried.
+     * @return the {@link ResultSet} for the IndexInfo
+     * @throws SQLException direct from the jdbc call.
+     */
+    private ResultSet getIndexInfo(DatabaseMetaData dbData, DatabaseType dbType, String schemaName, String tableName)
+            throws SQLException
+    {
+        ResultSet rsCols;
+        // ORACLE's table names are case sensitive when used as a parameter to getIndexInfo call
+        // however when a table is created and the table name is not quoted then oracle automatically uppercase it.
+        // i.e
+        // 'create table issues' will create table with name ISSUES and inside getIndexInfo 'ISSUES' must be used.
+        // OFBiz does not put table names in quotes when it creates them thus for oracle they are always uppercased.
+        if (DatabaseTypeFactory.ORACLE_10G == dbType || DatabaseTypeFactory.ORACLE_8I == dbType)
+        {
+            rsCols = dbData.getIndexInfo(null, schemaName, tableName.toUpperCase(), false, true);
+        }
+        else
+        {
+            rsCols = dbData.getIndexInfo(null, schemaName, tableName, false, true);
+            boolean isPostgres = DatabaseTypeFactory.POSTGRES == dbType
+                    || DatabaseTypeFactory.POSTGRES_7_2 == dbType
+                    || DatabaseTypeFactory.POSTGRES_7_3 == dbType;
+            if (isPostgres) {
+                // Postgres can make tables in the lowercase version of the declared table name, though not universally.
+                // if there are no index details for the given table and we're on postgres,
+                // we fall back to the index info of the lower case version of the table
+                if (rsCols == null || !rsCols.next()) { 
+                    rsCols = dbData.getIndexInfo(null, schemaName, tableName.toLowerCase(), false, true);
+                } else {
+                    rsCols.beforeFirst();
+                }
+            }
+        }
+        return rsCols;
     }
 
     public String createTable(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, boolean addFks, boolean usePkConstraintNames, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred)
