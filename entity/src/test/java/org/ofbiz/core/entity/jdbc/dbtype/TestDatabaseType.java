@@ -15,5 +15,4 @@ public class TestDatabaseType {
     	// See comments in the DatabaseUtil#getIndexInfo for details 
     	assertEquals(15, DatabaseTypeFactory.DATABASE_TYPES.size());
     }
-
 }
