@@ -1173,7 +1173,7 @@ public class GenericDAO {
         SQLProcessor sqlP = new AutoCommitSQLProcessor(helperName);
 
         try {
-            return delete(entity, sqlP.getConnection());
+            return deleteImpl(entity, sqlP.getConnection());
         } catch (GenericDataSourceException e) {
             sqlP.rollback();
             throw new GenericDataSourceException("Exception while deleting the following entity: " + entity.toString(), e);
@@ -1182,7 +1182,7 @@ public class GenericDAO {
         }
     }
 
-    public int delete(GenericEntity entity, Connection connection) throws GenericEntityException {
+    private int deleteImpl(GenericEntity entity, Connection connection) throws GenericEntityException {
         ModelEntity modelEntity = entity.getModelEntity();
         if (modelEntity == null) {
             throw new GenericModelException("Could not find ModelEntity record for entityName: " + entity.getEntityName());
@@ -1221,7 +1221,7 @@ public class GenericDAO {
         }
     }
 
-    public int deleteByAnd(ModelEntity modelEntity, Map<String, ?> fields, Connection connection) throws GenericEntityException {
+    private int deleteByAnd(ModelEntity modelEntity, Map<String, ?> fields, Connection connection) throws GenericEntityException {
         if (modelEntity == null || fields == null) return 0;
         if (modelEntity instanceof ModelViewEntity) {
             throw new org.ofbiz.core.entity.GenericNotImplementedException("Operation deleteByAnd not supported yet for view entities");
@@ -1244,7 +1244,7 @@ public class GenericDAO {
             sql += " WHERE " + SqlJdbcUtil.makeWhereStringFromFields(whereFields, dummyValue, "AND");
         }
 
-        SQLProcessor sqlP = new AutoCommitSQLProcessor(helperName);
+        SQLProcessor sqlP = new PassThruSQLProcessor(helperName,connection);
         try {
             sqlP.prepareStatement(sql);
 
@@ -1275,7 +1275,7 @@ public class GenericDAO {
 
                 // if it contains a complete primary key, delete the one, otherwise deleteByAnd
                 if (entity.containsPrimaryKey()) {
-                    numDeleted += delete(entity, sqlP.getConnection());
+                    numDeleted += deleteImpl(entity, sqlP.getConnection());
                 } else {
                     numDeleted += deleteByAnd(entity.getModelEntity(), entity.getAllFields(), sqlP.getConnection());
                 }
