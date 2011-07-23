@@ -1,5 +1,9 @@
 package org.ofbiz.core.entity.jdbc.interceptors;
 
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolState;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.SQLConnectionInterceptor;
+
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -12,6 +16,7 @@ public class NoopSQLInterceptorFactory implements SQLInterceptorFactory
 {
     public static final SQLInterceptorFactory NOOP_INTERCEPTOR_FACTORY = new NoopSQLInterceptorFactory();
     public static final SQLInterceptor NOOP_INTERCEPTOR = new NoopSQLInterceptor();
+    public static final SQLConnectionInterceptor NOOP_CONNECTION_INTERCEPTOR = (SQLConnectionInterceptor) NOOP_INTERCEPTOR;
 
     private NoopSQLInterceptorFactory()
     {
@@ -26,13 +31,20 @@ public class NoopSQLInterceptorFactory implements SQLInterceptorFactory
     /**
      * A NO-OP implementation of {@link SQLInterceptor}
      */
-    private static class NoopSQLInterceptor implements SQLInterceptor
+    private static class NoopSQLInterceptor implements SQLInterceptor, SQLConnectionInterceptor
     {
 
         private NoopSQLInterceptor()
         {
         }
 
+        public void onConnectionTaken(Connection connection, ConnectionPoolState connectionPoolState)
+        {
+        }
+
+        public void onConnectionReplaced(Connection connection, ConnectionPoolState connectionPoolState)
+        {
+        }
 
         public void beforeExecution(final String sqlString, final List<String> parameterValues, final Statement statement)
         {

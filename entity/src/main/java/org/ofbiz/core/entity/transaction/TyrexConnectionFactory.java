@@ -25,11 +25,13 @@ package org.ofbiz.core.entity.transaction;
 
 import java.util.*;
 import java.sql.*;
+import java.util.concurrent.Callable;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 
 import org.ofbiz.core.entity.*;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.*;
 
 // For Tyrex 0.9.8.5
@@ -49,6 +51,7 @@ public class TyrexConnectionFactory
 {
 
     protected static Map<String, EnabledDataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource)
             throws SQLException, GenericEntityException
@@ -59,7 +62,7 @@ public class TyrexConnectionFactory
         ds = dsCache.get(helperName);
         if (ds != null)
         {
-            return TransactionUtil.enlistConnection(ds.getXAConnection());
+            return trackConnection(helperName, ds);
         }
 
         synchronized (TyrexConnectionFactory.class)
@@ -68,7 +71,7 @@ public class TyrexConnectionFactory
             ds = dsCache.get(helperName);
             if (ds != null)
             {
-                return TransactionUtil.enlistConnection(ds.getXAConnection());
+                return trackConnection(helperName, ds);
             }
 
             ds = new EnabledDataSource();
@@ -88,9 +91,24 @@ public class TyrexConnectionFactory
             ds.setLogWriter(Debug.getPrintWriter());
 
             dsCache.put(helperName, ds);
-            return TransactionUtil.enlistConnection(ds.getXAConnection());
+            trackerCache.put(helperName,new ConnectionTracker());
+
+            return trackConnection(helperName, ds);
         }
 
     }
+
+    private static Connection trackConnection(final String helperName, final EnabledDataSource ds)
+    {
+        ConnectionTracker connectionTracker = trackerCache.get(helperName);
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
+        {
+            public Connection call() throws Exception
+            {
+                return TransactionUtil.enlistConnection(ds.getXAConnection());
+            }
+        });
+    }
+
 }
 

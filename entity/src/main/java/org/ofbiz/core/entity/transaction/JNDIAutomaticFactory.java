@@ -4,10 +4,12 @@ import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericTransactionException;
 import org.ofbiz.core.entity.TransactionUtil;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.config.JndiDatasourceInfo;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.GeneralException;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 /**
  * A TransactionFactory that automatically resolves the transaction factory from JNDI by making
@@ -43,6 +46,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
     static UserTransaction userTransaction = null;
 
     protected static Map<String, Object> dsCache = CopyOnWriteMap.newHashMap();
+    protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
     protected static final Properties CONFIGURATION;
 
@@ -261,7 +265,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                     String jndiSuffix = jndiName.substring(AUTO_CONFIGURE_JNDI_PREFIX.length());
 
                     for (String jndiPrefixGuess : JNDI_PREFIX_GUESSES) {
-                        con = getJndiConnection(jndiPrefixGuess + jndiSuffix, conDetails.getServerName());
+                        con = getJndiConnection(helperName, jndiPrefixGuess + jndiSuffix, conDetails.getServerName());
 
                         if (con != null) {
                             // A connection name prefix has been guessed that works.
@@ -283,7 +287,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             if (con == null) {
                 // Connection wasn't set above.
                 // This means we already have the confirmed connection details
-                con = getJndiConnection(conDetails.getConnectionName(), conDetails.getServerName());
+                con = getJndiConnection(helperName, conDetails.getConnectionName(), conDetails.getServerName());
             }
 
             if (con != null) return con;
@@ -299,7 +303,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         }
     }
 
-    public static Connection getJndiConnection(String jndiName, String jndiServerName) throws SQLException, GenericEntityException {
+    private static Connection getJndiConnection(final String helperName, String jndiName, String jndiServerName) throws SQLException, GenericEntityException {
         // if (Debug.verboseOn()) Debug.logVerbose("Trying JNDI name " + jndiName, module);
         Object ds;
 
@@ -308,11 +312,11 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             if (ds instanceof XADataSource) {
                 XADataSource xads = (XADataSource) ds;
 
-                return TransactionUtil.enlistConnection(xads.getXAConnection());
+                return trackConnection(helperName,xads);
             } else {
                 DataSource nds = (DataSource) ds;
 
-                return nds.getConnection();
+                return trackConnection(helperName,nds);
             }
         }
 
@@ -322,12 +326,11 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             if (ds != null) {
                 if (ds instanceof XADataSource) {
                     XADataSource xads = (XADataSource) ds;
-
-                    return TransactionUtil.enlistConnection(xads.getXAConnection());
+                    return trackConnection(helperName, xads);
                 } else {
                     DataSource nds = (DataSource) ds;
 
-                    return nds.getConnection();
+                    return trackConnection(helperName,nds);
                 }
             }
 
@@ -344,41 +347,20 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                 if (ds != null) {
                     if (Debug.verboseOn()) Debug.logVerbose("Got a Datasource object.", module);
                     dsCache.put(jndiName, ds);
-                    Connection con;
+                    trackerCache.put(helperName,new ConnectionTracker());
 
                     if (ds instanceof XADataSource) {
                         if (Debug.infoOn()) Debug.logInfo("Got XADataSource for name " + jndiName, module);
                         XADataSource xads = (XADataSource) ds;
                         XAConnection xac = xads.getXAConnection();
 
-                        con = TransactionUtil.enlistConnection(xac);
+                        return trackConnection(helperName,xads);
                     } else {
                         if (Debug.infoOn()) Debug.logInfo("Got DataSource for name " + jndiName, module);
                         DataSource nds = (DataSource) ds;
 
-                        con = nds.getConnection();
+                        return trackConnection(helperName,nds);
                     }
-
-                    /* NOTE: This code causes problems because settting the transaction isolation level after a transaction has started is a no-no
-                     * The question is: how should we do this?
-                     String isolationLevel = jndiJdbcElement.getAttribute("isolation-level");
-                     if (con != null && isolationLevel != null && isolationLevel.length() > 0) {
-                     if ("Serializable".equals(isolationLevel)) {
-                     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-                     } else if ("RepeatableRead".equals(isolationLevel)) {
-                     con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-                     } else if ("ReadUncommitted".equals(isolationLevel)) {
-                     con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-                     } else if ("ReadCommitted".equals(isolationLevel)) {
-                     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-                     } else if ("None".equals(isolationLevel)) {
-                     con.setTransactionIsolation(Connection.TRANSACTION_NONE);
-                     }
-                     }
-                     */
-
-                    // if (con != null) if (Debug.infoOn()) Debug.logInfo("[ConnectionFactory.getConnection] Got JNDI connection with catalog: " + con.getCatalog());
-                    return con;
                 } else {
                     Debug.logError("Datasource returned was NULL.", module);
                 }
@@ -391,6 +373,31 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         return null;
     }
 
+    private static Connection trackConnection(final String helperName, final XADataSource xads)
+    {
+        ConnectionTracker connectionTracker = trackerCache.get(helperName);
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
+        {
+            public Connection call() throws Exception
+            {
+                return TransactionUtil.enlistConnection(xads.getXAConnection());
+            }
+        });
+    }
+
+    private static Connection trackConnection(final String helperName, final DataSource nds)
+    {
+        ConnectionTracker connectionTracker = trackerCache.get(helperName);
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
+        {
+            public Connection call() throws Exception
+            {
+                return nds.getConnection();
+            }
+        });
+    }
+
+
     public void removeDatasource(final String helperName)
     {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
@@ -399,5 +406,6 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             // If a JDBC connection was configured, then there may be one here
             ConnectionFactory.removeDatasource(helperName);
         }
+        trackerCache.remove(helperName);
     }
 }

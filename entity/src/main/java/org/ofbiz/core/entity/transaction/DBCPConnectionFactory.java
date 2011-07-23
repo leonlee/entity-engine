@@ -33,12 +33,14 @@ import org.apache.commons.pool.impl.GenericObjectPool;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 import javax.sql.DataSource;
 
 import static org.ofbiz.core.entity.util.PropertyUtils.copyOf;
@@ -57,13 +59,14 @@ public class DBCPConnectionFactory {
 
     protected static Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static Map<String, ObjectPool> connectionPoolCache = CopyOnWriteMap.newHashMap();
+    protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         // the PooledDataSource implementation
         DataSource dataSource = dsCache.get(helperName);
 
         if (dataSource != null) {
-            return dataSource.getConnection();
+            return trackConnection(helperName,dataSource);
         }
 
         try
@@ -72,7 +75,7 @@ public class DBCPConnectionFactory {
                 //try again inside the synch just in case someone when through while we were waiting
                 dataSource = dsCache.get(helperName);
                 if (dataSource != null) {
-                    return dataSource.getConnection();
+                    return trackConnection(helperName, dataSource);
                 }
 
                 // First, we'll need a ObjectPool that serves as the actual pool of connections.
@@ -104,6 +107,7 @@ public class DBCPConnectionFactory {
                 if (poolInfo != null)
                 {
                     connectionPool.setMaxActive(poolInfo.getMaxSize());
+                    connectionPool.setMaxWait(poolInfo.getDeadLockMaxWait());
                     if (isNotEmpty(poolInfo.getValidationQuery()))
                     {
                         connectionPool.setTestOnBorrow(true);
@@ -117,6 +121,7 @@ public class DBCPConnectionFactory {
                     {
                         connectionPool.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
                     }
+
                 }
 
                 // Finally, we create the PoolingDriver itself,
@@ -127,13 +132,27 @@ public class DBCPConnectionFactory {
 
                 dsCache.put(helperName, dataSource);
 
-                return dataSource.getConnection();
+                trackerCache.put(helperName,new ConnectionTracker(poolInfo));
+
+                return trackConnection(helperName, dataSource);
             }
         } catch (Exception e) {
             Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
         }
 
         return null;
+    }
+
+    private static Connection trackConnection(final String helperName, final DataSource dataSource)
+    {
+        ConnectionTracker connectionTracker = trackerCache.get(helperName);
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
+        {
+            public Connection call() throws Exception
+            {
+                return dataSource.getConnection();
+            }
+        });
     }
 
     /**
@@ -161,5 +180,6 @@ public class DBCPConnectionFactory {
             }
             dsCache.remove(helperName);
         }
+        trackerCache.remove(helperName);
     }
 }

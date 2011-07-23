@@ -3,6 +3,7 @@ package org.ofbiz.core.entity.jdbc;
 import org.ofbiz.core.entity.jdbc.interceptors.NoopSQLInterceptorFactory;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.SQLConnectionInterceptor;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
 
@@ -14,7 +15,7 @@ import java.util.Properties;
  * <p/>
  * If all this fails it will use a NO-OP interceptor factory and hence do nothing.
  */
-class SQLInterceptorSupport
+public class SQLInterceptorSupport
 {
     /**
      * The name of the ofbiz-database.properties key for {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory}
@@ -46,7 +47,7 @@ class SQLInterceptorSupport
      * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in playl
      * @return a NON NULL {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor}
      */
-    static SQLInterceptor getNonNullSQLInterceptor(String ofbizHelperName)
+    public static SQLInterceptor getNonNullSQLInterceptor(String ofbizHelperName)
     {
         if (interceptorFactory == null)
         {
@@ -58,6 +59,23 @@ class SQLInterceptorSupport
             sqlInterceptor = NoopSQLInterceptorFactory.NOOP_INTERCEPTOR;
         }
         return sqlInterceptor;
+    }
+
+    /**
+     * This will return a NON NULL {@link SQLConnectionInterceptor}.  If the {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory}
+     * provided returns null, then a default NO-OP {@link SQLConnectionInterceptor} will
+     * be returned.
+     *
+     * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in playl
+     * @return a NON NULL {@link SQLConnectionInterceptor}
+     */
+    public static SQLConnectionInterceptor getNonNullSQLConnectionInterceptor(String ofbizHelperName)
+    {
+        SQLInterceptor sqlInterceptor = getNonNullSQLInterceptor(ofbizHelperName);
+        if (sqlInterceptor instanceof SQLConnectionInterceptor) {
+            return (SQLConnectionInterceptor) sqlInterceptor;
+        }
+        return NoopSQLInterceptorFactory.NOOP_CONNECTION_INTERCEPTOR;
     }
 
     private static SQLInterceptorFactory loadInterceptorFactoryClass()
