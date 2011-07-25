@@ -7,6 +7,7 @@
                jdbc-connectionProperties="portNumber=5432;defaultAutoCommit=true"
                pool-maxsize="20"
                pool-minsize="10"
+               pool-maxwait="66"
                pool-sleeptime="10000"
                pool-lifetime="20000"
                pool-deadlock-maxwait="30000"

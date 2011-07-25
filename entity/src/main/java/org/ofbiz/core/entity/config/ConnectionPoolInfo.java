@@ -7,6 +7,7 @@ public class ConnectionPoolInfo
 {
     private final int maxSize;
     private final int minSize;
+    private final long maxWait;
     private final long sleepTime;
     private final long lifeTime;
     private final long deadLockMaxWait;
@@ -15,11 +16,12 @@ public class ConnectionPoolInfo
     private final Long minEvictableTimeMillis;
     private final Long timeBetweenEvictionRunsMillis;
 
-    public ConnectionPoolInfo(Integer maxSize, Integer minSize, long sleepTime, long lifeTime, long deadLockMaxWait,
+    public ConnectionPoolInfo(Integer maxSize, Integer minSize, Long maxWait, long sleepTime, long lifeTime, long deadLockMaxWait,
             long deadLockRetryWait, String validationQuery, Long minEvictableTimeMillis, Long timeBetweenEvictionRunsMillis)
     {
         this.maxSize = maxSize;
         this.minSize = minSize;
+        this.maxWait = maxWait;
         this.sleepTime = sleepTime;
         this.lifeTime = lifeTime;
         this.deadLockMaxWait = deadLockMaxWait;
@@ -37,6 +39,11 @@ public class ConnectionPoolInfo
     public int getMinSize()
     {
         return minSize;
+    }
+
+    public long getMaxWait()
+    {
+        return maxWait;
     }
 
     public long getSleepTime()
@@ -80,6 +87,7 @@ public class ConnectionPoolInfo
         sb.append("ConnectionPoolInfo");
         sb.append("{maxSize=").append(maxSize);
         sb.append(", minSize=").append(minSize);
+        sb.append(", maxWait=").append(maxWait);
         sb.append(", sleepTime=").append(sleepTime);
         sb.append(", lifeTime=").append(lifeTime);
         sb.append(", deadLockMaxWait=").append(deadLockMaxWait);

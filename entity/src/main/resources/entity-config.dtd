@@ -136,6 +136,7 @@
         isolation-level ( None | ReadCommitted | ReadUncommitted | RepeatableRead | Serializable ) "ReadCommitted"
         pool-maxsize CDATA "50"
         pool-minsize CDATA "2"
+        pool-maxwait CDATA "60000"
         pool-sleeptime CDATA "300000"
         pool-lifetime CDATA "600000"
         pool-deadlock-maxwait CDATA "300000"

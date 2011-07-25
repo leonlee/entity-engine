@@ -18,7 +18,7 @@ public class ConnectionTracker
     /**
      * A symbolic constant for the the ConnectionPoolInfo is now known
      */
-    static final ConnectionPoolInfo UNKNOWN_CONNECTION_POOL_INFO = new ConnectionPoolInfo(-1, -1, -1, -1, -1, -1, null, -1L, -1L);
+    static final ConnectionPoolInfo UNKNOWN_CONNECTION_POOL_INFO = new ConnectionPoolInfo(-1, -1, -1L, -1, -1, -1, -1, null, -1L, -1L);
 
     private final ConnectionPoolInfo connectionPoolInfo;
     private final AtomicInteger borrowedCount = new AtomicInteger(0);

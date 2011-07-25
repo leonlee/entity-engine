@@ -194,6 +194,7 @@ public class DatasourceInfo
             // These defaults are copied out of entity-config.dtd
             int maxSize = getIntValueFromElement(jdbcDatasourceElement, "pool-maxsize", 50);
             int minSize = getIntValueFromElement(jdbcDatasourceElement, "pool-minsize", 2);
+            long maxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-maxwait", 60000L);
             long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", 300000L);
             long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", 600000L);
             long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", 300000L);
@@ -202,7 +203,7 @@ public class DatasourceInfo
             Long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", null);
             Long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", null);
             Properties connectionProperties = parsePropertyString(jdbcDatasourceElement.getAttribute("jdbc-connectionProperties"));
-            ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, sleepTime, lifeTime,
+            ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, maxWait, sleepTime, lifeTime,
                     deadLockMaxWait, deadLockRetryWait, validationQuery, minEvictableTimeMillis, timeBetweenEvictionRunsMillis);
 
             jdbcDatasource = new JdbcDatasourceInfo(uri, driverClassName, username, password, transIso, connectionProperties, connectionPoolInfo);

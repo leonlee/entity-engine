@@ -16,7 +16,7 @@ public class ConnectionPoolInfoSynthesizer
      * under lying data source.
      *
      * @param ds the
-     * @return
+     * @return ConnectionPoolInfo
      */
     public static ConnectionPoolInfo synthesizeConnectionPoolInfo(final DataSource ds)
     {
@@ -41,9 +41,9 @@ public class ConnectionPoolInfoSynthesizer
     private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds)
     {
         return new ConnectionPoolInfo(
-                bds.getMaxActive(), bds.getMinIdle(),
+                bds.getMaxActive(), bds.getMinIdle(), bds.getMaxWait(),
                 -1, -1,
-                bds.getMaxWait(), -1,
+                -1, -1,
                 bds.getValidationQuery(),
                 bds.getMinEvictableIdleTimeMillis(), bds.getTimeBetweenEvictionRunsMillis()
         );
@@ -52,9 +52,9 @@ public class ConnectionPoolInfoSynthesizer
     private static ConnectionPoolInfo reflectDataSource(DataSource ds)
     {
         return new ConnectionPoolInfo(
-                getInt(ds, "getMaxActive"), getInt(ds, "getMinIdle"),
+                getInt(ds, "getMaxActive"), getInt(ds, "getMinIdle"), getLong(ds, "getMaxWait"),
                 -1, -1,
-                getLong(ds, "getMaxWait"), -1,
+                -1, -1,
                 getStr(ds, "getValidationQuery"),
                 getLong(ds, "getMinEvictableIdleTimeMillis"), getLong(ds, "getTimeBetweenEvictionRunsMillis")
         );

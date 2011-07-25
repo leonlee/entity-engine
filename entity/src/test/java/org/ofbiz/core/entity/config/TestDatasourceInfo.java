@@ -36,6 +36,7 @@ public class TestDatasourceInfo
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
         assertEquals(20, poolInfo.getMaxSize());
         assertEquals(10, poolInfo.getMinSize());
+        assertEquals(66, poolInfo.getMaxWait());
         assertEquals(10000, poolInfo.getSleepTime());
         assertEquals(20000, poolInfo.getLifeTime());
         assertEquals(30000, poolInfo.getDeadLockMaxWait());
@@ -61,6 +62,7 @@ public class TestDatasourceInfo
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
         assertEquals(50, poolInfo.getMaxSize());
         assertEquals(2, poolInfo.getMinSize());
+        assertEquals(60000, poolInfo.getMaxWait());
         assertEquals(300000, poolInfo.getSleepTime());
         assertEquals(600000, poolInfo.getLifeTime());
         assertEquals(300000, poolInfo.getDeadLockMaxWait());

@@ -107,7 +107,7 @@ public class DBCPConnectionFactory {
                 if (poolInfo != null)
                 {
                     connectionPool.setMaxActive(poolInfo.getMaxSize());
-                    connectionPool.setMaxWait(poolInfo.getDeadLockMaxWait());
+                    connectionPool.setMaxWait(poolInfo.getMaxWait());
                     if (isNotEmpty(poolInfo.getValidationQuery()))
                     {
                         connectionPool.setTestOnBorrow(true);
