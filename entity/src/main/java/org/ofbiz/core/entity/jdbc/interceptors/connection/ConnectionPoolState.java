@@ -14,6 +14,11 @@ public interface ConnectionPoolState
     long getTimeToBorrowNanos();
 
     /**
+     * @return the time it took to borrow this connection from the pool in mill seconds
+     */
+    long getTimeToBorrow();
+
+    /**
      * @return the number of objects that have been borrowed from the pool
      */
     int getBorrowedCount();

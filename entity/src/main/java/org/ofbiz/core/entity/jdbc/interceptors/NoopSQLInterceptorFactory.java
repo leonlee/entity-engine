@@ -16,7 +16,6 @@ public class NoopSQLInterceptorFactory implements SQLInterceptorFactory
 {
     public static final SQLInterceptorFactory NOOP_INTERCEPTOR_FACTORY = new NoopSQLInterceptorFactory();
     public static final SQLInterceptor NOOP_INTERCEPTOR = new NoopSQLInterceptor();
-    public static final SQLConnectionInterceptor NOOP_CONNECTION_INTERCEPTOR = (SQLConnectionInterceptor) NOOP_INTERCEPTOR;
 
     private NoopSQLInterceptorFactory()
     {

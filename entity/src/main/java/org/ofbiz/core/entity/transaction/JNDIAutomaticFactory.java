@@ -4,11 +4,11 @@ import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.GenericTransactionException;
 import org.ofbiz.core.entity.TransactionUtil;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.config.JndiDatasourceInfo;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolInfoSynthesizer;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
@@ -18,7 +18,6 @@ import org.ofbiz.core.util.JNDIContextFactory;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
@@ -347,18 +346,18 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                 if (ds != null) {
                     if (Debug.verboseOn()) Debug.logVerbose("Got a Datasource object.", module);
                     dsCache.put(jndiName, ds);
-                    trackerCache.put(helperName,new ConnectionTracker());
 
                     if (ds instanceof XADataSource) {
                         if (Debug.infoOn()) Debug.logInfo("Got XADataSource for name " + jndiName, module);
                         XADataSource xads = (XADataSource) ds;
-                        XAConnection xac = xads.getXAConnection();
 
+                        trackerCache.put(helperName,new ConnectionTracker());
                         return trackConnection(helperName,xads);
                     } else {
                         if (Debug.infoOn()) Debug.logInfo("Got DataSource for name " + jndiName, module);
                         DataSource nds = (DataSource) ds;
 
+                        trackerCache.put(helperName,new ConnectionTracker(ConnectionPoolInfoSynthesizer.synthesizeConnectionPoolInfo(nds)));
                         return trackConnection(helperName,nds);
                     }
                 } else {
@@ -396,6 +395,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             }
         });
     }
+
 
 
     public void removeDatasource(final String helperName)

@@ -3,10 +3,16 @@ package org.ofbiz.core.entity.jdbc;
 import org.ofbiz.core.entity.jdbc.interceptors.NoopSQLInterceptorFactory;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolState;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.SQLConnectionInterceptor;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -44,7 +50,7 @@ public class SQLInterceptorSupport
      * provided returns null, then a default NO-OP {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor} will
      * be returned.
      *
-     * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in playl
+     * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in play
      * @return a NON NULL {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor}
      */
     public static SQLInterceptor getNonNullSQLInterceptor(String ofbizHelperName)
@@ -75,7 +81,7 @@ public class SQLInterceptorSupport
         if (sqlInterceptor instanceof SQLConnectionInterceptor) {
             return (SQLConnectionInterceptor) sqlInterceptor;
         }
-        return NoopSQLInterceptorFactory.NOOP_CONNECTION_INTERCEPTOR;
+        return new DelegatingNoOpSQLConnectionInterceptor(sqlInterceptor);
     }
 
     private static SQLInterceptorFactory loadInterceptorFactoryClass()
@@ -111,5 +117,42 @@ public class SQLInterceptorSupport
             }
         }
         return interceptorFactory;
+    }
+
+
+    /**
+     * This allows us to bridge back to the SQLInterceptor that does stuff but when it isnt a new SQLConnectionInterceptor
+     */
+    private static class DelegatingNoOpSQLConnectionInterceptor implements SQLConnectionInterceptor {
+
+        private final SQLInterceptor sqlInterceptor;
+
+        public DelegatingNoOpSQLConnectionInterceptor(SQLInterceptor delegate)
+        {
+            this.sqlInterceptor = delegate;
+        }
+
+        public void onConnectionTaken(Connection connection, ConnectionPoolState connectionPoolState)
+        {
+        }
+
+        public void onConnectionReplaced(Connection connection, ConnectionPoolState connectionPoolState)
+        {
+        }
+
+        public void beforeExecution(String sqlString, List<String> parameterValues, Statement statement)
+        {
+            sqlInterceptor.beforeExecution(sqlString, parameterValues, statement);
+        }
+
+        public void afterSuccessfulExecution(String sqlString, List<String> parameterValues, Statement statement, ResultSet resultSet, int rowsUpdated)
+        {
+            sqlInterceptor.afterSuccessfulExecution(sqlString, parameterValues, statement, resultSet, rowsUpdated);
+        }
+
+        public void onException(String sqlString, List<String> parameterValues, Statement statement, SQLException sqlException)
+        {
+            sqlInterceptor.onException(sqlString, parameterValues, statement, sqlException);
+        }
     }
 }

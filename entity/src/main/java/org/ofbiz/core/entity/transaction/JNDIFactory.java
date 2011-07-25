@@ -36,6 +36,7 @@ import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.entity.*;
 import org.ofbiz.core.entity.config.*;
 import org.ofbiz.core.config.*;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolInfoSynthesizer;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.*;
 
@@ -190,16 +191,18 @@ public class JNDIFactory implements TransactionFactoryInterface {
                 if (ds != null) {
                     if (Debug.verboseOn()) Debug.logVerbose("Got a Datasource object.", module);
                     dsCache.put(jndiName, ds);
-                    trackerCache.put(helperName, new ConnectionTracker());
 
                     if (ds instanceof XADataSource) {
                         if (Debug.infoOn()) Debug.logInfo("Got XADataSource for name " + jndiName, module);
                         XADataSource xads = (XADataSource) ds;
+
+                        trackerCache.put(helperName, new ConnectionTracker());
                         return trackConnection(helperName,xads);
                     } else {
                         if (Debug.infoOn()) Debug.logInfo("Got DataSource for name " + jndiName, module);
                         DataSource nds = (DataSource) ds;
 
+                        trackerCache.put(helperName, new ConnectionTracker(ConnectionPoolInfoSynthesizer.synthesizeConnectionPoolInfo(nds)));
                         return trackConnection(helperName,nds);
                     }
                 } else {
@@ -214,6 +217,18 @@ public class JNDIFactory implements TransactionFactoryInterface {
         return null;
     }
 
+    private static Connection trackConnection(final String helperName, final XADataSource xads)
+    {
+        ConnectionTracker connectionTracker = trackerCache.get(helperName);
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
+        {
+            public Connection call() throws Exception
+            {
+                return TransactionUtil.enlistConnection(xads.getXAConnection());
+            }
+        });
+    }
+
     private static Connection trackConnection(final String helperName, final DataSource nds)
     {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
@@ -226,17 +241,7 @@ public class JNDIFactory implements TransactionFactoryInterface {
         });
     }
 
-    private static Connection trackConnection(final String helperName, final XADataSource xads)
-    {
-        ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
-                return TransactionUtil.enlistConnection(xads.getXAConnection());
-            }
-        });
-    }
+
 
     public void removeDatasource(final String helperName)
     {

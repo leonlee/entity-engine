@@ -29,6 +29,7 @@ import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.GenericTransactionException;
 import org.ofbiz.core.entity.TransactionUtil;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
 import org.ofbiz.core.util.Debug;
 
 import java.io.ByteArrayInputStream;
@@ -542,7 +543,14 @@ public class SQLProcessor
      */
     private void beforeExecution()
     {
-        _sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
+        if (_connection instanceof ConnectionWithSQLInterceptor)
+        {
+            _sqlInterceptor = ((ConnectionWithSQLInterceptor) _connection).getNonNullSQLInterceptor();
+        }
+        else
+        {
+            _sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
+        }
         _sqlInterceptor.beforeExecution(_sql, _parameterValues, _ps);
     }
 

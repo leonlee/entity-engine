@@ -1,13 +1,13 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
-import org.ofbiz.core.entity.config.ConnectionPoolInfo;
+import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 
 import java.sql.Connection;
 
 /**
  * An interceptor that knows about when connections are taken from the underlying connection pool
  */
-public interface SQLConnectionInterceptor
+public interface SQLConnectionInterceptor extends SQLInterceptor
 {
     /**
      * Called when a connection is taken from the underlying pool
