@@ -70,7 +70,7 @@ public class ConnectionTracker
         final int count = borrowedCount.incrementAndGet();
 
         final SQLConnectionInterceptor sqlConnectionInterceptor = SQLInterceptorSupport.getNonNullSQLConnectionInterceptor(helperName);
-        sqlConnectionInterceptor.onConnectionReplaced(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
+        sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
 
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
         return new ConnectionWithSQLInterceptorImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
