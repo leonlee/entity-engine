@@ -299,7 +299,7 @@ public class DatabaseUtil
         while (tableNamesIter != null && tableNamesIter.hasNext())
         {
             String tableName = tableNamesIter.next();
-            warn("Table named \"" + tableName + "\" exists in the database but has no corresponding entity", messages);
+            verbose("Table named \"" + tableName + "\" exists in the database but has no corresponding entity", messages);
         }
 
         // for each newly added table, add fks
