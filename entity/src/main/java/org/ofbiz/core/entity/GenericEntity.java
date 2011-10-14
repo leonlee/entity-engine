@@ -87,7 +87,6 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         this.entityName = null;
         this.modelEntity = null;
         this.fields = new HashMap<String, Object>();
-
     }
 
     /** Creates new GenericEntity.
