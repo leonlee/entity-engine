@@ -83,24 +83,34 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator) {
-        this();
         setDelegator(delegator);
+        this.entityName = null;
+        this.modelEntity = null;
+        this.fields = new HashMap<String, Object>();
+
     }
 
     /** Creates new GenericEntity.
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity) {
-        this(modelEntity);
         setDelegator(delegator);
+        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        this.modelEntity = modelEntity;
+        this.entityName = modelEntity.getEntityName();
+        this.fields = new HashMap<String, Object>();
     }
 
     /** Creates new GenericEntity from existing Map.
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity, Map<String, ?> fields) {
-        this(modelEntity, fields);
         setDelegator(delegator);
+        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        this.modelEntity = modelEntity;
+        this.entityName = modelEntity.getEntityName();
+        this.fields = new HashMap<String, Object>();
+        setFields(fields);
     }
 
     /** Creates new GenericEntity
