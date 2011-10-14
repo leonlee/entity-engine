@@ -79,14 +79,42 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     /** Denotes whether or not this entity has been modified, or is known to be out of sync with the persistent record */
     public boolean modified = false;
 
-    /** Creates new GenericEntity */
+    /** Creates new GenericEntity
+     * @since 1.0.13
+     */
+    public GenericEntity(GenericDelegator delegator) {
+        this();
+        setDelegator(delegator);
+    }
+
+    /** Creates new GenericEntity.
+     * @since 1.0.13
+     */
+    public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity) {
+        this(modelEntity);
+        setDelegator(delegator);
+    }
+
+    /** Creates new GenericEntity from existing Map.
+     * @since 1.0.13
+     */
+    public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity, Map<String, ?> fields) {
+        this(modelEntity, fields);
+        setDelegator(delegator);
+    }
+
+    /** Creates new GenericEntity
+     * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator)}
+     */
     public GenericEntity() {
         this.entityName = null;
         this.modelEntity = null;
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity */
+    /** Creates new GenericEntity.
+     * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator, ModelEntity modelEntity)}
+     */
     public GenericEntity(ModelEntity modelEntity) {
         if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;
@@ -94,7 +122,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity from existing Map */
+    /** Creates new GenericEntity from existing Map.
+     * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator, ModelEntity modelEntity, Map fields)}
+     */
     public GenericEntity(ModelEntity modelEntity, Map<String, ?> fields) {
         if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;

@@ -36,12 +36,30 @@ import java.util.Map;
  */
 public class GenericPK extends GenericEntity {
 
-    /** Creates new GenericPK */
+    /** Creates new GenericPK
+     * @since 1.0.13
+     */
+    public GenericPK(GenericDelegator delegator, ModelEntity modelEntity) {
+        super(delegator, modelEntity);
+    }
+
+    /** Creates new GenericPK from existing Map
+     * @since 1.0.13
+     */
+    public GenericPK(GenericDelegator delegator, ModelEntity modelEntity, Map<String, ?> fields) {
+        super(delegator, modelEntity, fields);
+    }
+
+    /** Creates new GenericPK
+     * @deprecated since 1.0.13 Use {@link #GenericPK(GenericDelegator internalDelegator, ModelEntity modelEntity)}
+     */
     public GenericPK(ModelEntity modelEntity) {
         super(modelEntity);
     }
 
-    /** Creates new GenericPK from existing Map */
+    /** Creates new GenericPK from existing Map
+     * @deprecated since 1.0.13 Use {@link #GenericPK(GenericDelegator internalDelegator, ModelEntity modelEntity)}
+     */
     public GenericPK(ModelEntity modelEntity, Map<String, ?> fields) {
         super(modelEntity, fields);
     }

@@ -429,9 +429,7 @@ public class GenericDelegator implements DelegatorInterface {
         if (entity == null) {
             throw new IllegalArgumentException("[GenericDelegator.makeValue] could not find entity for entityName: " + entityName);
         }
-        GenericValue value = new GenericValue(entity, fields);
-
-        value.setDelegator(this);
+        GenericValue value = new GenericValue(this, entity, fields);
         return value;
     }
 
@@ -456,7 +454,7 @@ public class GenericDelegator implements DelegatorInterface {
             return null;
         }
         ModelEntity entity = this.getModelReader().getModelEntity(entityName);
-        GenericValue genericValue = new GenericValue(entity, fields);
+        GenericValue genericValue = new GenericValue(this, entity, fields);
 
         return this.create(genericValue, true);
     }
@@ -770,13 +768,13 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByAnd(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericValue dummyValue = new GenericValue(modelEntity, fields);
+        GenericValue dummyValue = new GenericValue(this, modelEntity, fields);
         this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
         return findByAnd(modelEntity, fields, orderBy);
     }
 
     public List<GenericValue> findByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
-        GenericValue dummyValue = new GenericValue(modelEntity);
+        GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
 
         GenericHelper helper = getEntityHelper(modelEntity);
@@ -803,7 +801,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByOr(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericValue dummyValue = new GenericValue(modelEntity);
+        GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
         this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
 
@@ -839,7 +837,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericValue dummyValue = new GenericValue(modelEntity);
+        GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
 
         this.evalEcaRules(EntityEcaHandler.EV_CACHE_CHECK, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
@@ -944,7 +942,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByCondition(String entityName, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericValue dummyValue = new GenericValue(modelEntity);
+        GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
 
         this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
@@ -989,7 +987,7 @@ public class GenericDelegator implements DelegatorInterface {
             throws GenericEntityException {
 
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericValue dummyValue = new GenericValue(modelEntity);
+        GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
         this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
 

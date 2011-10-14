@@ -56,12 +56,30 @@ public class GenericValue extends GenericEntity {
      */
     protected Map<String, Object> originalDbValues = null;
 
-    /** Creates new GenericValue */
+    /** Creates new GenericValue
+     * @since 1.0.13
+     */
+    public GenericValue(GenericDelegator internalDelegator, ModelEntity modelEntity) {
+        super(internalDelegator, modelEntity);
+    }
+
+    /** Creates new GenericValue from existing Map
+     * @since 1.0.13
+     */
+    public GenericValue(GenericDelegator internalDelegator, ModelEntity modelEntity, Map<String, ?> fields) {
+        super(internalDelegator, modelEntity, fields);
+    }
+
+    /** Creates new GenericValue
+     * @deprecated since 1.0.13 Use {@link #GenericValue(GenericDelegator internalDelegator, ModelEntity modelEntity)}
+     */
     public GenericValue(ModelEntity modelEntity) {
         super(modelEntity);
     }
 
-    /** Creates new GenericValue from existing Map */
+    /** Creates new GenericValue from existing Map
+     * @deprecated since 1.0.13 Use {@link #GenericValue(GenericDelegator internalDelegator, ModelEntity modelEntity, Map fields)}
+     */
     public GenericValue(ModelEntity modelEntity, Map<String, ?> fields) {
         super(modelEntity, fields);
     }
