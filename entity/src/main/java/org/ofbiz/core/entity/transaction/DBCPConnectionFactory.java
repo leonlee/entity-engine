@@ -24,20 +24,22 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-import org.apache.commons.dbcp.ConnectionFactory;
-import org.apache.commons.dbcp.DriverManagerConnectionFactory;
-import org.apache.commons.dbcp.PoolableConnectionFactory;
-import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp.BasicDataSourceFactory;
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.StringUtil;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -56,15 +58,15 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
  * Created on Dec 18, 2001, 5:03 PM
  */
 public class DBCPConnectionFactory {
+    private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
+    private static final String DBCP_PROPERTIES = "dbcp.properties";
+    protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
-    protected static Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
-    protected static Map<String, ObjectPool> connectionPoolCache = CopyOnWriteMap.newHashMap();
-    protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
-
-    public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
-        // the PooledDataSource implementation
-        DataSource dataSource = dsCache.get(helperName);
-
+    public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
+    {
+        // the DataSource implementation
+        BasicDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null) {
             return trackConnection(helperName,dataSource);
         }
@@ -78,60 +80,47 @@ public class DBCPConnectionFactory {
                     return trackConnection(helperName, dataSource);
                 }
 
-                // First, we'll need a ObjectPool that serves as the actual pool of connections.
-                GenericObjectPool connectionPool = new GenericObjectPool(null);
-                connectionPoolCache.put(helperName, connectionPool);
-
-                // Next, we'll create a ConnectionFactory that the pool will use to create Connections.
-                ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                loader.loadClass(jdbcDatasource.getDriverClassName());
-
                 // Sets the connection properties. At least 'user' and 'password' should be set.
                 Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
                 if (jdbcDatasource.getUsername() != null) { info.setProperty("user", jdbcDatasource.getUsername()); }
                 if (jdbcDatasource.getPassword() != null) { info.setProperty("password", jdbcDatasource.getPassword()); }
-                
-                ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcDatasource.getUri(), info);
 
-                // Now we'll create the PoolableConnectionFactory, which wraps
-                // the "real" Connections created by the ConnectionFactory with
-                // the classes that implement the pooling functionality.
-                PoolableConnectionFactory poolableConnectionFactory = new PoolableConnectionFactory(connectionFactory, connectionPool, null, null, false, true);
+                // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
+                dataSource = (BasicDataSource) BasicDataSourceFactory.createDataSource(loadDbcpProperties());
+                dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
+                dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
+                dataSource.setUrl(jdbcDatasource.getUri());
+                dataSource.setConnectionProperties(toString(info));
+                
                 if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
                 {
-                    poolableConnectionFactory.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
+                    dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
                 }
 
                 // set connection pool attributes
                 ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
                 if (poolInfo != null)
                 {
-                    connectionPool.setMaxActive(poolInfo.getMaxSize());
-                    connectionPool.setMaxWait(poolInfo.getMaxWait());
+                    dataSource.setMaxActive(poolInfo.getMaxSize());
+                    dataSource.setMaxWait(poolInfo.getMaxWait());
                     if (isNotEmpty(poolInfo.getValidationQuery()))
                     {
-                        connectionPool.setTestOnBorrow(true);
-                        poolableConnectionFactory.setValidationQuery(poolInfo.getValidationQuery());
+                        dataSource.setTestOnBorrow(true);
+                        dataSource.setValidationQuery(poolInfo.getValidationQuery());
                     }
                     if (poolInfo.getMinEvictableTimeMillis() != null)
                     {
-                        connectionPool.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
+                        dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
                     }
                     if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
                     {
-                        connectionPool.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
+                        dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
                     }
-
                 }
-
-                // Finally, we create the PoolingDriver itself,
-                // passing in the object pool we created.
-                dataSource = new PoolingDataSource(connectionPool);
 
                 dataSource.setLogWriter(Debug.getPrintWriter());
 
                 dsCache.put(helperName, dataSource);
-
                 trackerCache.put(helperName,new ConnectionTracker(poolInfo));
 
                 return trackConnection(helperName, dataSource);
@@ -141,6 +130,49 @@ public class DBCPConnectionFactory {
         }
 
         return null;
+    }
+
+    private static String toString(Properties properties)
+    {
+        List<String> props = new ArrayList<String>();
+        for (String key : properties.stringPropertyNames())
+        {
+            props.add(key + "=" + properties.getProperty(key));
+        }
+
+        return StringUtil.join(props, ";");
+    }
+
+    private static Properties loadDbcpProperties()
+    {
+        Properties dbcpProperties = new Properties();
+
+        // load everything in c3p0.properties
+        InputStream fileProperties = DBCPConnectionFactory.class.getResourceAsStream("/" + DBCP_PROPERTIES);
+        if (fileProperties != null)
+        {
+            try
+            {
+                dbcpProperties.load(fileProperties);
+            }
+            catch (IOException e)
+            {
+                log.error("Error loading " + DBCP_PROPERTIES, e);
+            }
+        }
+
+        // also look at all dbcp.* system properties
+        Properties systemProperties = System.getProperties();
+        for (String systemProp : systemProperties.stringPropertyNames())
+        {
+            final String prefix = "dbcp.";
+            if (systemProp.startsWith(prefix))
+            {
+                dbcpProperties.setProperty(systemProp.substring(prefix.length()), System.getProperty(systemProp));
+            }
+        }
+
+        return dbcpProperties;
     }
 
     private static Connection trackConnection(final String helperName, final DataSource dataSource)
@@ -162,21 +194,16 @@ public class DBCPConnectionFactory {
      */
     public synchronized static void removeDatasource(String helperName)
     {
-        DataSource dataSource = dsCache.get(helperName);
+        BasicDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null)
         {
-            ObjectPool connectionPool = connectionPoolCache.get(helperName);
-            if (connectionPool != null)
+            try
             {
-                try
-                {
-                    connectionPool.close();
-                }
-                catch (Exception e)
-                {
-                    Debug.logError(e, "Error closing connection pool in DBCP");
-                }
-                connectionPoolCache.remove(helperName);
+                dataSource.close();
+            }
+            catch (Exception e)
+            {
+                Debug.logError(e, "Error closing connection pool in DBCP");
             }
             dsCache.remove(helperName);
         }
