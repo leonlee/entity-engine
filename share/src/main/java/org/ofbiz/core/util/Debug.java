@@ -46,8 +46,6 @@ public final class Debug {
 
     public static final boolean useLog4J = true;
     public static final String noModuleModule = "NoModule";  // set to null for previous behavior
-    
-    static DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
 
     public static final int ALWAYS = 0;
     public static final int VERBOSE = 1;
@@ -141,6 +139,7 @@ public final class Debug {
             } else {
                 StringBuffer prefixBuf = new StringBuffer();
 
+                DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
                 prefixBuf.append(dateFormat.format(new java.util.Date()));
                 prefixBuf.append(" [OFBiz");
                 if (module != null) {
