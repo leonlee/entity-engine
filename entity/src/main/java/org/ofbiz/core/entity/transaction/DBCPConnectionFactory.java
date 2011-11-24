@@ -26,6 +26,7 @@ package org.ofbiz.core.entity.transaction;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
+import org.apache.commons.dbcp.ManagedBasicDataSourceFactory;
 import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
@@ -62,6 +63,7 @@ public class DBCPConnectionFactory {
     private static final String DBCP_PROPERTIES = "dbcp.properties";
     protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
+    private static final String PROP_JMX = "jmx";
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
@@ -86,7 +88,7 @@ public class DBCPConnectionFactory {
                 if (jdbcDatasource.getPassword() != null) { info.setProperty("password", jdbcDatasource.getPassword()); }
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
-                dataSource = (BasicDataSource) BasicDataSourceFactory.createDataSource(loadDbcpProperties());
+                dataSource = createDataSource();
                 dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
                 dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
                 dataSource.setUrl(jdbcDatasource.getUri());
@@ -130,6 +132,17 @@ public class DBCPConnectionFactory {
         }
 
         return null;
+    }
+
+    private static BasicDataSource createDataSource() throws Exception
+    {
+        Properties dbcpProperties = loadDbcpProperties();
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            return (BasicDataSource) ManagedBasicDataSourceFactory.createDataSource(dbcpProperties);
+        }
+
+        return (BasicDataSource) BasicDataSourceFactory.createDataSource(dbcpProperties);
     }
 
     private static String toString(Properties properties)
