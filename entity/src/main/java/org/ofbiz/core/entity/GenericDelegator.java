@@ -1459,8 +1459,8 @@ public class GenericDelegator implements DelegatorInterface {
         int numberChanged = 0;
 
         try {
-            // if there are multiple helpers and no transaction is active, begin one
-            if (valuesPerHelper.size() > 1) {
+            // if there are any helpers and no transaction is active, begin one
+            if (valuesPerHelper.size() > 0) {
                 beganTransaction = TransactionUtil.begin();
             }
 
