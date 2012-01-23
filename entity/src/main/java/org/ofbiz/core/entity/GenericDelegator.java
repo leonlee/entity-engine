@@ -1459,8 +1459,11 @@ public class GenericDelegator implements DelegatorInterface {
         int numberChanged = 0;
 
         try {
-            // if there are any helpers and no transaction is active, begin one
-            if (valuesPerHelper.size() > 0) {
+            // This code caught me out, valuesPerHelper is a confusing name for this list
+            // effectively in JIRA we have 1 helper defaultDS - so we will only have one element in this list
+            // We connect via JDBC so are not enlisted in XA transactions, so for the JIrA case we don't
+            // want to start the XA transaction manager.  It is up to the SQLProcessors to do the committing
+            if (valuesPerHelper.size() > 1) {
                 beganTransaction = TransactionUtil.begin();
             }
 
