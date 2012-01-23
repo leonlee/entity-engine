@@ -3,7 +3,7 @@
 	<groupId>com.atlassian.ofbiz</groupId>
 	<artifactId>entityengine-parent</artifactId>
 	<packaging>pom</packaging>
-	<version>1.0.17-SNAPSHOT</version>
+	<version>1.0.17</version>
 	<name>Atlassian OFBiz Fork</name>
 	<url>http://maven.apache.org</url>
 	<parent>
@@ -12,9 +12,9 @@
 		<version>27</version>
 	</parent>
 	<scm>
-		<connection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</connection>
-		<developerConnection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</developerConnection>
-		<url>https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</url>
+		<connection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/tags/entityengine-parent-1.0.17</connection>
+		<developerConnection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/tags/entityengine-parent-1.0.17</developerConnection>
+		<url>https://svn.atlassian.com/svn/public/atlassian/entityengine/tags/entityengine-parent-1.0.17</url>
 	</scm>
 
     <modules>
