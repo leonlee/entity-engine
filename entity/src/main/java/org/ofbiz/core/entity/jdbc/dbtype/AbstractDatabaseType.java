@@ -58,11 +58,13 @@ public abstract class AbstractDatabaseType implements DatabaseType {
      * @param con
      * @return The schema name of the database to be used for this database.
      */
-    public String getSchemaName (Connection con) {
+    public String getSchemaName(Connection con)
+    {
         return null;
     }
 
-    public int getConstraintNameClipLength(){
+    public int getConstraintNameClipLength()
+    {
         return constraintNameClipLength;
     }
 
@@ -95,46 +97,62 @@ public abstract class AbstractDatabaseType implements DatabaseType {
      * @param minor2 Second minor version number for comparison
      * @return True if (major1, minor1) > (major2, minor2) otherwise false
      */
-    protected static boolean versionGreaterThanOrEqual(int major1, int minor1, int major2, int minor2) {
+    protected static boolean versionGreaterThanOrEqual(int major1, int minor1, int major2, int minor2)
+    {
         return ((major1 > major2) || ((major1 == major2) && (minor1 >= minor2)));
     }
 
-    protected static boolean productNamesMatch(String productNamePrefix, String testName) {
+    protected static boolean productNamesMatch(String productNamePrefix, String testName)
+    {
         return ((testName != null) &&
                 (testName.length() >= productNamePrefix.length()) &&
                 (testName.substring(0, productNamePrefix.length()).equalsIgnoreCase(productNamePrefix)));
     }
 
-    protected static boolean isProductNameInPrefixList(String[] productNamePrefixes, String productName) {
-        for(int i = 0; (i < productNamePrefixes.length) && (productName != null); i++) {
-            if(productNamesMatch(productNamePrefixes[i], productName)) {
-                return true;
+    protected static boolean isProductNameInPrefixList(String[] productNamePrefixes, String productName)
+    {
+        if (productName != null)
+        {
+            for (int i = 0; i < productNamePrefixes.length; i++) {
+                if (productNamesMatch(productNamePrefixes[i], productName))
+                {
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    protected boolean productNameMatches(Connection con) throws SQLException {
-        String productName = con.getMetaData().getDatabaseProductName().trim();
-        return isProductNameInPrefixList(productNamePrefix, productName);
+    protected boolean productNameMatches(Connection con) throws SQLException
+    {
+        String productName = con.getMetaData().getDatabaseProductName();
+        return productName != null && isProductNameInPrefixList(productNamePrefix, productName.trim());
     }
 
-    protected boolean versionGreaterThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException {
-        try {
+    protected boolean versionGreaterThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException
+    {
+        try
+        {
             DatabaseMetaData metaData = con.getMetaData();
             return versionGreaterThanOrEqual(metaData.getDatabaseMajorVersion(), metaData.getDatabaseMinorVersion(), majorVersion, minorVersion);
-        } catch (AbstractMethodError ame) {
+        }
+        catch (AbstractMethodError ame)
+        {
             // if this exception is thrown then it means that the wrong version of the
             // database driver was used
             return false;
         }
     }
 
-    protected boolean versionLessThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException {
-        try {
+    protected boolean versionLessThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException
+    {
+        try
+        {
             DatabaseMetaData metaData = con.getMetaData();
             return versionGreaterThanOrEqual(majorVersion, minorVersion, metaData.getDatabaseMajorVersion(), metaData.getDatabaseMinorVersion());
-        } catch (AbstractMethodError ame) {
+        }
+        catch (AbstractMethodError ame)
+        {
             // if this exception is thrown then it means that the wrong version of the
             // database driver was used
             return false;

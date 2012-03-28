@@ -20,6 +20,8 @@ import static org.ofbiz.core.util.UtilValidate.isEmpty;
 */
 public class DatasourceInfo
 {
+    static final int DEFAULT_POOL_MAX_SIZE = 50;
+
     private final String name;
     private final String helperClass;
     private String fieldTypeName;
@@ -192,28 +194,52 @@ public class DatasourceInfo
             String transIso = jdbcDatasourceElement.getAttribute("isolation-level");
 
             // These defaults are copied out of entity-config.dtd
-            int maxSize = getIntValueFromElement(jdbcDatasourceElement, "pool-maxsize", 50);
-            int minSize = getIntValueFromElement(jdbcDatasourceElement, "pool-minsize", 2);
-            long maxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-maxwait", 60000L);
-            long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", 300000L);
-            long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", 600000L);
-            long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", 300000L);
-            long deadLockRetryWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-retrywait", 10000L);
+            int maxSize = getIntValueFromElement(jdbcDatasourceElement, "pool-maxsize", DEFAULT_POOL_MAX_SIZE);
+            int maxIdle = getIntValueFromElement(jdbcDatasourceElement, "pool-maxidle", ConnectionPoolInfo.DEFAULT_POOL_MAX_IDLE);
+            int minSize = getIntValueFromElement(jdbcDatasourceElement, "pool-minsize", ConnectionPoolInfo.DEFAULT_POOL_MIN_SIZE);
+            long maxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-maxwait", ConnectionPoolInfo.DEFAULT_POOL_MAX_WAIT);
+            long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", ConnectionPoolInfo.DEFAULT_POOL_SLEEP_TIME);
+            long lifeTime = getLongValueFromElement(jdbcDatasourceElement, "pool-lifetime", ConnectionPoolInfo.DEFAULT_POOL_LIFE_TIME);
+            long deadLockMaxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-maxwait", ConnectionPoolInfo.DEFAULT_DEADLOCK_MAX_WAIT);
+            long deadLockRetryWait = getLongValueFromElement(jdbcDatasourceElement, "pool-deadlock-retrywait", ConnectionPoolInfo.DEFAULT_DEADLOCK_RETRY_WAIT);
             String validationQuery = jdbcDatasourceElement.getAttribute("pool-validationQuery");
             Long minEvictableTimeMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-minEvictableIdleTimeMillis", null);
             Long timeBetweenEvictionRunsMillis = getLongValueFromElement(jdbcDatasourceElement, "pool-timeBetweenEvictionRunsMillis", null);
             Properties connectionProperties = parsePropertyString(jdbcDatasourceElement.getAttribute("jdbc-connectionProperties"));
-            ConnectionPoolInfo connectionPoolInfo = new ConnectionPoolInfo(maxSize, minSize, maxWait, sleepTime, lifeTime,
-                    deadLockMaxWait, deadLockRetryWait, validationQuery, minEvictableTimeMillis, timeBetweenEvictionRunsMillis);
-
+            ConnectionPoolInfo connectionPoolInfo = ConnectionPoolInfo.builder()
+                    .setPoolMaxSize(maxSize)
+                    .setPoolMaxIdle(maxIdle)
+                    .setPoolMinSize(minSize)
+                    .setPoolMaxWait(maxWait)
+                    .setPoolSleepTime(sleepTime)
+                    .setPoolLifeTime(lifeTime)
+                    .setDeadLockMaxWait(deadLockMaxWait)
+                    .setDeadLockRetryWait(deadLockRetryWait)
+                    .setValidationQuery(validationQuery)
+                    .setMinEvictableTimeMillis(minEvictableTimeMillis)
+                    .setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis)
+                    .build();
             jdbcDatasource = new JdbcDatasourceInfo(uri, driverClassName, username, password, transIso, connectionProperties, connectionPoolInfo);
         }
         tyrexDataSourceElement = UtilXml.firstChildElement(element, "tyrex-dataSource");
     }
+    
+    private String trimAndIgnoreBlank(String s)
+    {
+        if (s != null)
+        {
+            s = s.trim();
+            if (s.length() > 0)
+            {
+                return s;
+            }
+        }
+        return null;
+    }
 
     private int getIntValueFromElement(Element element, String attributeName, int defaultValue)
     {
-        String value = element.getAttribute(attributeName);
+        String value = trimAndIgnoreBlank(element.getAttribute(attributeName));
         if (value == null)
         {
             Debug.logInfo(attributeName + " not set, defaulting to " + defaultValue);
@@ -232,7 +258,7 @@ public class DatasourceInfo
 
     private Long getLongValueFromElement(Element element, String attributeName, Long defaultValue)
     {
-        String value = element.getAttribute(attributeName);
+        String value = trimAndIgnoreBlank(element.getAttribute(attributeName));
         if (value == null)
         {
             Debug.logInfo(attributeName + " not set, defaulting to " + defaultValue);

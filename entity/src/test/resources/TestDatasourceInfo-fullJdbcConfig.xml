@@ -6,6 +6,7 @@
                jdbc-driver="org.postgresql.Driver"
                jdbc-connectionProperties="portNumber=5432;defaultAutoCommit=true"
                pool-maxsize="20"
+               pool-maxidle="15"
                pool-minsize="10"
                pool-maxwait="66"
                pool-sleeptime="10000"

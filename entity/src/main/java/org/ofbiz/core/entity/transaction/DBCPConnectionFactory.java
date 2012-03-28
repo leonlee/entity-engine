@@ -103,21 +103,7 @@ public class DBCPConnectionFactory {
                 ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
                 if (poolInfo != null)
                 {
-                    dataSource.setMaxActive(poolInfo.getMaxSize());
-                    dataSource.setMaxWait(poolInfo.getMaxWait());
-                    if (isNotEmpty(poolInfo.getValidationQuery()))
-                    {
-                        dataSource.setTestOnBorrow(true);
-                        dataSource.setValidationQuery(poolInfo.getValidationQuery());
-                    }
-                    if (poolInfo.getMinEvictableTimeMillis() != null)
-                    {
-                        dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
-                    }
-                    if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
-                    {
-                        dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
-                    }
+                    initConnectionPoolSettings(dataSource, poolInfo);
                 }
 
                 dataSource.setLogWriter(Debug.getPrintWriter());
@@ -132,6 +118,68 @@ public class DBCPConnectionFactory {
         }
 
         return null;
+    }
+
+    private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
+    {
+        dataSource.setMaxActive(poolInfo.getMaxSize());
+        dataSource.setMinIdle(poolInfo.getMinSize());
+        dataSource.setMaxIdle(poolInfo.getMaxIdle());
+        dataSource.setMaxWait(poolInfo.getMaxWait());
+        dataSource.setDefaultCatalog(poolInfo.getDefaultCatalog());
+
+        if (poolInfo.getInitialSize() != null)
+        {
+            dataSource.setInitialSize(poolInfo.getInitialSize());
+        }
+
+        if (isNotEmpty(poolInfo.getValidationQuery()))
+        {
+            // testOnBorrow defaults to true when this is set, but can still be forced to false
+            dataSource.setTestOnBorrow(poolInfo.getTestOnBorrow() == null || poolInfo.getTestOnBorrow());
+            if (poolInfo.getTestOnReturn() != null)
+            {
+                dataSource.setTestOnReturn(poolInfo.getTestOnReturn());
+            }
+            if (poolInfo.getTestWhileIdle() != null)
+            {
+                dataSource.setTestWhileIdle(poolInfo.getTestWhileIdle());
+            }
+            dataSource.setValidationQuery(poolInfo.getValidationQuery());
+            if (poolInfo.getValidationQueryTimeout() != null)
+            {
+                dataSource.setValidationQueryTimeout(poolInfo.getValidationQueryTimeout());
+            }
+        }
+
+        if (poolInfo.getPoolPreparedStatements() != null)
+        {
+            dataSource.setPoolPreparedStatements(poolInfo.getPoolPreparedStatements());
+            if (dataSource.isPoolPreparedStatements() && poolInfo.getMaxOpenPreparedStatements() != null)
+            {
+                dataSource.setMaxOpenPreparedStatements(poolInfo.getMaxOpenPreparedStatements());
+            }
+        }
+        if (poolInfo.getRemoveAbandoned() != null)
+        {
+            dataSource.setRemoveAbandoned(poolInfo.getRemoveAbandoned());
+            if (poolInfo.getRemoveAbandonedTimeout() != null)
+            {
+                dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
+            }
+        }
+        if (poolInfo.getMinEvictableTimeMillis() != null)
+        {
+            dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
+        }
+        if (poolInfo.getNumTestsPerEvictionRun() != null)
+        {
+            dataSource.setNumTestsPerEvictionRun(poolInfo.getNumTestsPerEvictionRun());
+        }
+        if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
+        {
+            dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
+        }
     }
 
     private static BasicDataSource createDataSource() throws Exception

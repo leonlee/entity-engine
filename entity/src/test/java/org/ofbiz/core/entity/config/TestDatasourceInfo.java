@@ -35,6 +35,7 @@ public class TestDatasourceInfo
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
         assertEquals(20, poolInfo.getMaxSize());
+        assertEquals(15, poolInfo.getMaxIdle());
         assertEquals(10, poolInfo.getMinSize());
         assertEquals(66, poolInfo.getMaxWait());
         assertEquals(10000, poolInfo.getSleepTime());
@@ -60,13 +61,14 @@ public class TestDatasourceInfo
         assertEquals("password", jdbcInfo.getPassword());
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
-        assertEquals(50, poolInfo.getMaxSize());
-        assertEquals(2, poolInfo.getMinSize());
-        assertEquals(60000, poolInfo.getMaxWait());
-        assertEquals(300000, poolInfo.getSleepTime());
-        assertEquals(600000, poolInfo.getLifeTime());
-        assertEquals(300000, poolInfo.getDeadLockMaxWait());
-        assertEquals(10000, poolInfo.getDeadLockRetryWait());
+        assertEquals(DatasourceInfo.DEFAULT_POOL_MAX_SIZE, poolInfo.getMaxSize());
+        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MAX_IDLE, poolInfo.getMaxIdle());
+        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MIN_SIZE, poolInfo.getMinSize());
+        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MAX_WAIT, poolInfo.getMaxWait());
+        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_SLEEP_TIME, poolInfo.getSleepTime());
+        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_LIFE_TIME, poolInfo.getLifeTime());
+        assertEquals(ConnectionPoolInfo.DEFAULT_DEADLOCK_MAX_WAIT, poolInfo.getDeadLockMaxWait());
+        assertEquals(ConnectionPoolInfo.DEFAULT_DEADLOCK_RETRY_WAIT, poolInfo.getDeadLockRetryWait());
     }
 
     @Test
