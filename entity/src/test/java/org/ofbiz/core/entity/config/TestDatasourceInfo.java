@@ -62,7 +62,7 @@ public class TestDatasourceInfo
         assertNotNull(jdbcInfo.getConnectionPoolInfo());
         ConnectionPoolInfo poolInfo = jdbcInfo.getConnectionPoolInfo();
         assertEquals(DatasourceInfo.DEFAULT_POOL_MAX_SIZE, poolInfo.getMaxSize());
-        assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MAX_IDLE, poolInfo.getMaxIdle());
+        assertEquals(poolInfo.getMaxSize(), poolInfo.getMaxIdle());
         assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MIN_SIZE, poolInfo.getMinSize());
         assertEquals(ConnectionPoolInfo.DEFAULT_POOL_MAX_WAIT, poolInfo.getMaxWait());
         assertEquals(ConnectionPoolInfo.DEFAULT_POOL_SLEEP_TIME, poolInfo.getSleepTime());

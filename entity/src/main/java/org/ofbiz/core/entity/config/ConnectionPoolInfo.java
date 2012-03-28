@@ -11,7 +11,6 @@ public class ConnectionPoolInfo
 {
     public static final int DEFAULT_POOL_MAX_SIZE = 8;  // maxActive
     public static final int DEFAULT_POOL_MIN_SIZE = 2;  // minIdle
-    public static final int DEFAULT_POOL_MAX_IDLE = -1;
     public static final long DEFAULT_POOL_MAX_WAIT = 60000L;
     public static final long DEFAULT_POOL_SLEEP_TIME = 300000L;
     public static final long DEFAULT_POOL_LIFE_TIME = 600000L;
@@ -75,9 +74,9 @@ public class ConnectionPoolInfo
         defaultCatalog = builder.getDefaultCatalog();
         initialSize = builder.getPoolInitialSize();
         lifeTime = longWithDefault(builder.getPoolLifeTime(), DEFAULT_POOL_LIFE_TIME);
-        maxIdle = intWithDefault(builder.getPoolMaxIdle(), DEFAULT_POOL_MAX_IDLE);
         maxOpenPreparedStatements = builder.getMaxOpenPreparedStatements();
         maxSize = intWithDefault(builder.getPoolMaxSize(), DEFAULT_POOL_MAX_SIZE);
+        maxIdle = intWithDefault(builder.getPoolMaxIdle(), maxSize);
         maxWait = longWithDefault(builder.getPoolMaxWait(), DEFAULT_POOL_MAX_WAIT);
         minEvictableTimeMillis = builder.getMinEvictableTimeMillis();
         minSize = intWithDefault(builder.getPoolMinSize(), DEFAULT_POOL_MIN_SIZE);

@@ -195,7 +195,7 @@ public class DatasourceInfo
 
             // These defaults are copied out of entity-config.dtd
             int maxSize = getIntValueFromElement(jdbcDatasourceElement, "pool-maxsize", DEFAULT_POOL_MAX_SIZE);
-            int maxIdle = getIntValueFromElement(jdbcDatasourceElement, "pool-maxidle", ConnectionPoolInfo.DEFAULT_POOL_MAX_IDLE);
+            int maxIdle = getIntValueFromElement(jdbcDatasourceElement, "pool-maxidle", maxSize);
             int minSize = getIntValueFromElement(jdbcDatasourceElement, "pool-minsize", ConnectionPoolInfo.DEFAULT_POOL_MIN_SIZE);
             long maxWait = getLongValueFromElement(jdbcDatasourceElement, "pool-maxwait", ConnectionPoolInfo.DEFAULT_POOL_MAX_WAIT);
             long sleepTime = getLongValueFromElement(jdbcDatasourceElement, "pool-sleeptime", ConnectionPoolInfo.DEFAULT_POOL_SLEEP_TIME);
