@@ -262,6 +262,7 @@ public class ConnectionPoolInfo
      */
     public static class Builder
     {
+        // WARNING: If you change these, then equals needs to be kept up to date!
         private Boolean poolPreparedStatements;
         private Boolean removeAbandoned;
         private Boolean testOnBorrow;
@@ -284,7 +285,6 @@ public class ConnectionPoolInfo
         private String defaultCatalog;
         private Long minEvictableTimeMillis;
         private Long timeBetweenEvictionRunsMillis;
-        private List<String> connectionInitSqls = Collections.emptyList();
 
         /**
          * Returns a new <tt>ConnectionPoolInfo</tt> as specified by the current state
@@ -497,30 +497,6 @@ public class ConnectionPoolInfo
             return this;
         }
 
-        public List<String> getConnectionInitSqls()
-        {
-            return Collections.unmodifiableList(connectionInitSqls);
-        }
-
-        public Builder setConnectionInitSqls(String connectionInitSqls)
-        {
-            final List<String> newValue = new ArrayList<String>();
-            if (connectionInitSqls != null)
-            {
-                final String[] values = connectionInitSqls.split("\r?\n");
-                for (String value : values)
-                {
-                    value = value.trim();
-                    if (value.length() > 0)
-                    {
-                        newValue.add(value);
-                    }
-                }
-            }
-            this.connectionInitSqls = newValue;
-            return this;
-        }
-
         public Long getPoolSleepTime()
         {
             return poolSleepTime;
@@ -576,6 +552,75 @@ public class ConnectionPoolInfo
                 }
             }
             return null;
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (! (o instanceof ConnectionPoolInfo.Builder))
+            {
+                return false;
+            }
+            final ConnectionPoolInfo.Builder other = (ConnectionPoolInfo.Builder)o;
+            return equals(deadLockMaxWait, other.deadLockMaxWait) &&
+                   equals(deadLockRetryWait, other.deadLockRetryWait) &&
+                   equals(defaultCatalog, other.defaultCatalog) &&
+                   equals(maxOpenPreparedStatements, other.maxOpenPreparedStatements) &&
+                   equals(minEvictableTimeMillis, other.minEvictableTimeMillis) &&
+                   equals(numTestsPerEvictionRun, other.numTestsPerEvictionRun) &&
+                   equals(poolInitialSize, other.poolInitialSize) &&
+                   equals(poolLifeTime, other.poolLifeTime) &&
+                   equals(poolMaxIdle, other.poolMaxIdle) &&
+                   equals(poolMaxSize, other.poolMaxSize) &&
+                   equals(poolMaxWait, other.poolMaxWait) &&
+                   equals(poolMinSize, other.poolMinSize) &&
+                   equals(poolSleepTime, other.poolSleepTime) &&
+                   equals(removeAbandoned, other.removeAbandoned) &&
+                   equals(removeAbandonedTimeout, other.removeAbandonedTimeout) &&
+                   equals(testOnBorrow, other.testOnBorrow) &&
+                   equals(testOnReturn, other.testOnReturn) &&
+                   equals(testWhileIdle, other.testWhileIdle) &&
+                   equals(timeBetweenEvictionRunsMillis, other.timeBetweenEvictionRunsMillis) &&
+                   equals(validationQuery, other.validationQuery) &&
+                   equals(validationQueryTimeout, other.validationQueryTimeout);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int h = 0x1F2E3D4C;
+            h = hash(h, deadLockMaxWait);
+            h = hash(h, deadLockRetryWait);
+            h = hash(h, defaultCatalog);
+            h = hash(h, maxOpenPreparedStatements);
+            h = hash(h, minEvictableTimeMillis);
+            h = hash(h, numTestsPerEvictionRun);
+            h = hash(h, poolInitialSize);
+            h = hash(h, poolLifeTime);
+            h = hash(h, poolMaxIdle);
+            h = hash(h, poolMaxSize);
+            h = hash(h, poolMaxWait);
+            h = hash(h, poolMinSize);
+            h = hash(h, poolSleepTime);
+            h = hash(h, removeAbandoned);
+            h = hash(h, removeAbandonedTimeout);
+            h = hash(h, testOnBorrow);
+            h = hash(h, testOnReturn);
+            h = hash(h, testWhileIdle);
+            h = hash(h, timeBetweenEvictionRunsMillis);
+            h = hash(h, validationQueryTimeout);
+            h = hash(h, validationQuery);
+            return h;
+        }
+        
+        private static int hash(final int h, final Object o)
+        {
+            return h * 17 + ((o != null) ? o.hashCode() : 0);
+        }
+        
+        private static <T> boolean equals(T o1, T o2)
+        {
+            return (o1 != null) ? o1.equals(o2) : (o2 == null);
         }
     }
 }
