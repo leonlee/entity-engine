@@ -1,9 +1,5 @@
 package org.ofbiz.core.entity.config;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Connection pool configuration
  */
@@ -67,7 +63,7 @@ public class ConnectionPoolInfo
             .setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis));
     }
 
-    ConnectionPoolInfo(Builder builder)
+    ConnectionPoolInfo(final Builder builder)
     {
         deadLockMaxWait = longWithDefault(builder.getDeadLockMaxWait(), DEFAULT_DEADLOCK_MAX_WAIT);
         deadLockRetryWait = longWithDefault(builder.getDeadLockRetryWait(), DEFAULT_DEADLOCK_RETRY_WAIT);
@@ -93,11 +89,46 @@ public class ConnectionPoolInfo
         validationQueryTimeout = builder.getValidationQueryTimeout();
     }
 
+    public Builder toBuilder()
+    {
+        return builder()
+                .setDeadLockMaxWait(nullIfDefault(deadLockMaxWait, DEFAULT_DEADLOCK_MAX_WAIT))
+                .setDeadLockRetryWait(nullIfDefault(deadLockRetryWait, DEFAULT_DEADLOCK_RETRY_WAIT))
+                .setDefaultCatalog(defaultCatalog)
+                .setPoolInitialSize(initialSize)
+                .setPoolLifeTime(nullIfDefault(lifeTime, DEFAULT_POOL_LIFE_TIME))
+                .setMaxOpenPreparedStatements(maxOpenPreparedStatements)
+                .setPoolMaxSize(maxSize)
+                .setPoolMaxIdle(nullIfDefault(maxIdle, maxSize))
+                .setPoolMaxWait(nullIfDefault(maxWait, DEFAULT_POOL_MAX_WAIT))
+                .setMinEvictableTimeMillis(minEvictableTimeMillis)
+                .setPoolMinSize(nullIfDefault(minSize, DEFAULT_POOL_MIN_SIZE))
+                .setRemoveAbandoned(removeAbandoned)
+                .setRemoveAbandonedTimeout(removeAbandonedTimeout)
+                .setPoolSleepTime(nullIfDefault(sleepTime, DEFAULT_POOL_SLEEP_TIME))
+                .setTestOnBorrow(testOnBorrow)
+                .setTestOnReturn(testOnReturn)
+                .setTestWhileIdle(testWhileIdle)
+                .setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis)
+                .setValidationQuery(validationQuery)
+                .setValidationQueryTimeout(validationQueryTimeout);
+    }
+
+    private Integer nullIfDefault(int value, int defaultValue)
+    {
+        return (value != defaultValue) ? value : null;
+    }
+
     private int intWithDefault(Integer value, int defaultValue)
     {
         return (value != null) ? value : defaultValue;
     }
-    
+
+    private Long nullIfDefault(long value, long defaultValue)
+    {
+        return (value != defaultValue) ? value : null;
+    }
+
     private long longWithDefault(Long value, long defaultValue)
     {
         return (value != null) ? value : defaultValue;
@@ -252,6 +283,74 @@ public class ConnectionPoolInfo
         return sb.toString();
     }
 
+    @Override
+    public boolean equals(Object o)
+    {
+        if (! (o instanceof ConnectionPoolInfo))
+        {
+            return false;
+        }
+        final ConnectionPoolInfo other = (ConnectionPoolInfo)o;
+        return maxIdle == other.maxIdle &&
+               maxSize == other.maxSize &&
+               maxWait == other.maxWait &&
+               minSize == other.minSize &&
+               lifeTime == other.lifeTime &&
+               sleepTime == other.sleepTime &&
+               equals(deadLockMaxWait, other.deadLockMaxWait) &&
+               equals(deadLockRetryWait, other.deadLockRetryWait) &&
+               equals(defaultCatalog, other.defaultCatalog) &&
+               equals(maxOpenPreparedStatements, other.maxOpenPreparedStatements) &&
+               equals(minEvictableTimeMillis, other.minEvictableTimeMillis) &&
+               equals(numTestsPerEvictionRun, other.numTestsPerEvictionRun) &&
+               equals(initialSize, other.initialSize) &&
+               equals(removeAbandoned, other.removeAbandoned) &&
+               equals(removeAbandonedTimeout, other.removeAbandonedTimeout) &&
+               equals(testOnBorrow, other.testOnBorrow) &&
+               equals(testOnReturn, other.testOnReturn) &&
+               equals(testWhileIdle, other.testWhileIdle) &&
+               equals(timeBetweenEvictionRunsMillis, other.timeBetweenEvictionRunsMillis) &&
+               equals(validationQuery, other.validationQuery) &&
+               equals(validationQueryTimeout, other.validationQueryTimeout);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int h = 0x1F2E3D4C;
+        h = hash(h, deadLockMaxWait);
+        h = hash(h, deadLockRetryWait);
+        h = hash(h, defaultCatalog);
+        h = hash(h, maxOpenPreparedStatements);
+        h = hash(h, minEvictableTimeMillis);
+        h = hash(h, numTestsPerEvictionRun);
+        h = hash(h, initialSize);
+        h = hash(h, lifeTime);
+        h = hash(h, maxIdle);
+        h = hash(h, maxSize);
+        h = hash(h, maxWait);
+        h = hash(h, minSize);
+        h = hash(h, sleepTime);
+        h = hash(h, removeAbandoned);
+        h = hash(h, removeAbandonedTimeout);
+        h = hash(h, testOnBorrow);
+        h = hash(h, testOnReturn);
+        h = hash(h, testWhileIdle);
+        h = hash(h, timeBetweenEvictionRunsMillis);
+        h = hash(h, validationQueryTimeout);
+        h = hash(h, validationQuery);
+        return h;
+    }
+
+    private static int hash(final int h, final Object o)
+    {
+        return h * 17 + ((o != null) ? o.hashCode() : 0);
+    }
+
+    private static <T> boolean equals(T o1, T o2)
+    {
+        return (o1 != null) ? o1.equals(o2) : (o2 == null);
+    }
 
     /**
      * This is a builder class for constructing a <tt>ConnectionPoolInfo</tt> manually.
@@ -262,7 +361,6 @@ public class ConnectionPoolInfo
      */
     public static class Builder
     {
-        // WARNING: If you change these, then equals needs to be kept up to date!
         private Boolean poolPreparedStatements;
         private Boolean removeAbandoned;
         private Boolean testOnBorrow;
@@ -554,73 +652,17 @@ public class ConnectionPoolInfo
             return null;
         }
 
+        // These are "expensive" but provided for completeness.
         @Override
         public boolean equals(Object o)
         {
-            if (! (o instanceof ConnectionPoolInfo.Builder))
-            {
-                return false;
-            }
-            final ConnectionPoolInfo.Builder other = (ConnectionPoolInfo.Builder)o;
-            return equals(deadLockMaxWait, other.deadLockMaxWait) &&
-                   equals(deadLockRetryWait, other.deadLockRetryWait) &&
-                   equals(defaultCatalog, other.defaultCatalog) &&
-                   equals(maxOpenPreparedStatements, other.maxOpenPreparedStatements) &&
-                   equals(minEvictableTimeMillis, other.minEvictableTimeMillis) &&
-                   equals(numTestsPerEvictionRun, other.numTestsPerEvictionRun) &&
-                   equals(poolInitialSize, other.poolInitialSize) &&
-                   equals(poolLifeTime, other.poolLifeTime) &&
-                   equals(poolMaxIdle, other.poolMaxIdle) &&
-                   equals(poolMaxSize, other.poolMaxSize) &&
-                   equals(poolMaxWait, other.poolMaxWait) &&
-                   equals(poolMinSize, other.poolMinSize) &&
-                   equals(poolSleepTime, other.poolSleepTime) &&
-                   equals(removeAbandoned, other.removeAbandoned) &&
-                   equals(removeAbandonedTimeout, other.removeAbandonedTimeout) &&
-                   equals(testOnBorrow, other.testOnBorrow) &&
-                   equals(testOnReturn, other.testOnReturn) &&
-                   equals(testWhileIdle, other.testWhileIdle) &&
-                   equals(timeBetweenEvictionRunsMillis, other.timeBetweenEvictionRunsMillis) &&
-                   equals(validationQuery, other.validationQuery) &&
-                   equals(validationQueryTimeout, other.validationQueryTimeout);
+            return o instanceof Builder && build().equals(((Builder)o).build());
         }
 
         @Override
         public int hashCode()
         {
-            int h = 0x1F2E3D4C;
-            h = hash(h, deadLockMaxWait);
-            h = hash(h, deadLockRetryWait);
-            h = hash(h, defaultCatalog);
-            h = hash(h, maxOpenPreparedStatements);
-            h = hash(h, minEvictableTimeMillis);
-            h = hash(h, numTestsPerEvictionRun);
-            h = hash(h, poolInitialSize);
-            h = hash(h, poolLifeTime);
-            h = hash(h, poolMaxIdle);
-            h = hash(h, poolMaxSize);
-            h = hash(h, poolMaxWait);
-            h = hash(h, poolMinSize);
-            h = hash(h, poolSleepTime);
-            h = hash(h, removeAbandoned);
-            h = hash(h, removeAbandonedTimeout);
-            h = hash(h, testOnBorrow);
-            h = hash(h, testOnReturn);
-            h = hash(h, testWhileIdle);
-            h = hash(h, timeBetweenEvictionRunsMillis);
-            h = hash(h, validationQueryTimeout);
-            h = hash(h, validationQuery);
-            return h;
-        }
-        
-        private static int hash(final int h, final Object o)
-        {
-            return h * 17 + ((o != null) ? o.hashCode() : 0);
-        }
-        
-        private static <T> boolean equals(T o1, T o2)
-        {
-            return (o1 != null) ? o1.equals(o2) : (o2 == null);
+            return build().hashCode();
         }
     }
 }

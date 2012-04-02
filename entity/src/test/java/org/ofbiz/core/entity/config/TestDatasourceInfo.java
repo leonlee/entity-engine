@@ -82,6 +82,24 @@ public class TestDatasourceInfo
         assertEquals("default", jndiInfo.getJndiServerName());
         assertEquals("java:comp/env/jdbc/JiraDS", jndiInfo.getJndiName());
     }
+    
+    @Test
+    public void testConnectionPoolInfoToBuilder() throws Exception
+    {
+        DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-fullJdbcConfig.xml");
+        ConnectionPoolInfo.Builder poolInfo = datasourceInfo.getJdbcDatasource().getConnectionPoolInfo().toBuilder();
+        assertEquals((Object)20, poolInfo.getPoolMaxSize());
+        assertEquals((Object)15, poolInfo.getPoolMaxIdle());
+        assertEquals((Object)10, poolInfo.getPoolMinSize());
+        assertEquals((Object)66L, poolInfo.getPoolMaxWait());
+        assertEquals((Object)10000L, poolInfo.getPoolSleepTime());
+        assertEquals((Object)20000L, poolInfo.getPoolLifeTime());
+        assertEquals((Object)30000L, poolInfo.getDeadLockMaxWait());
+        assertEquals((Object)40000L, poolInfo.getDeadLockRetryWait());
+        assertEquals("select 1", poolInfo.getValidationQuery());
+        assertEquals((Object) 4000L, poolInfo.getMinEvictableTimeMillis());
+        assertEquals((Object) 5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
+    }
 
 
     private DatasourceInfo createDatasourceInfo(String filename) throws Exception
