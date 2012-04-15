@@ -103,6 +103,8 @@ public class ConnectionPoolInfo
                 .setPoolMaxWait(nullIfDefault(maxWait, DEFAULT_POOL_MAX_WAIT))
                 .setMinEvictableTimeMillis(minEvictableTimeMillis)
                 .setPoolMinSize(nullIfDefault(minSize, DEFAULT_POOL_MIN_SIZE))
+                .setNumTestsPerEvictionRun(numTestsPerEvictionRun)
+                .setPoolPreparedStatements(poolPreparedStatements)
                 .setRemoveAbandoned(removeAbandoned)
                 .setRemoveAbandonedTimeout(removeAbandonedTimeout)
                 .setPoolSleepTime(nullIfDefault(sleepTime, DEFAULT_POOL_SLEEP_TIME))
