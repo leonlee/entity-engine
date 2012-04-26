@@ -113,32 +113,32 @@ public class EntityExpr extends EntityCondition {
 
     public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
-        StringBuffer whereStringBuffer = new StringBuffer();
+        StringBuilder whereStringBuilder = new StringBuilder();
 
         if (lhs instanceof String) {
             ModelField field = modelEntity.getField((String) this.getLhs());
 
             if (field != null) {
                 if (this.getRhs() == null) {
-                    whereStringBuffer.append(field.getColName());
+                    whereStringBuilder.append(field.getColName());
                     if (EntityOperator.NOT_EQUAL.equals(this.getOperator())) {
-                        whereStringBuffer.append(" IS NOT NULL ");
+                        whereStringBuilder.append(" IS NOT NULL ");
                     } else {
-                        whereStringBuffer.append(" IS NULL ");
+                        whereStringBuilder.append(" IS NULL ");
                     }
                 } else {
                     if (this.isLUpper()) {
-                        whereStringBuffer.append("UPPER(" + field.getColName() + ")");
+                        whereStringBuilder.append("UPPER(" + field.getColName() + ")");
                     } else {
-                        whereStringBuffer.append(field.getColName());
+                        whereStringBuilder.append(field.getColName());
                     }
-                    whereStringBuffer.append(' ');
-                    whereStringBuffer.append(this.getOperator().toString());
-                    whereStringBuffer.append(' ');
+                    whereStringBuilder.append(' ');
+                    whereStringBuilder.append(this.getOperator().toString());
+                    whereStringBuilder.append(' ');
 
                     // treat the IN operator as a special case, especially with a Collection rhs
                     if (EntityOperator.IN.equals(this.getOperator())) {
-                        whereStringBuffer.append('(');
+                        whereStringBuilder.append('(');
 
                         if (rhs instanceof Collection) {
                             Iterator<?> rhsIter = ((Collection<?>) rhs).iterator();
@@ -146,9 +146,9 @@ public class EntityExpr extends EntityCondition {
                             while (rhsIter.hasNext()) {
                                 Object inObj = rhsIter.next();
 
-                                whereStringBuffer.append('?');
+                                whereStringBuilder.append('?');
                                 if (rhsIter.hasNext()) {
-                                    whereStringBuffer.append(", ");
+                                    whereStringBuilder.append(", ");
                                 }
 
                                 if (this.isRUpper()) {
@@ -159,7 +159,7 @@ public class EntityExpr extends EntityCondition {
                                 entityConditionParams.add(new EntityConditionParam(field, inObj));
                             }
                         } else {
-                            whereStringBuffer.append(" ? ");
+                            whereStringBuilder.append(" ? ");
 
                             if (this.isRUpper()) {
                                 if (rhs instanceof String) {
@@ -169,9 +169,9 @@ public class EntityExpr extends EntityCondition {
                             entityConditionParams.add(new EntityConditionParam(field, rhs));
                         }
 
-                        whereStringBuffer.append(") ");
+                        whereStringBuilder.append(") ");
                     } else {
-                        whereStringBuffer.append(" ? ");
+                        whereStringBuilder.append(" ? ");
 
                         if (this.isRUpper()) {
                             if (rhs instanceof String) {
@@ -186,15 +186,15 @@ public class EntityExpr extends EntityCondition {
             }
         } else if (lhs instanceof EntityCondition) {
             // then rhs MUST also be an EntityCondition
-            whereStringBuffer.append('(');
-            whereStringBuffer.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams));
-            whereStringBuffer.append(") ");
-            whereStringBuffer.append(this.getOperator().toString());
-            whereStringBuffer.append(" (");
-            whereStringBuffer.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams));
-            whereStringBuffer.append(')');
+            whereStringBuilder.append('(');
+            whereStringBuilder.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(") ");
+            whereStringBuilder.append(this.getOperator().toString());
+            whereStringBuilder.append(" (");
+            whereStringBuilder.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(')');
         }
-        return whereStringBuffer.toString();
+        return whereStringBuilder.toString();
     }
 
     public void checkCondition(ModelEntity modelEntity) throws GenericModelException {

@@ -571,7 +571,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String nameString(List<ModelField> flds, String separator, String afterLast) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -589,7 +589,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String typeNameString(List<ModelField> flds) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -648,7 +648,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String fieldsStringList(List<ModelField> flds, String eachString, String separator, boolean appendIndex, boolean onlyNonPK) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -670,7 +670,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String colNameString(List<ModelField> flds, String separator, String afterLast) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -692,7 +692,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String classNameString(List<ModelField> flds, String separator, String afterLast) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -710,7 +710,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String finderQueryString(List<ModelField> flds) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -731,7 +731,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String httpArgList(List<ModelField> flds) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -757,7 +757,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String httpArgListFromClass(List<ModelField> flds) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -789,7 +789,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String httpArgListFromClass(List<ModelField> flds, String entityNameSuffix) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -823,7 +823,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String httpRelationArgList(List<ModelField> flds, ModelRelation relation) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -883,7 +883,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
      }
      */
     public String typeNameStringRelatedNoMapped(List<ModelField> flds, ModelRelation relation) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";
@@ -909,7 +909,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public String typeNameStringRelatedAndMain(List<ModelField> flds, ModelRelation relation) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
             return "";

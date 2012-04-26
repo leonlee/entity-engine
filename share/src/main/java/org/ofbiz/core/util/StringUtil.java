@@ -58,7 +58,7 @@ public class StringUtil {
 
         if (i < 0) return mainString;
 
-        StringBuffer mainSb = new StringBuffer(mainString);
+        StringBuilder mainSb = new StringBuilder(mainString);
 
         while (i >= 0) {
             mainSb.replace(i, i + oldString.length(), newString);
@@ -76,7 +76,7 @@ public class StringUtil {
     public static String join(List<String> list, String delim) {
         if (list == null || list.size() < 1)
             return null;
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         Iterator<String> i = list.iterator();
 
         while (i.hasNext()) {
@@ -162,7 +162,7 @@ public class StringUtil {
      */
     public static String mapToStr(Map<?, ?> map) {
         if (map == null) return null;
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         Set<?> keySet = map.keySet();
         Iterator<?> i = keySet.iterator();
         boolean first = true;
@@ -192,7 +192,7 @@ public class StringUtil {
     public static String cleanUpPathPrefix(String prefix) {
         if (prefix == null || prefix.length() == 0) return "";
 
-        StringBuffer cppBuff = new StringBuffer(prefix.replace('\\', '/'));
+        StringBuilder cppBuff = new StringBuilder(prefix.replace('\\', '/'));
 
         if (cppBuff.charAt(0) != '/') {
             cppBuff.insert(0, '/');
@@ -205,7 +205,7 @@ public class StringUtil {
     
     /** Removes all spaces from a string */
     public static String removeSpaces(String str) {
-        StringBuffer newString = new StringBuffer();
+        StringBuilder newString = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             if (str.charAt(i) != ' ')
                 newString.append(str.charAt(i));

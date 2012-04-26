@@ -56,6 +56,8 @@ public class EntityFindOptions implements java.io.Serializable {
     protected int resultSetType = TYPE_FORWARD_ONLY;
     protected int resultSetConcurrency = CONCUR_READ_ONLY;
     protected boolean distinct = false;
+    /** maximum results to obtain from DB - negative values mean no limit */
+    protected int maxResults = -1;
 
     /** Default constructor. Defaults are as follows:
      *      specifyTypeAndConcur = true
@@ -65,11 +67,12 @@ public class EntityFindOptions implements java.io.Serializable {
      */
     public EntityFindOptions() {}
 
-    public EntityFindOptions(boolean specifyTypeAndConcur, int resultSetType, int resultSetConcurrency, boolean distinct) {
+    public EntityFindOptions(boolean specifyTypeAndConcur, int resultSetType, int resultSetConcurrency, boolean distinct, int maxResults) {
         this.specifyTypeAndConcur = specifyTypeAndConcur;
         this.resultSetType = resultSetType;
         this.resultSetConcurrency = resultSetConcurrency;
         this.distinct = distinct;
+        this.maxResults = maxResults;
     }
 
     /** If true the following two parameters (resultSetType and resultSetConcurrency) will be used to specify 
@@ -126,5 +129,13 @@ public class EntityFindOptions implements java.io.Serializable {
     /** Specifies whether the values returned should be filtered to remove duplicate values. */
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
+    }
+
+    public int getMaxResults() {
+        return maxResults;
+    }
+
+    public void setMaxResults(int maxResults) {
+        this.maxResults = maxResults;
     }
 }

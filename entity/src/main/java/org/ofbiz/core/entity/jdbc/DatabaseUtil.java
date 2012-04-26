@@ -717,7 +717,7 @@ public class DatabaseUtil
             final ModelEntity modelEntity = tableToModelEntities.get(tableName);
             final Iterator<ModelIndex> indexesIterator = modelEntity.getIndexesIterator();
 
-            final StringBuffer retMsgsBuffer = new StringBuffer();
+            final StringBuilder retMsgsBuffer = new StringBuilder();
 
             while (indexesIterator.hasNext())
             {
@@ -1426,7 +1426,7 @@ public class DatabaseUtil
             return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
-        StringBuffer sqlBuf = new StringBuffer("CREATE TABLE ");
+        StringBuilder sqlBuf = new StringBuilder("CREATE TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" (");
         for (int i = 0; i < entity.getFieldsSize(); i++)
@@ -1554,7 +1554,7 @@ public class DatabaseUtil
             return "Field type [" + type + "] not found for field [" + field.getName() + "] of entity [" + entity.getEntityName() + "], not adding column.";
         }
 
-        StringBuffer sqlBuf = new StringBuffer("ALTER TABLE ");
+        StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" ADD ");
         sqlBuf.append(field.getColName());
@@ -1626,7 +1626,7 @@ public class DatabaseUtil
             return "ERROR: Cannot create foreign keys for a view entity";
         }
 
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         // go through the relationships to see if any foreign keys need to be added
         Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
@@ -1691,7 +1691,7 @@ public class DatabaseUtil
         }
 
         // now add constraint clause
-        StringBuffer sqlBuf = new StringBuffer("ALTER TABLE ");
+        StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" ADD ");
         sqlBuf.append(makeFkConstraintClause(entity, modelRelation, relModelEntity, constraintNameClipLength, fkStyle, useFkInitiallyDeferred));
@@ -1720,8 +1720,8 @@ public class DatabaseUtil
     {
         // make the two column lists
         Iterator<ModelKeyMap> keyMapsIter = modelRelation.getKeyMapsIterator();
-        StringBuffer mainCols = new StringBuffer();
-        StringBuffer relCols = new StringBuffer();
+        StringBuilder mainCols = new StringBuilder();
+        StringBuilder relCols = new StringBuilder();
 
         while (keyMapsIter.hasNext())
         {
@@ -1744,7 +1744,7 @@ public class DatabaseUtil
             relCols.append(relField.getColName());
         }
 
-        StringBuffer sqlBuf = new StringBuffer("");
+        StringBuilder sqlBuf = new StringBuilder("");
 
         if ("name_constraint".equals(fkStyle))
         {
@@ -1807,7 +1807,7 @@ public class DatabaseUtil
 
         // go through the relationships to see if any foreign keys need to be added
         Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         while (relationsIter.hasNext())
         {
@@ -1871,7 +1871,7 @@ public class DatabaseUtil
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
 
         // now add constraint clause
-        StringBuffer sqlBuf = new StringBuffer("ALTER TABLE ");
+        StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" DROP CONSTRAINT ");
         sqlBuf.append(relConstraintName);
@@ -1913,7 +1913,7 @@ public class DatabaseUtil
             return "ERROR: Cannot create declared indices for a view entity";
         }
 
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         // go through the indexes to see if any need to be added
         Iterator<ModelIndex> indexesIter = entity.getIndexesIterator();
@@ -1986,7 +1986,7 @@ public class DatabaseUtil
     public String makeIndexClause(ModelEntity entity, ModelIndex modelIndex)
     {
         Iterator<String> fieldNamesIter = modelIndex.getIndexFieldsIterator();
-        StringBuffer mainCols = new StringBuffer();
+        StringBuilder mainCols = new StringBuilder();
 
         while (fieldNamesIter.hasNext())
         {
@@ -1999,7 +1999,7 @@ public class DatabaseUtil
             mainCols.append(mainField.getColName());
         }
 
-        StringBuffer indexSqlBuf = new StringBuffer("CREATE ");
+        StringBuilder indexSqlBuf = new StringBuilder("CREATE ");
         if (modelIndex.getUnique())
         {
             indexSqlBuf.append("UNIQUE ");
@@ -2027,7 +2027,7 @@ public class DatabaseUtil
             return "ERROR: Cannot delete foreign keys indices for a view entity";
         }
 
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         // go through the relationships to see if any foreign keys need to be added
         Iterator<ModelIndex> indexesIter = entity.getIndexesIterator();
@@ -2075,7 +2075,7 @@ public class DatabaseUtil
 
         // TODO: also remove the constraint if this was a unique index, in most databases dropping the index does not drop the constraint
 
-        StringBuffer indexSqlBuf = new StringBuffer("DROP INDEX ");
+        StringBuilder indexSqlBuf = new StringBuilder("DROP INDEX ");
         indexSqlBuf.append(entity.getTableName(datasourceInfo));
         indexSqlBuf.append(".");
         indexSqlBuf.append(modelIndex.getName());
@@ -2114,7 +2114,7 @@ public class DatabaseUtil
             return "ERROR: Cannot create foreign keys indices for a view entity";
         }
 
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         // go through the relationships to see if any foreign keys need to be added
         Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
@@ -2191,7 +2191,7 @@ public class DatabaseUtil
     public String makeFkIndexClause(ModelEntity entity, ModelRelation modelRelation, int constraintNameClipLength)
     {
         Iterator<ModelKeyMap> keyMapsIter = modelRelation.getKeyMapsIterator();
-        StringBuffer mainCols = new StringBuffer();
+        StringBuilder mainCols = new StringBuilder();
 
         while (keyMapsIter.hasNext())
         {
@@ -2206,7 +2206,7 @@ public class DatabaseUtil
             mainCols.append(mainField.getColName());
         }
 
-        StringBuffer indexSqlBuf = new StringBuffer("CREATE INDEX ");
+        StringBuilder indexSqlBuf = new StringBuilder("CREATE INDEX ");
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
 
         indexSqlBuf.append(relConstraintName);
@@ -2231,7 +2231,7 @@ public class DatabaseUtil
             return "ERROR: Cannot delete foreign keys indices for a view entity";
         }
 
-        StringBuffer retMsgsBuffer = new StringBuffer();
+        StringBuilder retMsgsBuffer = new StringBuilder();
 
         // go through the relationships to see if any foreign keys need to be added
         Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
@@ -2282,7 +2282,7 @@ public class DatabaseUtil
             return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
-        StringBuffer indexSqlBuf = new StringBuffer("DROP INDEX ");
+        StringBuilder indexSqlBuf = new StringBuilder("DROP INDEX ");
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
 
         indexSqlBuf.append(entity.getTableName(datasourceInfo));

@@ -53,7 +53,7 @@ public class SqlJdbcUtil {
 
     /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
     public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
-        StringBuffer sql = new StringBuffer(" FROM ");
+        StringBuilder sql = new StringBuilder(" FROM ");
 
         if (modelEntity instanceof ModelViewEntity) {
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
@@ -77,8 +77,8 @@ public class SqlJdbcUtil {
                 // TODO: at view-link read time make sure they are ordered properly so that each
                 // left hand alias after the first view-link has already been linked before
 
-                StringBuffer openParens = new StringBuffer();
-                StringBuffer restOfStatement = new StringBuffer();
+                StringBuilder openParens = new StringBuilder();
+                StringBuilder restOfStatement = new StringBuilder();
 
                 for (int i = 0; i < modelViewEntity.getViewLinksSize(); i++) {
                     // don't put starting parenthesis
@@ -119,7 +119,7 @@ public class SqlJdbcUtil {
                     restOfStatement.append(viewLink.getRelEntityAlias());
                     restOfStatement.append(" ON ");
 
-                    StringBuffer condBuffer = new StringBuffer();
+                    StringBuilder condBuffer = new StringBuilder();
 
                     for (int j = 0; j < viewLink.getKeyMapsSize(); j++) {
                         ModelKeyMap keyMap = viewLink.getKeyMap(j);
@@ -227,7 +227,7 @@ public class SqlJdbcUtil {
 
     /** Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS null" if null, all AND separated */
     public static String makeWhereStringFromFields(List<ModelField> modelFields, Map<String, ?> fields, String operator, List<? super EntityConditionParam> entityConditionParams) {
-        StringBuffer returnString = new StringBuffer("");
+        StringBuilder returnString = new StringBuilder("");
 
         if (modelFields.size() < 1) {
             return "";
@@ -260,7 +260,7 @@ public class SqlJdbcUtil {
     }
 
     public static String makeWhereClause(ModelEntity modelEntity, List<ModelField> modelFields, Map<String, ?> fields, String operator, String joinStyle) throws GenericEntityException {
-        StringBuffer whereString = new StringBuffer("");
+        StringBuilder whereString = new StringBuilder("");
 
         if (modelFields != null && modelFields.size() > 0) {
             whereString.append(makeWhereStringFromFields(modelFields, fields, "AND"));
@@ -287,7 +287,7 @@ public class SqlJdbcUtil {
 
     public static String makeViewWhereClause(ModelEntity modelEntity, String joinStyle) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
-            StringBuffer whereString = new StringBuffer("");
+            StringBuilder whereString = new StringBuilder("");
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
 
             if ("ansi".equals(joinStyle)) {// nothing to do here, all done in the JOIN clauses
@@ -362,7 +362,7 @@ public class SqlJdbcUtil {
     }
 
     public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy, boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
-        StringBuffer sql = new StringBuffer("");
+        StringBuilder sql = new StringBuilder("");
         String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + ".") : "";
 
         if (orderBy != null && orderBy.size() > 0) {
@@ -417,7 +417,7 @@ public class SqlJdbcUtil {
 
     public static String makeViewTable(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
-            StringBuffer sql = new StringBuffer("(SELECT ");
+            StringBuilder sql = new StringBuilder("(SELECT ");
             List<ModelField> fields = modelEntity.getFieldsCopy();
             if (fields.size() > 0) {
                 String colname = fields.get(0).getColName();

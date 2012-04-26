@@ -300,7 +300,7 @@ public class FlexibleProperties extends Properties {
     }
 
     public String toString() {
-        StringBuffer retVal = new StringBuffer();
+        StringBuilder retVal = new StringBuilder();
 
         for (Object keyObj : keySet()) {
             String key = keyObj.toString();

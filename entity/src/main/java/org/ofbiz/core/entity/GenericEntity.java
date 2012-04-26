@@ -765,7 +765,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             return null;
         }
 
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         int index = 0;
         int oldIndex = 0;
         while ((index = s.indexOf("]]>", oldIndex)) > -1)
@@ -824,7 +824,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      *@return    String corresponding to this entity
      */
     public String toString() {
-        StringBuffer theString = new StringBuffer();
+        StringBuilder theString = new StringBuilder();
 
         theString.append("[GenericEntity:");
         theString.append(getEntityName());

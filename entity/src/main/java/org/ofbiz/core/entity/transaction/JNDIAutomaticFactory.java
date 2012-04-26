@@ -223,7 +223,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
     }
 
     private String arrayToString(String[] arr) {
-        StringBuffer buff = new StringBuffer();
+        StringBuilder buff = new StringBuilder();
 
         buff.append("{");
         if(arr != null) {

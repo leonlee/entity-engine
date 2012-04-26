@@ -180,7 +180,7 @@ public abstract class ResourceLoader {
 
     /** Just a utility method to be used in loadResource by the implementing class */
     public String fullLocation(String location) {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
 
         if (envName != null && envName.length() > 0) {
             String propValue = System.getProperty(envName);

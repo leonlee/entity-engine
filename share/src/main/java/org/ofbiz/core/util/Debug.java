@@ -137,7 +137,7 @@ public final class Debug {
 
                 logger.log(callingClass, levelObjs[level], msg, t);
             } else {
-                StringBuffer prefixBuf = new StringBuffer();
+                StringBuilder prefixBuf = new StringBuilder();
 
                 DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
                 prefixBuf.append(dateFormat.format(new java.util.Date()));
