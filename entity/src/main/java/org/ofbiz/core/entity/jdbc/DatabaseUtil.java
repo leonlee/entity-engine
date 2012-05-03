@@ -2318,7 +2318,7 @@ public class DatabaseUtil
         if (tableName != null && dbData.supportsSchemasInTableDefinitions())
         {
             // Check if the table name does not start with the shema name
-            if (this.datasourceInfo.getSchemaName() != null && this.datasourceInfo.getSchemaName().length() > 0 && !tableName.startsWith(this.datasourceInfo.getSchemaName()))
+            if (this.datasourceInfo.getSchemaName() != null && this.datasourceInfo.getSchemaName().length() > 0 && !tableName.startsWith(this.datasourceInfo.getSchemaName() + "."))
             {
                 // Prepend the schema name
                 return this.datasourceInfo.getSchemaName().toUpperCase() + "." + tableName;
