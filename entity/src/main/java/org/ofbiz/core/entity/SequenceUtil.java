@@ -214,20 +214,12 @@ public class SequenceUtil {
                     } else {
                         Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] first select failed: trying to add " +
                             "row, result set was empty for sequence: " + seqName, module);
-                        try {
-                            if (rs != null) rs.close();
-                        } catch (SQLException sqle) {
-                            Debug.logWarning(sqle, "Error closing result set in sequence util");
-                        }
+                        closeQuietly(rs);
                         sql = "INSERT INTO " + parentUtil.tableName + " (" + parentUtil.nameColName + ", " + parentUtil.idColName + ") VALUES ('" + this.seqName + "', " + startSeqId + ")";
                         if (stmt.executeUpdate(sql) <= 0) return;
                         continue;
                     }
-                    try {
-                        if (rs != null) rs.close();
-                    } catch (SQLException sqle) {
-                        Debug.logWarning(sqle, "Error closing result set in sequence util");
-                    }
+                    closeQuietly(rs);
 
                     sql = "UPDATE " + parentUtil.tableName + " SET " + parentUtil.idColName + "=" + parentUtil.idColName + "+" + SequenceBank.bankSize + " WHERE " + parentUtil.nameColName + "='" + this.seqName + "'";
                     if (stmt.executeUpdate(sql) <= 0) {
@@ -246,18 +238,10 @@ public class SequenceUtil {
                     } else {
                         Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] second select failed: aborting, result " +
                             "set was empty for sequence: " + seqName, module);
-                        try {
-                            if (rs != null) rs.close();
-                        } catch (SQLException sqle) {
-                            Debug.logWarning(sqle, "Error closing result set in sequence util");
-                        }
+                        closeQuietly(rs);
                         return;
                     }
-                    try {
-                        if (rs != null) rs.close();
-                    } catch (SQLException sqle) {
-                        Debug.logWarning(sqle, "Error closing result set in sequence util");
-                    }
+                    closeQuietly(rs);
 
                     // Commit the connection to keep WebSphere happy. See the above comment when transaction was started.
                     if (manualTX) {
@@ -292,16 +276,8 @@ public class SequenceUtil {
                 Debug.logWarning(sqle.getMessage(), module);
                 return;
             } finally {
-                try {
-                    if (stmt != null) stmt.close();
-                } catch (SQLException sqle) {
-                    Debug.logWarning(sqle, "Error closing statement in sequence util");
-                }
-                try {
-                    if (connection != null) connection.close();
-                } catch (SQLException sqle) {
-                    Debug.logWarning(sqle, "Error closing connection in sequence util");
-                }
+                closeQuietly(stmt);
+                closeQuietly(connection);
             }
 
             if (suspendedTransaction != null) {
@@ -320,6 +296,51 @@ public class SequenceUtil {
                     Debug.logError(e, "System Error resuming suspended transaction in sequence util");
                 }
             }
+        }
+    }
+
+    private void closeQuietly(Connection connection)
+    {
+        try
+        {
+            if (connection != null)
+            {
+                connection.close();
+            }
+        }
+        catch (Exception sqle)
+        {
+            Debug.logWarning(sqle, "Error closing connection in sequence util");
+        }
+    }
+
+    private void closeQuietly(Statement stmt)
+    {
+        try
+        {
+            if (stmt != null)
+            {
+                stmt.close();
+            }
+        }
+        catch (Exception sqle)
+        {
+            Debug.logWarning(sqle, "Error closing statement in sequence util");
+        }
+    }
+
+    private void closeQuietly(ResultSet rs)
+    {
+        try
+        {
+            if (rs != null)
+            {
+                rs.close();
+            }
+        }
+        catch (Exception sqle)
+        {
+            Debug.logWarning(sqle, "Error closing result set in sequence util");
         }
     }
 }
