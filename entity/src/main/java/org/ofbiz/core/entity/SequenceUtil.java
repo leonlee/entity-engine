@@ -32,9 +32,9 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -179,7 +179,6 @@ public class SequenceUtil {
             }
 
             Connection connection = null;
-            Statement stmt = null;
             ResultSet rs = null;
 
             try {
@@ -192,8 +191,9 @@ public class SequenceUtil {
                 Debug.logWarning(e.getMessage(), module);
             }
 
-            String sql = null;
-
+            PreparedStatement selectPstmt = null;
+            PreparedStatement insertPstmt = null;
+            PreparedStatement updatePstmt = null;
             try {
                 try {
                     connection.setAutoCommit(false);
@@ -201,28 +201,48 @@ public class SequenceUtil {
                     manualTX = false;
                 }
 
-                stmt = connection.createStatement();
                 int numTries = 0;
 
                 while (val1 + bankSize != val2) {
                     if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Trying to get a bank of sequenced ids for " +
                             this.seqName + "; start of loop val1=" + val1 + ", val2=" + val2 + ", bankSize=" + bankSize, module);
-                    sql = "SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "='" + this.seqName + "'";
-                    rs = stmt.executeQuery(sql);
+
+                    // try to SELECT the next id
+                    if (selectPstmt == null) {
+                        selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
+                    }
+                    selectPstmt.setString(1, this.seqName);
+                    selectPstmt.execute();
+
+                    rs = selectPstmt.getResultSet();
                     if (rs.next()) {
                         val1 = rs.getInt(parentUtil.idColName);
                     } else {
                         Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] first select failed: trying to add " +
-                            "row, result set was empty for sequence: " + seqName, module);
+                                "row, result set was empty for sequence: " + seqName, module);
                         closeQuietly(rs);
-                        sql = "INSERT INTO " + parentUtil.tableName + " (" + parentUtil.nameColName + ", " + parentUtil.idColName + ") VALUES ('" + this.seqName + "', " + startSeqId + ")";
-                        if (stmt.executeUpdate(sql) <= 0) return;
+
+                        // INSERT the row if it doesn't exist
+                        if (insertPstmt == null) {
+                            insertPstmt = connection.prepareStatement("INSERT INTO " + parentUtil.tableName + " (" + parentUtil.nameColName + ", " + parentUtil.idColName + ") VALUES (?,?)");
+                        }
+                        insertPstmt.setString(1, this.seqName);
+                        insertPstmt.setLong(2, startSeqId);
+                        insertPstmt.execute();
+
+                        if (insertPstmt.getUpdateCount() <= 0) return;
                         continue;
                     }
                     closeQuietly(rs);
 
-                    sql = "UPDATE " + parentUtil.tableName + " SET " + parentUtil.idColName + "=" + parentUtil.idColName + "+" + SequenceBank.bankSize + " WHERE " + parentUtil.nameColName + "='" + this.seqName + "'";
-                    if (stmt.executeUpdate(sql) <= 0) {
+                    // UPDATE the next id by adding bankSize
+                    if (updatePstmt == null) {
+                            updatePstmt = connection.prepareStatement("UPDATE " + parentUtil.tableName + " SET " + parentUtil.idColName + "=" + parentUtil.idColName + "+" + SequenceBank.bankSize + " WHERE " + parentUtil.nameColName + "=?");
+                    }
+                    updatePstmt.setString(1, this.seqName);
+                    updatePstmt.execute();
+
+                    if (updatePstmt.getUpdateCount() <= 0) {
                         Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] update failed, no rows changes for seqName: " + seqName, module);
                         return;
                     }
@@ -231,8 +251,11 @@ public class SequenceUtil {
                         connection.commit();
                     }
 
-                    sql = "SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "='" + this.seqName + "'";
-                    rs = stmt.executeQuery(sql);
+                    // try to SELECT the next id
+                    selectPstmt.setString(1, this.seqName);
+                    selectPstmt.execute();
+                    rs = selectPstmt.getResultSet();
+
                     if (rs.next()) {
                         val2 = rs.getInt(parentUtil.idColName);
                     } else {
@@ -271,12 +294,12 @@ public class SequenceUtil {
                 if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Successfully got a bank of sequenced ids for " +
                         this.seqName + "; curSeqId=" + curSeqId + ", maxSeqId=" + maxSeqId + ", bankSize=" + bankSize, module);
             } catch (SQLException sqle) {
-                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] SQL Exception while executing the following:\n" +
-                    sql + "\nError was:", module);
-                Debug.logWarning(sqle.getMessage(), module);
+                Debug.logWarning(sqle, "[SequenceUtil.SequenceBank.fillBank] SQL Exception", module);
                 return;
             } finally {
-                closeQuietly(stmt);
+                closeQuietly(updatePstmt);
+                closeQuietly(insertPstmt);
+                closeQuietly(selectPstmt);
                 closeQuietly(connection);
             }
 
@@ -314,7 +337,7 @@ public class SequenceUtil {
         }
     }
 
-    private void closeQuietly(Statement stmt)
+    private void closeQuietly(PreparedStatement stmt)
     {
         try
         {
