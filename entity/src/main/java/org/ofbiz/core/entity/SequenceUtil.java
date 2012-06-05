@@ -179,7 +179,6 @@ public class SequenceUtil {
             }
 
             Connection connection = null;
-            ResultSet rs = null;
 
             try {
                 connection = ConnectionFactory.getConnection(parentUtil.helperName);
@@ -204,89 +203,93 @@ public class SequenceUtil {
                 int numTries = 0;
 
                 while (val1 + bankSize != val2) {
-                    if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Trying to get a bank of sequenced ids for " +
-                            this.seqName + "; start of loop val1=" + val1 + ", val2=" + val2 + ", bankSize=" + bankSize, module);
+                    ResultSet rs1 = null;
+                    ResultSet rs2 = null;
+                    try
+                    {
+                        if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Trying to get a bank of sequenced ids for " +
+                                this.seqName + "; start of loop val1=" + val1 + ", val2=" + val2 + ", bankSize=" + bankSize, module);
 
-                    // try to SELECT the next id
-                    if (selectPstmt == null) {
-                        selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
-                    }
-                    selectPstmt.setString(1, this.seqName);
-                    selectPstmt.execute();
-
-                    rs = selectPstmt.getResultSet();
-                    if (rs.next()) {
-                        val1 = rs.getInt(parentUtil.idColName);
-                    } else {
-                        Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] first select failed: trying to add " +
-                                "row, result set was empty for sequence: " + seqName, module);
-                        closeQuietly(rs);
-
-                        // INSERT the row if it doesn't exist
-                        if (insertPstmt == null) {
-                            insertPstmt = connection.prepareStatement("INSERT INTO " + parentUtil.tableName + " (" + parentUtil.nameColName + ", " + parentUtil.idColName + ") VALUES (?,?)");
+                        // try 1: SELECT the next id
+                        if (selectPstmt == null) {
+                            selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
                         }
-                        insertPstmt.setString(1, this.seqName);
-                        insertPstmt.setLong(2, startSeqId);
-                        insertPstmt.execute();
+                        selectPstmt.setString(1, this.seqName);
+                        selectPstmt.execute();
 
-                        if (insertPstmt.getUpdateCount() <= 0) return;
-                        continue;
-                    }
-                    closeQuietly(rs);
+                        rs1 = selectPstmt.getResultSet();
+                        if (rs1.next()) {
+                            val1 = rs1.getInt(parentUtil.idColName);
+                        } else {
+                            Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] first select failed: trying to add " +
+                                    "row, result set was empty for sequence: " + seqName, module);
+
+                            // INSERT the row if it doesn't exist
+                            if (insertPstmt == null) {
+                                insertPstmt = connection.prepareStatement("INSERT INTO " + parentUtil.tableName + " (" + parentUtil.nameColName + ", " + parentUtil.idColName + ") VALUES (?,?)");
+                            }
+                            insertPstmt.setString(1, this.seqName);
+                            insertPstmt.setLong(2, startSeqId);
+                            insertPstmt.execute();
+
+                            if (insertPstmt.getUpdateCount() <= 0) return;
+                            continue;
+                        }
 
                     // UPDATE the next id by adding bankSize
-                    if (updatePstmt == null) {
+                        if (updatePstmt == null) {
                             updatePstmt = connection.prepareStatement("UPDATE " + parentUtil.tableName + " SET " + parentUtil.idColName + "=" + parentUtil.idColName + "+" + SequenceBank.bankSize + " WHERE " + parentUtil.nameColName + "=?");
-                    }
-                    updatePstmt.setString(1, this.seqName);
-                    updatePstmt.execute();
+                        }
+                        updatePstmt.setString(1, this.seqName);
+                        updatePstmt.execute();
 
-                    if (updatePstmt.getUpdateCount() <= 0) {
-                        Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] update failed, no rows changes for seqName: " + seqName, module);
-                        return;
-                    }
-
-                    if (manualTX) {
-                        connection.commit();
-                    }
-
-                    // try to SELECT the next id
-                    selectPstmt.setString(1, this.seqName);
-                    selectPstmt.execute();
-                    rs = selectPstmt.getResultSet();
-
-                    if (rs.next()) {
-                        val2 = rs.getInt(parentUtil.idColName);
-                    } else {
-                        Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] second select failed: aborting, result " +
-                            "set was empty for sequence: " + seqName, module);
-                        closeQuietly(rs);
-                        return;
-                    }
-                    closeQuietly(rs);
-
-                    // Commit the connection to keep WebSphere happy. See the above comment when transaction was started.
-                    if (manualTX) {
-                        connection.commit();
-                    }
-
-                    if (val1 + bankSize != val2) {
-                        if (numTries >= maxTries) {
-                            Debug.logError("[SequenceUtil.SequenceBank.fillBank] maxTries (" + maxTries + ") reached, giving up.", module);
+                        if (updatePstmt.getUpdateCount() <= 0) {
+                            Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] update failed, no rows changes for seqName: " + seqName, module);
                             return;
                         }
-                        // collision happened, wait a bounded random amount of time then continue
-                        int waitTime = (new Double(Math.random() * (maxWaitNanos - minWaitNanos))).intValue() + minWaitNanos;
 
-                        try {
-                            this.wait(0, waitTime);
-                        } catch (Exception e) {
-                            Debug.logWarning(e, "Error waiting in sequence util");
+                        if (manualTX) {
+                            connection.commit();
                         }
-                    }
 
-                    numTries++;
+                        // try 2: SELECT the next id
+                        selectPstmt.setString(1, this.seqName);
+                        selectPstmt.execute();
+                        rs2 = selectPstmt.getResultSet();
+
+                        if (rs2.next()) {
+                            val2 = rs2.getInt(parentUtil.idColName);
+                        } else {
+                            Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] second select failed: aborting, result " +
+                                "set was empty for sequence: " + seqName, module);
+                            return;
+                        }
+
+                        // Commit the connection to keep WebSphere happy. See the above comment when transaction was started.
+                        if (manualTX) {
+                            connection.commit();
+                        }
+
+                        if (val1 + bankSize != val2) {
+                            if (numTries >= maxTries) {
+                                Debug.logError("[SequenceUtil.SequenceBank.fillBank] maxTries (" + maxTries + ") reached, giving up.", module);
+                                return;
+                            }
+                            // collision happened, wait a bounded random amount of time then continue
+                            int waitTime = (new Double(Math.random() * (maxWaitNanos - minWaitNanos))).intValue() + minWaitNanos;
+
+                            try {
+                                this.wait(0, waitTime);
+                            } catch (Exception e) {
+                                Debug.logWarning(e, "Error waiting in sequence util");
+                            }
+                        }
+
+                        numTries++;
+                    } finally {
+                        closeQuietly(rs2);
+                        closeQuietly(rs1);
+                    }
                 }
 
                 curSeqId = val1;
@@ -297,6 +300,7 @@ public class SequenceUtil {
                 Debug.logWarning(sqle, "[SequenceUtil.SequenceBank.fillBank] SQL Exception", module);
                 return;
             } finally {
+                // close all prepared statements and the connection
                 closeQuietly(updatePstmt);
                 closeQuietly(insertPstmt);
                 closeQuietly(selectPstmt);
