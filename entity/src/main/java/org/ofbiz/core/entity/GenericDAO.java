@@ -35,6 +35,7 @@ import org.ofbiz.core.util.UtilValidate;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -1056,9 +1057,32 @@ public class GenericDAO {
             SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(), modelFieldTypeReader);
         }
 
+        setFetchSize(sqlP, findOptions.getFetchSize());
         sqlP.executeQuery();
 
         return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+    }
+
+    private void setFetchSize(final SQLProcessor sqlP, final int fetchSize)
+    {
+        if (fetchSize != -1)
+        {
+            try
+            {
+                sqlP.getPreparedStatement().setFetchSize(fetchSize);
+                if (Debug.verboseOn())
+                {
+                    Debug.logVerbose("Set the fetch size to: " + fetchSize);
+                }
+            }
+            catch (SQLException sqle)
+            {
+                if (Debug.verboseOn())
+                {
+                    Debug.logVerbose("Unable to set the fetch size to: " + fetchSize + ": " + sqle);
+                }
+            }
+        }
     }
 
     public List<GenericValue> selectByMultiRelation(GenericValue value, ModelRelation modelRelationOne, ModelEntity modelEntityOne,

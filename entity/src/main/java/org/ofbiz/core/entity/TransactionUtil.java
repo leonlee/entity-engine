@@ -332,7 +332,7 @@ public class TransactionUtil implements javax.transaction.Status {
             }
             catch (SQLException e)
             {
-                throw new GenericTransactionException("Error occurred while starting transaction.", e);
+                throw new GenericTransactionException("Error occurred while committing transaction.", e);
             }
             finally
             {

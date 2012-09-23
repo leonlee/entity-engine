@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 /**
  *
- * @since v1.0 .24
+ * @since v1.0.24
  */
 public class TestLimitHelper {
 
