@@ -76,6 +76,8 @@ public class EntityFindOptions implements java.io.Serializable {
      *      resultSetType = TYPE_FORWARD_ONLY
      *      resultSetConcurrency = CONCUR_READ_ONLY
      *      distinct = false
+     *      maxResults = -1  (no limit)
+     *      fetchSize = -1  (use driver's default setting)
      */
     public EntityFindOptions() {}
 
@@ -175,9 +177,19 @@ public class EntityFindOptions implements java.io.Serializable {
     }
 
     /** Specifies the value to use for the fetch size on the prepared statement.  Note that
-     * the values that may be used are database-dependent.  For example, you can use
-     * {@code Integer.MIN_VALUE} to get streaming result sets on MySQL, but this value will
-     * be rejected by most other databases.
+     * the values that may be used are database-dependent.  Use this with caution!
+     * <p>
+     * <b>WARNING</b>: This setting is a <em>hint</em> for the database driver, and the driver
+     * is <em>not</em> required to honour it!  Several databases put other restrictions on its
+     * use as well.  MySQL and Postgres will definitely ignore this setting when the database
+     * connection is in auto-commit mode, so you will probably have to use the {@link TransactionUtil}
+     * if you want this to work.
+     * </p>
+     * <p>
+     * <b>WARNING</b>: This value may need to be set to a database-dependent value.  For example,
+     * the most useful value on MySQL is {@code Integer.MIN_VALUE} to get a streaming result
+     * set, but this value will be rejected by most other databases.
+     * </p>
      */
     public void setFetchSize(int fetchSize)
     {
