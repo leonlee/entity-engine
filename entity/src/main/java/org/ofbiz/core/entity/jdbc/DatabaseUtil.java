@@ -904,21 +904,23 @@ public class DatabaseUtil
         return tableNames;
     }
 
-    private String lookupSchemaName(final DatabaseMetaData dbData) throws SQLException
+    /**
+     *
+     * see JIRA-28526 this method needs to be coherent with {@link #convertToSchemaTableName(String, java.sql.DatabaseMetaData)} and
+     * {@link ModelEntity#getTableName(org.ofbiz.core.entity.config.DatasourceInfo)}
+     * package local for testing
+     */
+    String lookupSchemaName(final DatabaseMetaData dbData) throws SQLException
     {
-        String lookupSchemaName = null;
+
         if (dbData.supportsSchemasInTableDefinitions())
         {
             if (this.datasourceInfo.getSchemaName() != null && this.datasourceInfo.getSchemaName().length() > 0)
             {
-                lookupSchemaName = this.datasourceInfo.getSchemaName();
-            }
-            else
-            {
-                lookupSchemaName = dbData.getUserName();
+                return this.datasourceInfo.getSchemaName();
             }
         }
-        return lookupSchemaName;
+        return null;
     }
 
     public Map<String, List<ColumnCheckInfo>> getColumnInfo(Set<String> tableNames, Collection<String> messages)

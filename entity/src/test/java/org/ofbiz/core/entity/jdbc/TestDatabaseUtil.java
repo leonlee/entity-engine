@@ -1,5 +1,6 @@
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
@@ -10,6 +11,7 @@ import org.ofbiz.core.entity.model.ModelIndex;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
@@ -203,6 +205,42 @@ public class TestDatabaseUtil {
         assertEquals(t2Indexes, indexInfo.get("t2"));
     }
 
+    /**
+     * Test JRA-28526 ensure that tables are fetched from data base with the same schema
+     * as they are created. Problem was occurring when no schema was provided for mssql or postgres database.
+     *
+     */
+    @Test
+    public void testGetTables() throws Exception {
+        //with
+        final Connection connection = mock(Connection.class);
+        final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
+        when(connection.getMetaData()).thenReturn(dbData);
+        when(dbData.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);
+        when(dbData.getUserName()).thenReturn("user");
+        final ResultSet rightResultSet = mock(ResultSet.class);
+        String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+
+        when(dbData.getTables(null,null,null, types)).thenReturn(rightResultSet);
+
+        //use this as to be sure that no schema user is used
+        final ResultSet emptyResult = mock(ResultSet.class);
+        when(dbData.getTables(null,"user",null, types)).thenReturn(emptyResult);
+        final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
+
+        when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
+        when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
+        when(rightResultSet.getString("TABLE_TYPE")).thenReturn("TABLE");
+        final Collection<String> messages = new ArrayList<String>();
+
+        //invoke
+        final TreeSet<String> tableNames = du.getTableNames(messages);
+
+        //then
+        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"),tableNames);
+
+    }
     @Test
     public void testMissingIndices() {
 
