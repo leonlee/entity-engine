@@ -167,10 +167,8 @@ public class EntityFindOptions implements java.io.Serializable {
         this.maxResults = maxResults;
     }
 
-    /** Specifies the value to use for the fetch size on the prepared statement.  Note that
-     * the values that may be used are database-dependent.  For example, you can use
-     * {@code Integer.MIN_VALUE} to get streaming result sets on MySQL, but this value will
-     * be rejected by most other databases.
+    /** Specifies the value to use for the fetch size on the prepared statement.  Please
+     * see the comments in {@link #setFetchSize(int)} for restrictions.
      */
     public int getFetchSize() {
         return fetchSize;
@@ -181,8 +179,8 @@ public class EntityFindOptions implements java.io.Serializable {
      * <p>
      * <b>WARNING</b>: This setting is a <em>hint</em> for the database driver, and the driver
      * is <em>not</em> required to honour it!  Several databases put other restrictions on its
-     * use as well.  MySQL and Postgres will definitely ignore this setting when the database
-     * connection is in auto-commit mode, so you will probably have to use the {@link TransactionUtil}
+     * use as well.  Postgres will definitely ignore this setting when the database connection
+     * is in auto-commit mode, so you will probably have to use the {@link TransactionUtil}
      * if you want this to work.
      * </p>
      * <p>
