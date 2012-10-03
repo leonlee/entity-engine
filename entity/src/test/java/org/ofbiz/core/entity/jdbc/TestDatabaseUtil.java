@@ -211,7 +211,8 @@ public class TestDatabaseUtil {
      *
      */
     @Test
-    public void testGetTables() throws Exception {
+    public void testGetTables() throws Exception
+    {
         //with
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
@@ -219,7 +220,7 @@ public class TestDatabaseUtil {
         when(dbData.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);
         when(dbData.getUserName()).thenReturn("user");
         final ResultSet rightResultSet = mock(ResultSet.class);
-        String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+        final String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
 
         when(dbData.getTables(null,null,null, types)).thenReturn(rightResultSet);
 
@@ -227,6 +228,45 @@ public class TestDatabaseUtil {
         final ResultSet emptyResult = mock(ResultSet.class);
         when(dbData.getTables(null,"user",null, types)).thenReturn(emptyResult);
         final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
+
+        when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
+        when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
+        when(rightResultSet.getString("TABLE_TYPE")).thenReturn("TABLE");
+        final Collection<String> messages = new ArrayList<String>();
+
+        //invoke
+        final TreeSet<String> tableNames = du.getTableNames(messages);
+
+        //then
+        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"),tableNames);
+
+    }
+    /**
+     * Test JRA-28526 ensure that tables are fetched from data base with the same schema
+     * as they are created. For the Oracle db it is the user schema name
+     *
+     */
+    @Test
+    public void testGetTablesForOracle() throws Exception
+    {
+        //with
+        final Connection connection = mock(Connection.class);
+        final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
+        when(connection.getMetaData()).thenReturn(dbData);
+        when(dbData.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);
+        when(dbData.getUserName()).thenReturn("user");
+        final ResultSet rightResultSet = mock(ResultSet.class);
+        final String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+
+        final ResultSet emptyResult = mock(ResultSet.class);
+        //use this as to be sure that user as schema is used
+        when(dbData.getTables(null,null,null, types)).thenReturn(emptyResult);
+
+        when(dbData.getTables(null,"user",null, types)).thenReturn(rightResultSet);
+        final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
+        when(dbData.getDatabaseProductName()).thenReturn("Oracle");
+
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
 
         when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);

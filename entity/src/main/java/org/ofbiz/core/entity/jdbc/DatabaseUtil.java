@@ -904,20 +904,31 @@ public class DatabaseUtil
         return tableNames;
     }
 
+    private String lookupSchemaName(DatabaseMetaData dbData) throws SQLException
+    {
+        return datasourceInfo == null ? null : getSchemaPattern(dbData, datasourceInfo.getSchemaName());
+
+    }
+
     /**
-     *
+     * Lookup schema name according do database metadata
      * see JIRA-28526 this method needs to be coherent with {@link #convertToSchemaTableName(String, java.sql.DatabaseMetaData)} and
      * {@link ModelEntity#getTableName(org.ofbiz.core.entity.config.DatasourceInfo)}
-     * package local for testing
+     *
      */
-    String lookupSchemaName(final DatabaseMetaData dbData) throws SQLException
+    public static String getSchemaPattern(final DatabaseMetaData dbData, String schemaName) throws SQLException
     {
 
         if (dbData.supportsSchemasInTableDefinitions())
         {
-            if (this.datasourceInfo.getSchemaName() != null && this.datasourceInfo.getSchemaName().length() > 0)
+            if (schemaName != null && schemaName.length() > 0)
             {
-                return this.datasourceInfo.getSchemaName();
+                return schemaName;
+            }
+            else if ("Oracle".equalsIgnoreCase(dbData.getDatabaseProductName()))
+            {
+                // For Oracle, the username is the schema name
+                return dbData.getUserName();
             }
         }
         return null;
@@ -1391,7 +1402,7 @@ public class DatabaseUtil
                 // Postgres can make tables in the lowercase version of the declared table name, though not universally.
                 // if there are no index details for the given table and we're on postgres,
                 // we fall back to the index info of the lower case version of the table
-                if (rsCols == null || !rsCols.next()) { 
+                if (rsCols == null || !rsCols.next()) {
                     rsCols = dbData.getIndexInfo(null, schemaName, tableName.toLowerCase(), false, true);
                 } else {
                     rsCols.beforeFirst();
