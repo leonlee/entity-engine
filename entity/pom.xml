@@ -1,27 +1,34 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.atlassian.ofbiz</groupId>
-	<artifactId>entityengine</artifactId>
-	<packaging>jar</packaging>
-	<name>Atlassian OfBiz Entity</name>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.atlassian.ofbiz</groupId>
+    <artifactId>entityengine</artifactId>
+    <packaging>jar</packaging>
+    <name>Atlassian OfBiz Entity</name>
 
-	<parent>
-		<groupId>com.atlassian.ofbiz</groupId>
-		<artifactId>entityengine-parent</artifactId>
-	    <version>1.0.29-SNAPSHOT</version>
-	</parent>
+    <parent>
+        <groupId>com.atlassian.ofbiz</groupId>
+        <artifactId>entityengine-parent</artifactId>
+        <version>1.0.29-SNAPSHOT</version>
+    </parent>
 
-	<dependencies>
-		<dependency>
+    <dependencies>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>1.2.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.atlassian.ofbiz</groupId>
             <artifactId>entityengine-share</artifactId>
             <version>${pom.version}</version>
-		</dependency>
-		<dependency>
+        </dependency>
+        <dependency>
             <groupId>jta</groupId>
             <artifactId>jta</artifactId>
             <version>1.0.1</version>
-		</dependency>
+        </dependency>
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
@@ -51,9 +58,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-          <groupId>org.weakref</groupId>
-          <artifactId>jmxutils</artifactId>
-          <version>1.8</version>
+            <groupId>org.weakref</groupId>
+            <artifactId>jmxutils</artifactId>
+            <version>1.8</version>
         </dependency>
         <dependency>
             <groupId>net.ju-n.commons-dbcp-jmx</groupId>
@@ -69,8 +76,8 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>13.0.1</version>
-            <scope>test</scope>
+            <version>10.0.1</version>
+            <scope>provided</scope>
         </dependency>
-	</dependencies>
+    </dependencies>
 </project>

@@ -23,6 +23,8 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
@@ -70,6 +72,13 @@ public class DatabaseUtil
 
     public static final String module = DatabaseUtil.class.getName();
 
+    /**
+     * A map of legal and expected field type promotions.
+     */
+    private static final Multimap<String, String> allowedFieldTypePromotions = ImmutableMultimap.<String, String>builder()
+            .put("VARCHAR", "NVARCHAR")
+            .put("VARCHAR2", "NVARCHAR2").build();
+
     protected String helperName;
     protected ModelFieldTypeReader modelFieldTypeReader;
     protected DatasourceInfo datasourceInfo;
@@ -77,9 +86,9 @@ public class DatabaseUtil
     private final ConnectionProvider connectionProvider;
 
     /**
-     * Constructs with the name of a helper that is used to load {@link org.ofbiz.core.entity.config.DatasourceInfo}
-     * from {@link org.ofbiz.core.entity.config.EntityConfigUtil} and uses the static
-     * {@link org.ofbiz.core.entity.ConnectionFactory} for connections.
+     * Constructs with the name of a helper that is used to load {@link org.ofbiz.core.entity.config.DatasourceInfo} from
+     * {@link org.ofbiz.core.entity.config.EntityConfigUtil} and uses the static {@link
+     * org.ofbiz.core.entity.ConnectionFactory} for connections.
      *
      * @param helperName
      */
@@ -94,10 +103,10 @@ public class DatabaseUtil
     /**
      * Full monty constructor.
      *
-     * @param helperName           the helperName
+     * @param helperName the helperName
      * @param modelFieldTypeReader the ModelFieldTypeReader
-     * @param datasourceInfo       the DatasourceInfo
-     * @param connectionProvider   used to create {@link java.sql.Connection Connections}.
+     * @param datasourceInfo the DatasourceInfo
+     * @param connectionProvider used to create {@link java.sql.Connection Connections}.
      */
     DatabaseUtil(final String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, final ConnectionProvider connectionProvider)
     {
@@ -108,8 +117,8 @@ public class DatabaseUtil
     }
 
     /**
-     * Uses the configured {@link org.ofbiz.core.entity.ConnectionProvider} to get a {@link java.sql.Connection} based
-     * on the configured helper name.
+     * Uses the configured {@link org.ofbiz.core.entity.ConnectionProvider} to get a {@link java.sql.Connection} based on
+     * the configured helper name.
      *
      * @return the {@link java.sql.Connection}
      * @throws SQLException
@@ -124,12 +133,28 @@ public class DatabaseUtil
      * Does a gzillion things to upgrade the database to the entitymodel by adding tables etc.
      *
      * @param modelEntities Model entity names to ModelEntity objects.
-     * @param messages      a thing to collect errors.
-     * @param addMissing    if true, will attempt to add tables and columns, fks, indices etc are added always.
+     * @param messages a thing to collect errors.
+     * @param addMissing if true, will attempt to add tables and columns, fks, indices etc are added always.
      */
     public void checkDb(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing)
     {
+        checkDb(modelEntities, messages, addMissing, addMissing, addMissing);
+    }
 
+    /**
+     * Does a gzillion things to upgrade the database to the entitymodel by adding tables etc.
+     *
+     * @param modelEntities Model entity names to ModelEntity objects.
+     * @param messages a thing to collect errors.
+     * @param addMissing if true, will attempt to add tables and columns, fks, indices etc are added always.
+     * @param promote if true, will attempt to promote types to wider types, as defined in {@code
+     * allowedFieldTypePromotions}.
+     * @param widen if true, will attempt to widen types with size (only widen, never shorten)
+     */
+
+    public void checkDb(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages,
+            boolean addMissing, boolean promote, boolean widen)
+    {
         UtilTimer timer = new UtilTimer();
 
         timer.timerString("Start - Before Get Database metadata");
@@ -224,7 +249,7 @@ public class DatabaseUtil
                             if (fieldColNames.containsKey(ccInfo.columnName))
                             {
                                 ModelField field = fieldColNames.remove(ccInfo.columnName);
-                                checkFieldType(entity, field.getType(), ccInfo, messages);
+                                checkFieldType(entity, field, ccInfo, messages, promote, widen);
                             }
                             else
                             {
@@ -590,24 +615,26 @@ public class DatabaseUtil
     }
 
     /**
-     * Checks the given {@link org.ofbiz.core.entity.model.ModelEntity entity's}  fieldType to see that
-     * it matches the given ColumnCheckInfo. Error messages are added to messages.
+     * Checks the given {@link org.ofbiz.core.entity.model.ModelEntity entity's}  fieldType to see that it matches the
+     * given ColumnCheckInfo. Error messages are added to messages.
      */
-    void checkFieldType(final ModelEntity entity, final String fieldType, final ColumnCheckInfo ccInfo, final Collection<String> messages)
+    void checkFieldType(final ModelEntity entity, final ModelField field, final ColumnCheckInfo ccInfo, final Collection<String> messages,
+            final boolean promote, final boolean widen)
     {
-        ModelFieldType modelFieldType = modelFieldTypeReader.getModelFieldType(fieldType);
+        final String fieldType = field.getType();
+        final ModelFieldType modelFieldType = modelFieldTypeReader.getModelFieldType(fieldType);
 
         if (modelFieldType != null)
         {
             // make sure each corresponding column is of the correct type
-            String fullTypeStr = modelFieldType.getSqlType();
+            final String fullTypeStr = modelFieldType.getSqlType();
+            final int openParen = fullTypeStr.indexOf('(');
+            final int closeParen = fullTypeStr.indexOf(')', openParen);
+            final int comma = fullTypeStr.indexOf(',');
+
             String typeName;
             int columnSize = -1;
             int decimalDigits = -1;
-
-            int openParen = fullTypeStr.indexOf('(');
-            int closeParen = fullTypeStr.indexOf(')');
-            int comma = fullTypeStr.indexOf(',');
 
             if (openParen > 0 && closeParen > 0 && closeParen > openParen)
             {
@@ -663,32 +690,80 @@ public class DatabaseUtil
 
             if (!ccInfo.typeName.equals(typeName.toUpperCase()))
             {
-                String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                        entity.getEntityName() + "\" is of type \"" + ccInfo.typeName + "\" in the database, but is defined as type \"" +
-                        typeName + "\" in the entity definition.";
+                final Collection<String> allowedPromotions = DatabaseUtil.allowedFieldTypePromotions.get(ccInfo.typeName);
+                // decimal digits not supported yet for promoting!
+                if (promote && allowedPromotions != null && allowedPromotions.contains(typeName.toUpperCase()) && decimalDigits == -1)
+                {
+                    // promote the field:
+                    final String errorMessage = modifyColumnType(entity, field);
+                    if (errorMessage == null)
+                    {
+                        final String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
+                                entity.getEntityName() + "\" is of wrong type and has been promoted from \"" + ccInfo.typeName +
+                                (ccInfo.columnSize > 0 ? "(" + ccInfo.columnSize + ")" : "" ) +
+                                "\" to \"" + fullTypeStr + "\".";
+                        warn(message, messages);
+                    }
+                    else
+                    {
+                        error("Could not promote column \"" + ccInfo.columnName + "\" in table \"" + entity.getTableName(datasourceInfo) + "\" from type: \"" +
+                                ccInfo.typeName + "\" to type: \"" + typeName + "\".", messages);
+                        error(errorMessage, messages);
+                    }
+                }
+                else
+                {
+                    final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
+                            entity.getEntityName() + "\" is of type \"" + ccInfo.typeName + "\" in the database, but is defined as type \"" +
+                            typeName + "\" in the entity definition.";
 
-                error(message, messages);
+                    error(message, messages);
+                }
             }
-            if (columnSize != -1 && ccInfo.columnSize != -1 && columnSize != ccInfo.columnSize)
+            else
             {
-                String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                        entity.getEntityName() + "\" has a column size of \"" + ccInfo.columnSize +
-                        "\" in the database, but is defined to have a column size of \"" + columnSize + "\" in the entity definition.";
+                if (columnSize != -1 && ccInfo.columnSize != -1 && columnSize != ccInfo.columnSize)
+                {
+                    if (widen && columnSize > ccInfo.columnSize && decimalDigits == -1)
+                    {
+                        // widen the field:
+                        final String errorMessage = modifyColumnType(entity, field);
+                        if (errorMessage == null)
+                        {
+                            final String message = "Column \"" + ccInfo.columnName + "\" of type \"" + typeName + "\" of table \"" +
+                                    entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" is of wrong size and has been widened from " +
+                                    ccInfo.columnSize + " to " + columnSize + ".";
+                            warn(message, messages);
+                        }
+                        else
+                        {
+                            error("Could not widen column \"" + ccInfo.columnName + "\" in table \"" + entity.getTableName(datasourceInfo) + "\" to size: " +
+                                    columnSize + ".", messages);
+                            error(errorMessage, messages);
+                        }
+                    }
+                    else
+                    {
+                        final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
+                                entity.getEntityName() + "\" has a column size of \"" + ccInfo.columnSize +
+                                "\" in the database, but is defined to have a column size of \"" + columnSize + "\" in the entity definition.";
 
-                warn(message, messages);
-            }
-            if (decimalDigits != -1 && decimalDigits != ccInfo.decimalDigits)
-            {
-                String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                        entity.getEntityName() + "\" has a decimalDigits of \"" + ccInfo.decimalDigits +
-                        "\" in the database, but is defined to have a decimalDigits of \"" + decimalDigits + "\" in the entity definition.";
+                        warn(message, messages);
+                    }
+                }
+                if (decimalDigits != -1 && decimalDigits != ccInfo.decimalDigits)
+                {
+                    final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
+                            entity.getEntityName() + "\" has a decimalDigits of \"" + ccInfo.decimalDigits +
+                            "\" in the database, but is defined to have a decimalDigits of \"" + decimalDigits + "\" in the entity definition.";
 
-                warn(message, messages);
+                    warn(message, messages);
+                }
             }
         }
         else
         {
-            String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() +
+            final String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() +
                     "\" has a field type name of \"" + fieldType + "\" which is not found in the field type definitions";
 
             error(message, messages);
@@ -696,13 +771,85 @@ public class DatabaseUtil
     }
 
     /**
+     * Change the type of the field in database.
+     *
+     * @param entity the entity (db table)
+     * @param field the existing column type
+     */
+    private String modifyColumnType(ModelEntity entity, ModelField field)
+    {
+        if (entity == null || field == null)
+        {
+            return "ModelEntity or ModelField null, cannot alter table";
+        }
+        if (entity instanceof ModelViewEntity)
+        {
+            return "ERROR: Cannot change column for a view entity";
+        }
+
+        Connection connection = null;
+        Statement stmt = null;
+
+        try
+        {
+            try
+            {
+                connection = getConnection();
+            }
+            catch (SQLException sqle)
+            {
+                return "Unable to establish a connection with the database... Error was: " + sqle.toString();
+            }
+            catch (GenericEntityException e)
+            {
+                return "Unable to establish a connection with the database... Error was: " + e.toString();
+            }
+
+            ModelFieldType type = modelFieldTypeReader.getModelFieldType(field.getType());
+
+            if (type == null)
+            {
+
+                return "Field type [" + type + "] not found for field [" + field.getName() + "] of entity [" + entity.getEntityName() + "], not changing column type.";
+            }
+
+            StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
+            sqlBuf.append(entity.getTableName(datasourceInfo));
+            sqlBuf.append(" MODIFY ");
+            sqlBuf.append(field.getColName());
+            sqlBuf.append(" ");
+            sqlBuf.append(type.getSqlType());
+
+            String sql = sqlBuf.toString();
+            if (Debug.infoOn())
+            {
+                Debug.logInfo("[modifyColumnType] sql=" + sql);
+            }
+            try
+            {
+                stmt = connection.createStatement();
+                stmt.executeUpdate(sql);
+            }
+            catch (SQLException sqle)
+            {
+                return "SQL Exception while executing the following:\n" + sql + "\nError was: " + sqle.toString();
+            }
+        }
+        finally
+        {
+            cleanup(connection, stmt);
+        }
+        return null;
+    }
+
+    /**
      * Add only the missing indexes for the given modelEntities, keyed by table name. The existence of an index is
-     * determined soley by its name. If the {@link org.ofbiz.core.entity.model.ModelIndex} defines an index that has
-     * the same name but different fields or unique flag as the one in the database, no action is taken to rectify the
+     * determined soley by its name. If the {@link org.ofbiz.core.entity.model.ModelIndex} defines an index that has the
+     * same name but different fields or unique flag as the one in the database, no action is taken to rectify the
      * difference.
      *
      * @param tableToModelEntities a map of table name to corresponding model entity.
-     * @param messages             error messages go here
+     * @param messages error messages go here
      */
     void createMissingIndices(Map<String, ModelEntity> tableToModelEntities, Collection<String> messages)
     {
@@ -834,7 +981,7 @@ public class DatabaseUtil
 
         try
         {
-            String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+            String[] types = { "TABLE", "VIEW", "ALIAS", "SYNONYM" };
             String lookupSchemaName = lookupSchemaName(dbData);
             tableSet = dbData.getTables(null, lookupSchemaName, null, types);
             if (tableSet == null)
@@ -914,7 +1061,6 @@ public class DatabaseUtil
      * Lookup schema name according do database metadata
      * see JIRA-28526 this method needs to be coherent with {@link #convertToSchemaTableName(String, java.sql.DatabaseMetaData)} and
      * {@link ModelEntity#getTableName(org.ofbiz.core.entity.config.DatasourceInfo)}
-     *
      */
     public static String getSchemaPattern(final DatabaseMetaData dbData, String schemaName) throws SQLException
     {
@@ -1227,8 +1373,8 @@ public class DatabaseUtil
     /**
      * Gets index information from the database for the given table names only, optionally including unique indexes.
      *
-     * @param tableNames    the names of tables to get indexes for.
-     * @param messages      a collector of errors.
+     * @param tableNames the names of tables to get indexes for.
+     * @param messages a collector of errors.
      * @param includeUnique if true, the index info will include unique indexes which could include pk indexes.
      * @return a map of table names to sets of index names or null on failure.
      */
@@ -1398,13 +1544,17 @@ public class DatabaseUtil
             boolean isPostgres = DatabaseTypeFactory.POSTGRES == dbType
                     || DatabaseTypeFactory.POSTGRES_7_2 == dbType
                     || DatabaseTypeFactory.POSTGRES_7_3 == dbType;
-            if (isPostgres) {
+            if (isPostgres)
+            {
                 // Postgres can make tables in the lowercase version of the declared table name, though not universally.
                 // if there are no index details for the given table and we're on postgres,
                 // we fall back to the index info of the lower case version of the table
-                if (rsCols == null || !rsCols.next()) {
+                if (rsCols == null || !rsCols.next())
+                {
                     rsCols = dbData.getIndexInfo(null, schemaName, tableName.toLowerCase(), false, true);
-                } else {
+                }
+                else
+                {
                     rsCols.beforeFirst();
                 }
             }
@@ -2380,7 +2530,7 @@ public class DatabaseUtil
      * Null OK silent closer.
      *
      * @param connection to be closed.
-     * @param stmt       to be closed.
+     * @param stmt to be closed.
      */
     private void cleanup(final Connection connection, final Statement stmt)
     {
@@ -2410,7 +2560,7 @@ public class DatabaseUtil
      * Null OK closer.
      *
      * @param connection to be closed.
-     * @param messages   for writing messages.
+     * @param messages for writing messages.
      */
     private void cleanup(final Connection connection, final Collection<String> messages)
     {
