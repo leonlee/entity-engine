@@ -20,10 +20,10 @@ public class DatabaseTypeFactory {
     public static final DatabaseType DB2 = new DB2DatabaseType();
     public static final DatabaseType CLOUDSCAPE = new SimpleDatabaseType("Cloudscape", "cloudscape", new String[]{"Apache Derby"});
     public static final DatabaseType FIREBIRD = new SimpleDatabaseType("Firebird", "firebird", new String[]{"Firebird"});
-    public static final DatabaseType HSQL = new SimpleDatabaseType("HSQL", "hsql", new String[]{"HSQL Database Engine"});
+    public static final DatabaseType HSQL = new HsqlDatabaseType();
     public static final DatabaseType H2 = new SimpleDatabaseType("H2", "h2", new String[]{"H2"});
-    public static final DatabaseType MYSQL = new SimpleDatabaseType("MySQL", "mysql", new String[]{"MySQL"});
-    public static final DatabaseType MSSQL = new SimpleDatabaseType("MS SQL", "mssql", new String[]{"Microsoft SQL Server"});
+    public static final DatabaseType MYSQL = new MySqlDatabaseType();
+    public static final DatabaseType MSSQL = new MsSqlDatabaseType();
     public static final DatabaseType ORACLE_10G = new Oracle10GDatabaseType();
     public static final DatabaseType ORACLE_8I = new Oracle8IDatabaseType();
     public static final DatabaseType POSTGRES_7_2 = new Postgres72DatabaseType();

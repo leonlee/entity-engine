@@ -22,4 +22,12 @@ public interface DatabaseType {
 
     boolean matchesConnection(Connection con) throws SQLException;
 
+    /**
+     *  Builds a DB-specific SQL statement to update a column's type.
+     *  @param tableName the name of the table to be changed.
+     *  @param columnName the name of the column to be changed.
+     *  @param targetSqlType the target SQL type of the column.
+     *  @return the SQL text to change the column, or {@code null}, if not supported.
+     */
+    String getChangeColumnTypeSQL(String tableName, String columnName, String targetSqlType);
 }

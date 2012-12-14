@@ -338,16 +338,9 @@ public class DatasourceInfo
 
     private String findFieldTypeFromJDBCConnection()
     {
-        final Connection connection;
         try
         {
-            connection = ConnectionFactory.getConnection(name);
-            final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-            if (typeForConnection == null)
-            {
-                Debug.logError("Could not determine database type from ");
-            }
-            return typeForConnection.getFieldTypeName();
+            return getDatabaseTypeFromJDBCConnection().getFieldTypeName();
         }
         catch (Exception e)
         {
@@ -359,16 +352,9 @@ public class DatasourceInfo
 
     private String findSchemaNameFromJDBCConnection()
     {
-        final Connection connection;
         try
         {
-            connection = ConnectionFactory.getConnection(name);
-            final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-            if (typeForConnection == null)
-            {
-                Debug.logError("Could not determine database type from ");
-            }
-            return typeForConnection.getSchemaName(connection);
+            return getDatabaseTypeFromJDBCConnection().getSchemaName(ConnectionFactory.getConnection(name));
         }
         catch (Exception e)
         {
@@ -380,16 +366,9 @@ public class DatasourceInfo
 
     private int findConstraintNameClipLengthFromJDBCConnection()
     {
-        final Connection connection;
         try
         {
-            connection = ConnectionFactory.getConnection(name);
-            final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-            if (typeForConnection == null)
-            {
-                Debug.logError("Could not determine database type from ");
-            }
-            return typeForConnection.getConstraintNameClipLength();
+            return getDatabaseTypeFromJDBCConnection().getConstraintNameClipLength();
         }
         catch (Exception e)
         {
@@ -398,6 +377,28 @@ public class DatasourceInfo
             return DEFAULT_CONSTRAINT_NAME_CLIP_LENGTH;
         }
     }
+
+    /**
+     * Provides a database type.
+     * @return the database type.
+     */
+    public DatabaseType getDatabaseTypeFromJDBCConnection() {
+
+        Connection connection = null;
+        try
+        {
+            connection = ConnectionFactory.getConnection(name);
+            final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
+            return typeForConnection;
+        }
+        catch (Exception e)
+        {
+            String error = "Could not determine database type.";
+            Debug.logError(e, error);
+            throw new GeneralRuntimeException(error, e);
+        }
+    }
+
 
     public JndiDatasourceInfo getJndiDatasource()
     {

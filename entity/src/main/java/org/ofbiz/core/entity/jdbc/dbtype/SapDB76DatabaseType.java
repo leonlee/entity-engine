@@ -30,4 +30,15 @@ public class SapDB76DatabaseType extends AbstractDatabaseType
             return null;
         }
     }
+
+    /*
+        Not a supported DB, but this is what it would look like:
+
+    @Override
+    protected String getChangeColumnTypeStructure()
+    {
+        return "ALTER TABLE {0} MODIFY ({1} {2})";
+    }
+    */
+
 }

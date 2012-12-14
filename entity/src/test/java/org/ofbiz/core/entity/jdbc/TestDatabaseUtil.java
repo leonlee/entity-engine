@@ -471,7 +471,7 @@ public class TestDatabaseUtil {
         cci.columnName = colName;
         cci.columnSize = 55;
         cci.decimalDigits = 0;
-        cci.isNullable = "YES";
+        cci.isNullable = Boolean.TRUE;
         cci.tableName = tableName;
         return cci;
     }

@@ -1,7 +1,5 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
-import org.ofbiz.core.entity.jdbc.dbtype.AbstractDatabaseType;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -14,4 +12,9 @@ class Oracle10GDatabaseType extends AbstractDatabaseType {
         return productNameMatches(con) && versionGreaterThanOrEqual(con, 9, 0);
     }
 
+    @Override
+    protected String getChangeColumnTypeStructure()
+    {
+        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
+    }
 }

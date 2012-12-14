@@ -84,7 +84,7 @@ public class ModelField {
 
         // how do we find out if it is a primary key? for now, if not nullable, assume it is a pk
         // this is a bad assumption, but since this output must be edited by hand later anyway, oh well
-        if ("NO".equals(ccInfo.isNullable))
+        if (Boolean.FALSE.equals(ccInfo.isNullable))
             this.isPk = true;
         else
             this.isPk = false;

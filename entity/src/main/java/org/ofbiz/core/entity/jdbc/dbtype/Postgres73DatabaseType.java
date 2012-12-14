@@ -18,4 +18,9 @@ public class Postgres73DatabaseType extends AbstractPostgresDatabaseType
         return "public";
     }
 
+    @Override
+    protected String getChangeColumnTypeStructure()
+    {
+        return "ALTER TABLE {0} ALTER COLUMN {1} TYPE {2}";
+    }
 }

@@ -26,4 +26,14 @@ public class DB2DatabaseType extends SimpleDatabaseType
             return null;
         }
     }
+
+    /*
+       not a supported DB, but this is how it would look like:
+
+    @Override
+    protected String getChangeColumnTypeStructure()
+    {
+        return "ALTER TABLE {0} ALTER COLUMN {1} SET DATA TYPE {2}";
+    }
+    */
 }

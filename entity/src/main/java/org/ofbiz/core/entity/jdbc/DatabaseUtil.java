@@ -633,6 +633,7 @@ public class DatabaseUtil
             final int comma = fullTypeStr.indexOf(',');
 
             String typeName;
+            String oracleTypeNameExtension = null;
             int columnSize = -1;
             int decimalDigits = -1;
 
@@ -641,7 +642,7 @@ public class DatabaseUtil
                 typeName = fullTypeStr.substring(0, openParen);
                 if (comma > 0 && comma > openParen && comma < closeParen)
                 {
-                    String csStr = fullTypeStr.substring(openParen + 1, comma);
+                    final String csStr = fullTypeStr.substring(openParen + 1, comma);
 
                     try
                     {
@@ -652,7 +653,7 @@ public class DatabaseUtil
                         Debug.logError(e, module);
                     }
 
-                    String ddStr = fullTypeStr.substring(comma + 1, closeParen);
+                    final String ddStr = fullTypeStr.substring(comma + 1, closeParen);
 
                     try
                     {
@@ -665,11 +666,32 @@ public class DatabaseUtil
                 }
                 else
                 {
-                    String csStr = fullTypeStr.substring(openParen + 1, closeParen);
+                    final String fullColumnSizeStr = fullTypeStr.substring(openParen + 1, closeParen);
 
                     try
                     {
-                        columnSize = Integer.parseInt(csStr);
+                        // In Oracle, the VARCHAR2 can be represented as VARCHAR2(x) or VARCHAR2(x BYTE) for non-unicode,
+                        // or VARCHAR2(x CHAR) for unicode.
+                        final String[] splitSizeStr = fullColumnSizeStr.trim().split(" +");
+                        switch (splitSizeStr.length) {
+                            case 2:
+                                if(splitSizeStr[1].matches("BYTE|CHAR"))
+                                {
+                                    oracleTypeNameExtension = splitSizeStr[1];
+                                }
+                                else
+                                {
+                                    final String message = "Definition for column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) +
+                                            "\" of entity \"" + entity.getEntityName() + "\" has an invalid size extension \"" + splitSizeStr[1] +
+                                            "\" which will be ignored.";
+                                    warn(message, messages);
+                                }
+                            case 1:  // note: follow-through
+                                columnSize = Integer.parseInt(splitSizeStr[0]);
+                                break;
+                            default:
+                                throw new NumberFormatException("For input string: \"" + fullColumnSizeStr + "\"");
+                        }
                     }
                     catch (NumberFormatException e)
                     {
@@ -707,7 +729,9 @@ public class DatabaseUtil
                     else
                     {
                         error("Could not promote column \"" + ccInfo.columnName + "\" in table \"" + entity.getTableName(datasourceInfo) + "\" from type: \"" +
-                                ccInfo.typeName + "\" to type: \"" + typeName + "\".", messages);
+                                ccInfo.typeName +
+                                (ccInfo.columnSize > 0 ? "(" + ccInfo.columnSize + ")" : "" ) +
+                                "\" to type: \"" + fullTypeStr + "\".", messages);
                         error(errorMessage, messages);
                     }
                 }
@@ -722,9 +746,11 @@ public class DatabaseUtil
             }
             else
             {
-                if (columnSize != -1 && ccInfo.columnSize != -1 && columnSize != ccInfo.columnSize)
+                final boolean oracleUnicodeWidening = detectOracleUnicodeWidening(typeName, ccInfo, oracleTypeNameExtension);
+                if (columnSize != -1 && ccInfo.columnSize != -1 &&
+                        (columnSize != ccInfo.columnSize || oracleUnicodeWidening))
                 {
-                    if (widen && columnSize > ccInfo.columnSize && decimalDigits == -1)
+                    if (widen && decimalDigits == -1 && (columnSize > ccInfo.columnSize || oracleUnicodeWidening))
                     {
                         // widen the field:
                         final String errorMessage = modifyColumnType(entity, field);
@@ -732,7 +758,8 @@ public class DatabaseUtil
                         {
                             final String message = "Column \"" + ccInfo.columnName + "\" of type \"" + typeName + "\" of table \"" +
                                     entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" is of wrong size and has been widened from " +
-                                    ccInfo.columnSize + " to " + columnSize + ".";
+                                    ccInfo.columnSize + " to " + columnSize +
+                                    (oracleUnicodeWidening ? "(CHAR)" : "") + ".";
                             warn(message, messages);
                         }
                         else
@@ -768,6 +795,32 @@ public class DatabaseUtil
 
             error(message, messages);
         }
+    }
+
+    /**
+     * Warning: dirty hacks!
+     * Detects oracle specific type extension. In oracle, VARCHAR2() type can be represented as:
+     * <dl>
+     *     <dt>VARCHAR2(x)</dt>
+     *     <dt>VARCHAR2(x BYTE)</dt>
+     *     <dd>Field with length in bytes, JDBC will attempt to put UTF-8 texts in there but lenght in characters cannot be
+     *     guaranteed.</dd>
+     *     <dt>VARCHAR(x CHAR)</dt>
+     *     <dd>Field with length in characters, handling Unicode.</dd>
+     * </dl>
+     * Unlike NVARCHAR2() the latter is Oracle specific and cannot be clearly seen through JDBC. The only difference is in
+     * the declared CHAR_OCTET_LENGTH of the field, which is 4 times the declared field size. This is used to detect those
+     * field types here.
+     * @param typeName the configured field type (general, without field size).
+     * @param ccInfo the JDBC supplied information on the column.
+     * @param oracleSpecificExtension the declared mode of the VARCHAR2 extension, possible: "BYTE", "CHAR" or null.
+     * @return true, if the column is an Oracle VARCHAR2 type column without Unicode support and the definition requires it.
+     */
+    private boolean detectOracleUnicodeWidening(final String typeName, final ColumnCheckInfo ccInfo, String oracleSpecificExtension)
+    {
+        return ("VARCHAR2".equals(typeName.toUpperCase())               // only possible for VARCHAR2.
+                && "CHAR".equals(oracleSpecificExtension)               // to widen "CHAR" must be required.
+                && (4 * ccInfo.columnSize != ccInfo.maxSizeInBytes));   // columns cannot be already widened.
     }
 
     /**
@@ -813,26 +866,29 @@ public class DatabaseUtil
                 return "Field type [" + type + "] not found for field [" + field.getName() + "] of entity [" + entity.getEntityName() + "], not changing column type.";
             }
 
-            StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
-            sqlBuf.append(entity.getTableName(datasourceInfo));
-            sqlBuf.append(" MODIFY ");
-            sqlBuf.append(field.getColName());
-            sqlBuf.append(" ");
-            sqlBuf.append(type.getSqlType());
+            DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection();
+            if(dbType == null)
+            {
+                return "Failed to detect DB type.";
+            }
 
-            String sql = sqlBuf.toString();
+            String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), field.getColName(), type.getSqlType());
+            if(changeColumnTypeClause == null) {
+                return "Changing of column type is not supported in " + dbType.getName() + ".";
+            }
+
             if (Debug.infoOn())
             {
-                Debug.logInfo("[modifyColumnType] sql=" + sql);
+                Debug.logInfo("[modifyColumnType] sql=" + changeColumnTypeClause);
             }
             try
             {
                 stmt = connection.createStatement();
-                stmt.executeUpdate(sql);
+                stmt.executeUpdate(changeColumnTypeClause);
             }
             catch (SQLException sqle)
             {
-                return "SQL Exception while executing the following:\n" + sql + "\nError was: " + sqle.toString();
+                return "SQL Exception while executing the following:\n" + changeColumnTypeClause + "\nError was: " + sqle.toString();
             }
         }
         finally
@@ -1170,10 +1226,14 @@ public class DatabaseUtil
                     ccInfo.typeName = rsCols.getString("TYPE_NAME");
                     ccInfo.typeName = (ccInfo.typeName == null) ? null : ccInfo.typeName.toUpperCase();
                     ccInfo.columnSize = rsCols.getInt("COLUMN_SIZE");
+                    ccInfo.maxSizeInBytes = rsCols.getInt("CHAR_OCTET_LENGTH");
                     ccInfo.decimalDigits = rsCols.getInt("DECIMAL_DIGITS");
 
-                    ccInfo.isNullable = rsCols.getString("IS_NULLABLE");
-                    ccInfo.isNullable = (ccInfo.isNullable == null) ? null : ccInfo.isNullable.toUpperCase();
+                    final String isNullableSqlResponse = rsCols.getString("IS_NULLABLE");
+                    if(isNullableSqlResponse != null && !isNullableSqlResponse.isEmpty())
+                    {
+                        ccInfo.isNullable = "YES".equals(isNullableSqlResponse.toUpperCase()) ? Boolean.TRUE : Boolean.FALSE;
+                    }
 
                     List<ColumnCheckInfo> tableColInfo = colInfo.get(ccInfo.tableName);
 
@@ -2617,7 +2677,8 @@ public class DatabaseUtil
         public String typeName;
         public int columnSize;
         public int decimalDigits;
-        public String isNullable; // YES/NO or "" = ie nobody knows
+        public Boolean isNullable; // null = ie nobody knows
+        public int maxSizeInBytes;
     }
 
     public static class ReferenceCheckInfo

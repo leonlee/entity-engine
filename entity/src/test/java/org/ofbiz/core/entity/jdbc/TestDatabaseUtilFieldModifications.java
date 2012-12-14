@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -21,6 +22,7 @@ import java.util.Collection;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,8 +30,8 @@ import static org.mockito.Mockito.when;
 @RunWith (MockitoJUnitRunner.class)
 public class TestDatabaseUtilFieldModifications
 {
-    private static String MOCK_TABLE_NAME = "MOCK_TABLE_NAME";
-    private static String MOCK_COLUMN_NAME = "MOCK_COLUMN_NAME";
+    private static String MOCK_TABLE_NAME = "BOOKS";
+    private static String MOCK_COLUMN_NAME = "AUTHOR";
 
     @Mock
     private ModelFieldTypeReader modelFieldTypeReader;
@@ -72,8 +74,11 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testWideningFields() throws Exception
+    public void testWideningFieldsInOracle() throws Exception
     {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection())
+                .thenReturn(DatabaseTypeFactory.ORACLE_10G);
+
         // mock existing SQL type:
         columnInfo.columnSize = 10;
         columnInfo.typeName = "VARCHAR";
@@ -125,6 +130,8 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingType() throws Exception
     {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.HSQL);
+
         // mock existing SQL type:
         columnInfo.columnSize = 20;
         columnInfo.typeName = "VARCHAR";
@@ -142,6 +149,8 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingOracleType() throws Exception
     {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+
         // mock existing SQL type:
         columnInfo.columnSize = 40;
         columnInfo.typeName = "VARCHAR2";
@@ -155,6 +164,50 @@ public class TestDatabaseUtilFieldModifications
         verify(statement).executeUpdate(any(String.class));
         Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been promoted")));
     }
+
+    @Test
+    public void testPromotingOracleExtension() throws Exception
+    {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 40;
+        columnInfo.maxSizeInBytes = 40;
+        columnInfo.typeName = "VARCHAR2";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("VARCHAR2(40 CHAR)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, false, true);
+
+        // update should be performed:
+        verify(statement).executeUpdate(any(String.class));
+        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been widened")));
+    }
+
+    @Test
+    public void testDetectOracleUnicodeFields() throws Exception
+    {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 40;
+        columnInfo.maxSizeInBytes = 160;
+        columnInfo.typeName = "VARCHAR2";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("VARCHAR2(40 CHAR)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, false, true);
+
+        // update should not be performed:
+        verify(statement, never()).executeUpdate(any(String.class));
+        // no information on widening should be raised (field should be considered correct in DB):
+        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("but is defined to have a column size of"))));
+        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("has been widened"))));
+        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("Could not widen column"))));
+    }
+
 
     @Test
     public void testNotPromotingTypeInReverse() throws Exception
@@ -199,12 +252,14 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingTypeRegardlessOfShortening() throws Exception
     {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+
         // mock existing SQL type:
         columnInfo.columnSize = 20;
-        columnInfo.typeName = "VARCHAR";
+        columnInfo.typeName = "VARCHAR2";
 
         // mock desired type:
-        when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(15)");
+        when(modelFieldType.getSqlType()).thenReturn("NVARCHAR2(15)");
 
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, false);
 
@@ -214,8 +269,11 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testSqlStatementComposition() throws Exception
+    public void testSqlStatementCompositionOracleHsqldb() throws Exception
     {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G,
+                DatabaseTypeFactory.HSQL);
+
         // mock existing SQL type:
         columnInfo.columnSize = 45;
         columnInfo.typeName = "VARCHAR";
@@ -224,8 +282,79 @@ public class TestDatabaseUtilFieldModifications
         when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(123)");
 
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
 
         // update should be performed:
-        verify(statement).executeUpdate("ALTER TABLE " + MOCK_TABLE_NAME + " MODIFY " + MOCK_COLUMN_NAME + " NVARCHAR(123)");
+        verify(statement, times(2)).executeUpdate("ALTER TABLE BOOKS MODIFY AUTHOR NVARCHAR(123)");
     }
+
+    @Test
+    public void testSqlStatementCompositionMssqlMysql() throws Exception
+    {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.MSSQL,
+                DatabaseTypeFactory.MYSQL);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 45;
+        columnInfo.typeName = "VARCHAR";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("VARCHAR(222)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
+
+        // update should be performed:
+        verify(statement, times(2)).executeUpdate("ALTER TABLE BOOKS ALTER COLUMN AUTHOR VARCHAR(222)");
+    }
+
+    @Test
+    public void testSqlStatementCompositionPostgresql() throws Exception
+    {
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.POSTGRES_7_3);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 234;
+        columnInfo.typeName = "VARCHAR";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(456)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
+
+        // update should be performed:
+        verify(statement).executeUpdate("ALTER TABLE BOOKS ALTER COLUMN AUTHOR TYPE NVARCHAR(456)");
+    }
+
+    @Test
+    public void testMessagesWhenWideningIsDisabled() throws Exception
+    {
+        // pick an outdated DB type:
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.POSTGRES_7_2);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 234;
+        columnInfo.typeName = "VARCHAR";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(456)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, false);
+
+        // update should not be performed:
+        verify(statement, never()).executeUpdate(any(String.class));
+        Assert.assertThat(messages, Matchers.allOf(Matchers.hasItem(Matchers.containsString("Changing of column type is not supported"))));
+
+        // check also widening:
+        columnInfo.typeName = "NVARCHAR";
+        messages.clear();
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, false, true);
+
+        // update should not be performed:
+        verify(statement, never()).executeUpdate(any(String.class));
+        Assert.assertThat(messages, Matchers.allOf(Matchers.hasItem(Matchers.containsString("Changing of column type is not supported"))));
+
+    }
+
 }

@@ -3,10 +3,14 @@ package org.ofbiz.core.entity.jdbc.dbtype;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.DatabaseMetaData;
+import java.text.MessageFormat;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
 
     private final String name;
+
+    protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN = "ALTER TABLE {0} ALTER COLUMN {1} {2}";
+    protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY = "ALTER TABLE {0} MODIFY {1} {2}";
 
     /**
      * The name that should be used in entityengine.xml (eg. postgres72, oracle10g
@@ -158,6 +162,24 @@ public abstract class AbstractDatabaseType implements DatabaseType {
             return false;
         }
 
+    }
+
+    /**
+     * @return a format string to compose an SQL query to change a column in DB.
+     */
+    protected String getChangeColumnTypeStructure() {
+        return null;
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public final String getChangeColumnTypeSQL(final String tableName, final String columnName, final String targetSqlType)
+    {
+        final String clauseStructure = getChangeColumnTypeStructure();
+        final String[] params = new String[] { tableName, columnName, targetSqlType };
+        return clauseStructure == null ? null : MessageFormat.format(clauseStructure, params);
     }
 }
 
