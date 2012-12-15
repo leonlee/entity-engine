@@ -178,8 +178,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     public final String getChangeColumnTypeSQL(final String tableName, final String columnName, final String targetSqlType)
     {
         final String clauseStructure = getChangeColumnTypeStructure();
-        final String[] params = new String[] { tableName, columnName, targetSqlType };
-        return clauseStructure == null ? null : MessageFormat.format(clauseStructure, params);
+        return clauseStructure == null ? null : MessageFormat.format(clauseStructure, tableName, columnName, targetSqlType);
     }
 }
 

@@ -32,6 +32,7 @@ import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.jdbc.dbtype.Oracle10GDatabaseType;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -49,6 +50,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -633,7 +635,7 @@ public class DatabaseUtil
             final int comma = fullTypeStr.indexOf(',');
 
             String typeName;
-            String oracleTypeNameExtension = null;
+            String oracleTypeNameExtension = "";
             int columnSize = -1;
             int decimalDigits = -1;
 
@@ -721,34 +723,32 @@ public class DatabaseUtil
                     if (errorMessage == null)
                     {
                         final String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                                entity.getEntityName() + "\" is of wrong type and has been promoted from \"" + ccInfo.typeName +
-                                (ccInfo.columnSize > 0 ? "(" + ccInfo.columnSize + ")" : "" ) +
+                                entity.getEntityName() + "\" is of wrong type and has been promoted from \"" + ccInfo.typeAsString() +
                                 "\" to \"" + fullTypeStr + "\".";
                         warn(message, messages);
                     }
                     else
                     {
                         error("Could not promote column \"" + ccInfo.columnName + "\" in table \"" + entity.getTableName(datasourceInfo) + "\" from type: \"" +
-                                ccInfo.typeName +
-                                (ccInfo.columnSize > 0 ? "(" + ccInfo.columnSize + ")" : "" ) +
-                                "\" to type: \"" + fullTypeStr + "\".", messages);
+                                ccInfo.typeAsString() + "\" to type: \"" + fullTypeStr + "\".", messages);
                         error(errorMessage, messages);
                     }
                 }
                 else
                 {
                     final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                            entity.getEntityName() + "\" is of type \"" + ccInfo.typeName + "\" in the database, but is defined as type \"" +
-                            typeName + "\" in the entity definition.";
+                            entity.getEntityName() + "\" is of type \"" + ccInfo.typeAsString() + "\" in the database, but is defined as type \"" +
+                            fullTypeStr + "\" in the entity definition.";
 
                     error(message, messages);
                 }
             }
             else
             {
-                final boolean oracleUnicodeWidening = detectOracleUnicodeWidening(typeName, ccInfo, oracleTypeNameExtension);
+                final boolean oracleUnicodeWidening = Oracle10GDatabaseType.detectUnicodeWidening(typeName, ccInfo, oracleTypeNameExtension);
+                final boolean columnWithOracleUnicode = Oracle10GDatabaseType.detectUnicodeExtension(ccInfo);
                 if (columnSize != -1 && ccInfo.columnSize != -1 &&
-                        (columnSize != ccInfo.columnSize || oracleUnicodeWidening))
+                        (columnSize != ccInfo.columnSize || oracleUnicodeWidening || (columnWithOracleUnicode && !"CHAR".equals(oracleTypeNameExtension))))
                 {
                     if (widen && decimalDigits == -1 && (columnSize > ccInfo.columnSize || oracleUnicodeWidening))
                     {
@@ -758,22 +758,21 @@ public class DatabaseUtil
                         {
                             final String message = "Column \"" + ccInfo.columnName + "\" of type \"" + typeName + "\" of table \"" +
                                     entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" is of wrong size and has been widened from " +
-                                    ccInfo.columnSize + " to " + columnSize +
-                                    (oracleUnicodeWidening ? "(CHAR)" : "") + ".";
+                                    ccInfo.typeAsString() + " to " + fullTypeStr + ".";
                             warn(message, messages);
                         }
                         else
                         {
                             error("Could not widen column \"" + ccInfo.columnName + "\" in table \"" + entity.getTableName(datasourceInfo) + "\" to size: " +
-                                    columnSize + ".", messages);
+                                    fullTypeStr + ".", messages);
                             error(errorMessage, messages);
                         }
                     }
                     else
                     {
                         final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
-                                entity.getEntityName() + "\" has a column size of \"" + ccInfo.columnSize +
-                                "\" in the database, but is defined to have a column size of \"" + columnSize + "\" in the entity definition.";
+                                entity.getEntityName() + "\" has a column size of \"" + ccInfo.typeAsString() +
+                                "\" in the database, but is defined to have a column size of \"" + fullTypeStr + "\" in the entity definition.";
 
                         warn(message, messages);
                     }
@@ -795,32 +794,6 @@ public class DatabaseUtil
 
             error(message, messages);
         }
-    }
-
-    /**
-     * Warning: dirty hacks!
-     * Detects oracle specific type extension. In oracle, VARCHAR2() type can be represented as:
-     * <dl>
-     *     <dt>VARCHAR2(x)</dt>
-     *     <dt>VARCHAR2(x BYTE)</dt>
-     *     <dd>Field with length in bytes, JDBC will attempt to put UTF-8 texts in there but lenght in characters cannot be
-     *     guaranteed.</dd>
-     *     <dt>VARCHAR(x CHAR)</dt>
-     *     <dd>Field with length in characters, handling Unicode.</dd>
-     * </dl>
-     * Unlike NVARCHAR2() the latter is Oracle specific and cannot be clearly seen through JDBC. The only difference is in
-     * the declared CHAR_OCTET_LENGTH of the field, which is 4 times the declared field size. This is used to detect those
-     * field types here.
-     * @param typeName the configured field type (general, without field size).
-     * @param ccInfo the JDBC supplied information on the column.
-     * @param oracleSpecificExtension the declared mode of the VARCHAR2 extension, possible: "BYTE", "CHAR" or null.
-     * @return true, if the column is an Oracle VARCHAR2 type column without Unicode support and the definition requires it.
-     */
-    private boolean detectOracleUnicodeWidening(final String typeName, final ColumnCheckInfo ccInfo, String oracleSpecificExtension)
-    {
-        return ("VARCHAR2".equals(typeName.toUpperCase())               // only possible for VARCHAR2.
-                && "CHAR".equals(oracleSpecificExtension)               // to widen "CHAR" must be required.
-                && (4 * ccInfo.columnSize != ccInfo.maxSizeInBytes));   // columns cannot be already widened.
     }
 
     /**
@@ -866,7 +839,7 @@ public class DatabaseUtil
                 return "Field type [" + type + "] not found for field [" + field.getName() + "] of entity [" + entity.getEntityName() + "], not changing column type.";
             }
 
-            DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection();
+            DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
             if(dbType == null)
             {
                 return "Failed to detect DB type.";
@@ -2679,6 +2652,25 @@ public class DatabaseUtil
         public int decimalDigits;
         public Boolean isNullable; // null = ie nobody knows
         public int maxSizeInBytes;
+
+        public String typeAsString()
+        {
+            if(columnSize > 0)
+            {
+                if(decimalDigits > 0)
+                {
+                    return String.format("%s(%d,%d)", typeName, columnSize, decimalDigits);
+                }
+                else
+                {
+                    return String.format("%s(%d%s)", typeName, columnSize, Oracle10GDatabaseType.detectUnicodeExtension(this) ? " CHAR": "");
+                }
+            }
+            else
+            {
+                return typeName;
+            }
+        }
     }
 
     public static class ReferenceCheckInfo

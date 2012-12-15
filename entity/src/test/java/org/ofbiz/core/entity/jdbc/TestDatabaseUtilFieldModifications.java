@@ -76,7 +76,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testWideningFieldsInOracle() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection())
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection))
                 .thenReturn(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -130,7 +130,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingType() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.HSQL);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.HSQL);
 
         // mock existing SQL type:
         columnInfo.columnSize = 20;
@@ -149,7 +149,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingOracleType() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
         columnInfo.columnSize = 40;
@@ -168,7 +168,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingOracleExtension() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
         columnInfo.columnSize = 40;
@@ -188,7 +188,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testDetectOracleUnicodeFields() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
         columnInfo.columnSize = 40;
@@ -252,7 +252,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testPromotingTypeRegardlessOfShortening() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
         columnInfo.columnSize = 20;
@@ -271,7 +271,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testSqlStatementCompositionOracleHsqldb() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.ORACLE_10G,
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.ORACLE_10G,
                 DatabaseTypeFactory.HSQL);
 
         // mock existing SQL type:
@@ -291,7 +291,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testSqlStatementCompositionMssqlMysql() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.MSSQL,
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.MSSQL,
                 DatabaseTypeFactory.MYSQL);
 
         // mock existing SQL type:
@@ -311,7 +311,7 @@ public class TestDatabaseUtilFieldModifications
     @Test
     public void testSqlStatementCompositionPostgresql() throws Exception
     {
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.POSTGRES_7_3);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.POSTGRES_7_3);
 
         // mock existing SQL type:
         columnInfo.columnSize = 234;
@@ -330,7 +330,7 @@ public class TestDatabaseUtilFieldModifications
     public void testMessagesWhenWideningIsDisabled() throws Exception
     {
         // pick an outdated DB type:
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(DatabaseTypeFactory.POSTGRES_7_2);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.POSTGRES_7_2);
 
         // mock existing SQL type:
         columnInfo.columnSize = 234;

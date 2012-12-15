@@ -383,13 +383,10 @@ public class DatasourceInfo
      * @return the database type.
      */
     public DatabaseType getDatabaseTypeFromJDBCConnection() {
-
-        Connection connection = null;
         try
         {
-            connection = ConnectionFactory.getConnection(name);
-            final DatabaseType typeForConnection = DatabaseTypeFactory.getTypeForConnection(connection);
-            return typeForConnection;
+            final Connection connection = ConnectionFactory.getConnection(name);
+            return getDatabaseTypeFromJDBCConnection(connection);
         }
         catch (Exception e)
         {
@@ -398,6 +395,15 @@ public class DatasourceInfo
             throw new GeneralRuntimeException(error, e);
         }
     }
+
+    /**
+     * Provides a database type (extracted to enable mocking)
+     * @return the database type.
+     */
+    public DatabaseType getDatabaseTypeFromJDBCConnection(Connection connection) {
+        return DatabaseTypeFactory.getTypeForConnection(connection);
+    }
+
 
 
     public JndiDatasourceInfo getJndiDatasource()
