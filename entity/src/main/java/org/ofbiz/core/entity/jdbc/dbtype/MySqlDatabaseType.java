@@ -10,6 +10,6 @@ public class MySqlDatabaseType extends SimpleDatabaseType
     @Override
     protected String getChangeColumnTypeStructure()
     {
-        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN;
+        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
     }
 }

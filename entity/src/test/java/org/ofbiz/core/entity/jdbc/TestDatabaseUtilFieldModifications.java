@@ -90,7 +90,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should be performed:
         verify(statement).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been widened")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("has been widened")));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("but is defined to have a column size of")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("but is defined to have a column size of")));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("but is defined to have a column size of")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("but is defined to have a column size of")));
     }
 
     @Test
@@ -143,7 +143,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should be performed:
         verify(statement).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been promoted")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("has been promoted")));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should be performed:
         verify(statement).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been promoted")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("has been promoted")));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should be performed:
         verify(statement).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been widened")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("has been widened")));
     }
 
     @Test
@@ -203,9 +203,9 @@ public class TestDatabaseUtilFieldModifications
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
         // no information on widening should be raised (field should be considered correct in DB):
-        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("but is defined to have a column size of"))));
-        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("has been widened"))));
-        Assert.assertThat(messages, Matchers.not(Matchers.contains(Matchers.containsString("Could not widen column"))));
+        Assert.assertThat(messages, Matchers.not(Matchers.<String>hasItem(Matchers.containsString("but is defined to have a column size of"))));
+        Assert.assertThat(messages, Matchers.not(Matchers.<String>hasItem(Matchers.containsString("has been widened"))));
+        Assert.assertThat(messages, Matchers.not(Matchers.<String>hasItem(Matchers.containsString("Could not widen column"))));
     }
 
 
@@ -223,7 +223,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("but is defined as type")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("but is defined as type")));
     }
 
 
@@ -241,7 +241,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("but is defined as type")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("but is defined as type")));
     }
 
     /**
@@ -265,7 +265,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should be performed:
         verify(statement).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.contains(Matchers.containsString("has been promoted")));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("has been promoted")));
     }
 
     @Test
@@ -343,7 +343,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.allOf(Matchers.hasItem(Matchers.containsString("Changing of column type is not supported"))));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("Changing of column type is not supported")));
 
         // check also widening:
         columnInfo.typeName = "NVARCHAR";
@@ -353,7 +353,7 @@ public class TestDatabaseUtilFieldModifications
 
         // update should not be performed:
         verify(statement, never()).executeUpdate(any(String.class));
-        Assert.assertThat(messages, Matchers.allOf(Matchers.hasItem(Matchers.containsString("Changing of column type is not supported"))));
+        Assert.assertThat(messages, Matchers.<String>hasItem(Matchers.containsString("Changing of column type is not supported")));
 
     }
 

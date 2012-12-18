@@ -50,7 +50,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -675,9 +674,10 @@ public class DatabaseUtil
                         // In Oracle, the VARCHAR2 can be represented as VARCHAR2(x) or VARCHAR2(x BYTE) for non-unicode,
                         // or VARCHAR2(x CHAR) for unicode.
                         final String[] splitSizeStr = fullColumnSizeStr.trim().split(" +");
-                        switch (splitSizeStr.length) {
+                        switch (splitSizeStr.length)
+                        {
                             case 2:
-                                if(splitSizeStr[1].matches("BYTE|CHAR"))
+                                if (splitSizeStr[1].matches("BYTE|CHAR"))
                                 {
                                     oracleTypeNameExtension = splitSizeStr[1];
                                 }
@@ -840,13 +840,14 @@ public class DatabaseUtil
             }
 
             DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
-            if(dbType == null)
+            if (dbType == null)
             {
                 return "Failed to detect DB type.";
             }
 
             String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), field.getColName(), type.getSqlType());
-            if(changeColumnTypeClause == null) {
+            if (changeColumnTypeClause == null)
+            {
                 return "Changing of column type is not supported in " + dbType.getName() + ".";
             }
 
@@ -1203,7 +1204,7 @@ public class DatabaseUtil
                     ccInfo.decimalDigits = rsCols.getInt("DECIMAL_DIGITS");
 
                     final String isNullableSqlResponse = rsCols.getString("IS_NULLABLE");
-                    if(isNullableSqlResponse != null && !isNullableSqlResponse.isEmpty())
+                    if (isNullableSqlResponse != null && !isNullableSqlResponse.isEmpty())
                     {
                         ccInfo.isNullable = "YES".equals(isNullableSqlResponse.toUpperCase()) ? Boolean.TRUE : Boolean.FALSE;
                     }
@@ -2655,15 +2656,15 @@ public class DatabaseUtil
 
         public String typeAsString()
         {
-            if(columnSize > 0)
+            if (columnSize > 0)
             {
-                if(decimalDigits > 0)
+                if (decimalDigits > 0)
                 {
                     return String.format("%s(%d,%d)", typeName, columnSize, decimalDigits);
                 }
                 else
                 {
-                    return String.format("%s(%d%s)", typeName, columnSize, Oracle10GDatabaseType.detectUnicodeExtension(this) ? " CHAR": "");
+                    return String.format("%s(%d%s)", typeName, columnSize, Oracle10GDatabaseType.detectUnicodeExtension(this) ? " CHAR" : "");
                 }
             }
             else

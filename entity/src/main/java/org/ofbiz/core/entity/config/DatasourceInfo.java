@@ -382,7 +382,8 @@ public class DatasourceInfo
      * Provides a database type.
      * @return the database type.
      */
-    public DatabaseType getDatabaseTypeFromJDBCConnection() {
+    public DatabaseType getDatabaseTypeFromJDBCConnection()
+    {
         try
         {
             final Connection connection = ConnectionFactory.getConnection(name);
@@ -400,7 +401,8 @@ public class DatasourceInfo
      * Provides a database type (extracted to enable mocking)
      * @return the database type.
      */
-    public DatabaseType getDatabaseTypeFromJDBCConnection(Connection connection) {
+    public DatabaseType getDatabaseTypeFromJDBCConnection(Connection connection)
+    {
         return DatabaseTypeFactory.getTypeForConnection(connection);
     }
 
