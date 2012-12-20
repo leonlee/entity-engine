@@ -122,8 +122,6 @@ public class DatabaseUtil
      * the configured helper name.
      *
      * @return the {@link java.sql.Connection}
-     * @throws SQLException
-     * @throws GenericEntityException
      */
     public Connection getConnection() throws SQLException, GenericEntityException
     {
@@ -627,90 +625,10 @@ public class DatabaseUtil
 
         if (modelFieldType != null)
         {
-            // make sure each corresponding column is of the correct type
-            final String fullTypeStr = modelFieldType.getSqlType();
-            final int openParen = fullTypeStr.indexOf('(');
-            final int closeParen = fullTypeStr.indexOf(')', openParen);
-            final int comma = fullTypeStr.indexOf(',');
-
-            String typeName;
-            String oracleTypeNameExtension = "";
-            int columnSize = -1;
-            int decimalDigits = -1;
-
-            if (openParen > 0 && closeParen > 0 && closeParen > openParen)
-            {
-                typeName = fullTypeStr.substring(0, openParen);
-                if (comma > 0 && comma > openParen && comma < closeParen)
-                {
-                    final String csStr = fullTypeStr.substring(openParen + 1, comma);
-
-                    try
-                    {
-                        columnSize = Integer.parseInt(csStr);
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        Debug.logError(e, module);
-                    }
-
-                    final String ddStr = fullTypeStr.substring(comma + 1, closeParen);
-
-                    try
-                    {
-                        decimalDigits = Integer.parseInt(ddStr);
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        Debug.logError(e, module);
-                    }
-                }
-                else
-                {
-                    final String fullColumnSizeStr = fullTypeStr.substring(openParen + 1, closeParen);
-
-                    try
-                    {
-                        // In Oracle, the VARCHAR2 can be represented as VARCHAR2(x) or VARCHAR2(x BYTE) for non-unicode,
-                        // or VARCHAR2(x CHAR) for unicode.
-                        final String[] splitSizeStr = fullColumnSizeStr.trim().split(" +");
-                        switch (splitSizeStr.length)
-                        {
-                            case 2:
-                                if (splitSizeStr[1].matches("BYTE|CHAR"))
-                                {
-                                    oracleTypeNameExtension = splitSizeStr[1];
-                                }
-                                else
-                                {
-                                    final String message = "Definition for column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) +
-                                            "\" of entity \"" + entity.getEntityName() + "\" has an invalid size extension \"" + splitSizeStr[1] +
-                                            "\" which will be ignored.";
-                                    warn(message, messages);
-                                }
-                            case 1:  // note: follow-through
-                                columnSize = Integer.parseInt(splitSizeStr[0]);
-                                break;
-                            default:
-                                throw new NumberFormatException("For input string: \"" + fullColumnSizeStr + "\"");
-                        }
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        Debug.logError(e, module);
-                    }
-                }
-            }
-            else
-            {
-                typeName = fullTypeStr;
-            }
-
-            // override the default typeName with the sqlTypeAlias if it is specified
-            if (UtilValidate.isNotEmpty(modelFieldType.getSqlTypeAlias()))
-            {
-                typeName = modelFieldType.getSqlTypeAlias();
-            }
+            final ColumnTypeParser parsedColumnType = new ColumnTypeParser(entity, ccInfo, messages, modelFieldType).invoke();
+            final String typeName = parsedColumnType.getTypeName();
+            final int decimalDigits = parsedColumnType.getDecimalDigits();
+            final String fullTypeStr = parsedColumnType.getFullTypeStr();
 
             if (!ccInfo.typeName.equals(typeName.toUpperCase()))
             {
@@ -745,19 +663,16 @@ public class DatabaseUtil
             }
             else
             {
-                final boolean oracleUnicodeWidening = Oracle10GDatabaseType.detectUnicodeWidening(typeName, ccInfo, oracleTypeNameExtension);
-                final boolean columnWithOracleUnicode = Oracle10GDatabaseType.detectUnicodeExtension(ccInfo);
-                if (columnSize != -1 && ccInfo.columnSize != -1 &&
-                        (columnSize != ccInfo.columnSize || oracleUnicodeWidening || (columnWithOracleUnicode && !"CHAR".equals(oracleTypeNameExtension))))
+                if (isTypeChangeNeeded(parsedColumnType))
                 {
-                    if (widen && decimalDigits == -1 && (columnSize > ccInfo.columnSize || oracleUnicodeWidening))
+                    if (isTypeChangeAllowed(parsedColumnType, widen))
                     {
                         // widen the field:
                         final String errorMessage = modifyColumnType(entity, field);
                         if (errorMessage == null)
                         {
                             final String message = "Column \"" + ccInfo.columnName + "\" of type \"" + typeName + "\" of table \"" +
-                                    entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" is of wrong size and has been widened from " +
+                                    entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" has different type definition and has been changed from " +
                                     ccInfo.typeAsString() + " to " + fullTypeStr + ".";
                             warn(message, messages);
                         }
@@ -794,6 +709,25 @@ public class DatabaseUtil
 
             error(message, messages);
         }
+    }
+
+    private boolean isTypeChangeAllowed(ColumnTypeParser type, boolean widen)
+    {
+        final boolean oracleUnicodeWidening = type.isOracle && Oracle10GDatabaseType.detectUnicodeWidening(type.typeName, type.ccInfo, type.typeNameExtension);
+        return widen && type.decimalDigits == -1 && (type.columnSize > type.ccInfo.columnSize || oracleUnicodeWidening);
+    }
+
+    private boolean isTypeChangeNeeded(ColumnTypeParser type)
+    {
+        boolean ret = type.columnSize != -1 && type.ccInfo.columnSize != -1 && (type.columnSize != type.ccInfo.columnSize);
+        if (ret || !type.isOracle)
+        {
+            return ret;
+        }
+        final boolean oracleUnicodeWidening = Oracle10GDatabaseType.detectUnicodeWidening(type.typeName, type.ccInfo, type.typeNameExtension);
+        final boolean columnWithOracleUnicode = Oracle10GDatabaseType.detectUnicodeExtension(type.ccInfo);
+        return ret | oracleUnicodeWidening || (columnWithOracleUnicode && !"CHAR".equals(type.typeNameExtension));
+
     }
 
     /**
@@ -2696,4 +2630,139 @@ public class DatabaseUtil
         }
     }
 
+    private class ColumnTypeParser
+    {
+        private final ModelEntity entity;
+        private final ColumnCheckInfo ccInfo;
+        private final Collection<String> messages;
+        private final ModelFieldType modelFieldType;
+        private final boolean isOracle;
+        private String fullTypeStr;
+        private String typeName;
+        private String typeNameExtension;
+        private int columnSize;
+        private int decimalDigits;
+
+        public ColumnTypeParser(ModelEntity entity, ColumnCheckInfo ccInfo, Collection<String> messages, ModelFieldType modelFieldType)
+        {
+            this.entity = entity;
+            this.ccInfo = ccInfo;
+            this.messages = messages;
+            this.modelFieldType = modelFieldType;
+            this.isOracle = datasourceInfo.getDatabaseTypeFromJDBCConnection() instanceof Oracle10GDatabaseType;
+        }
+
+        public String getFullTypeStr()
+        {
+            return fullTypeStr;
+        }
+
+        public String getTypeName()
+        {
+            return typeName;
+        }
+
+        public String getTypeNameExtension()
+        {
+            return typeNameExtension;
+        }
+
+        public int getColumnSize()
+        {
+            return columnSize;
+        }
+
+        public int getDecimalDigits()
+        {
+            return decimalDigits;
+        }
+
+        public ColumnTypeParser invoke()
+        {
+            // make sure each corresponding column is of the correct type
+            fullTypeStr = modelFieldType.getSqlType();
+            final int openParen = fullTypeStr.indexOf('(');
+            final int closeParen = fullTypeStr.indexOf(')', openParen);
+            final int comma = fullTypeStr.indexOf(',');
+
+            typeNameExtension = "";
+            columnSize = -1;
+            decimalDigits = -1;
+
+            if (openParen > 0 && closeParen > 0 && closeParen > openParen)
+            {
+                typeName = fullTypeStr.substring(0, openParen);
+                if (comma > 0 && comma > openParen && comma < closeParen)
+                {
+                    final String csStr = fullTypeStr.substring(openParen + 1, comma);
+
+                    try
+                    {
+                        columnSize = Integer.parseInt(csStr);
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        Debug.logError(e, module);
+                    }
+
+                    final String ddStr = fullTypeStr.substring(comma + 1, closeParen);
+
+                    try
+                    {
+                        decimalDigits = Integer.parseInt(ddStr);
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        Debug.logError(e, module);
+                    }
+                }
+                else
+                {
+                    final String fullColumnSizeStr = fullTypeStr.substring(openParen + 1, closeParen);
+
+                    try
+                    {
+                        // In Oracle, the VARCHAR2 can be represented as VARCHAR2(x) or VARCHAR2(x BYTE) for non-unicode,
+                        // or VARCHAR2(x CHAR) for unicode.
+                        final String[] splitSizeStr = fullColumnSizeStr.trim().split(" +");
+                        switch (splitSizeStr.length)
+                        {
+                            case 2:
+                                if (splitSizeStr[1].matches("BYTE|CHAR"))
+                                {
+                                    typeNameExtension = splitSizeStr[1];
+                                }
+                                else
+                                {
+                                    final String message = "Definition for column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) +
+                                            "\" of entity \"" + entity.getEntityName() + "\" has an invalid size extension \"" + splitSizeStr[1] +
+                                            "\" which will be ignored.";
+                                    warn(message, messages);
+                                }
+                            case 1:  // note: follow-through
+                                columnSize = Integer.parseInt(splitSizeStr[0]);
+                                break;
+                            default:
+                                throw new NumberFormatException("For input string: \"" + fullColumnSizeStr + "\"");
+                        }
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        Debug.logError(e, module);
+                    }
+                }
+            }
+            else
+            {
+                typeName = fullTypeStr;
+            }
+
+            // override the default typeName with the sqlTypeAlias if it is specified
+            if (UtilValidate.isNotEmpty(modelFieldType.getSqlTypeAlias()))
+            {
+                typeName = modelFieldType.getSqlTypeAlias();
+            }
+            return this;
+        }
+    }
 }
