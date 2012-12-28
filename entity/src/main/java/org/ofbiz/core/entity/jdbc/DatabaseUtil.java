@@ -2649,7 +2649,26 @@ public class DatabaseUtil
             this.ccInfo = ccInfo;
             this.messages = messages;
             this.modelFieldType = modelFieldType;
-            this.isOracle = datasourceInfo.getDatabaseTypeFromJDBCConnection() instanceof Oracle10GDatabaseType;
+            Connection connection=null;
+            boolean isOracle=false;
+            try
+            {
+                connection = getConnection();
+				final DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
+				isOracle = DatabaseTypeFactory.ORACLE_10G == dbType || DatabaseTypeFactory.ORACLE_8I == dbType;
+            }
+            catch (SQLException sqle)
+            {
+                error("Unable to establish a connection with the database... Error was: " + sqle.toString(), messages);
+            }
+            catch (GenericEntityException e)
+            {
+                error("Unable to establish a connection with the database... Error was: " + e.toString(), messages);
+            }finally {
+                cleanup(connection, (Statement)null);
+            }
+
+            this.isOracle = isOracle;
         }
 
         public String getFullTypeStr()

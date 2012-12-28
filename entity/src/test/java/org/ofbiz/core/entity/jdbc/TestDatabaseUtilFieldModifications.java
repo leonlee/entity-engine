@@ -2,6 +2,7 @@ package org.ofbiz.core.entity.jdbc;
 
 import org.hamcrest.Matchers;
 import org.hamcrest.collection.IsIterableWithSize;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +78,14 @@ public class TestDatabaseUtilFieldModifications
         messages = new ArrayList<String>();
     }
 
-    @Test
+	@After
+	public void tearDown() throws Exception {
+		//this method simply des not work
+		verify(datasourceInfo,never()).getDatabaseTypeFromJDBCConnection();
+
+	}
+
+	@Test
     public void testWideningFieldsInOracle() throws Exception
     {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
@@ -211,7 +219,6 @@ public class TestDatabaseUtilFieldModifications
     private void mockDataBase(DatabaseType databaseType)
     {
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(databaseType);
-        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
     }
 
     @Test
