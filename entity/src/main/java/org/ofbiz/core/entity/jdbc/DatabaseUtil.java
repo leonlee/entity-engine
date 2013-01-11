@@ -643,7 +643,7 @@ public class DatabaseUtil
                         final String message = "Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
                                 entity.getEntityName() + "\" is of wrong type and has been promoted from \"" + ccInfo.typeAsString() +
                                 "\" to \"" + fullTypeStr + "\".";
-                        warn(message, messages);
+                        important(message, messages);
                     }
                     else
                     {
@@ -674,7 +674,7 @@ public class DatabaseUtil
                             final String message = "Column \"" + ccInfo.columnName + "\" of type \"" + typeName + "\" of table \"" +
                                     entity.getTableName(datasourceInfo) + "\" of entity \"" + entity.getEntityName() + "\" has different type definition and has been changed from " +
                                     ccInfo.typeAsString() + " to " + fullTypeStr + ".";
-                            warn(message, messages);
+                            important(message, messages);
                         }
                         else
                         {
