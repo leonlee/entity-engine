@@ -69,6 +69,8 @@ public class EntityFindOptions implements java.io.Serializable {
     protected boolean distinct = false;
     /** maximum results to obtain from DB - negative values mean no limit */
     protected int maxResults = -1;
+    /** offset to return results from, defaults to 0 */
+    protected int offset = 0;
     protected int fetchSize = -1;
 
     /** Default constructor. Defaults are as follows:
@@ -327,6 +329,13 @@ public class EntityFindOptions implements java.io.Serializable {
     public EntityFindOptions fetchSize(int fetchSize)
     {
         this.fetchSize = fetchSize;
+        return this;
+    }
+
+    public EntityFindOptions range(int offset, int maxResults)
+    {
+        this.maxResults = maxResults;
+        this.offset = offset;
         return this;
     }
 }
