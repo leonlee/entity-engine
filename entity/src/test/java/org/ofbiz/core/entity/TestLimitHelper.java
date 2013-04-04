@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.ofbiz.core.entity.model.ModelField;
 
-import javax.swing.*;
 import java.util.*;
 
 import static org.mockito.Mockito.mock;
@@ -38,23 +37,39 @@ public class TestLimitHelper {
      *   <field-type name="sybase" loader="maincp" location="entitydefs/fieldtype-sybase.xml"/>
      *   <field-type name="db2" loader="maincp" location="entitydefs/fieldtype-db2.xml"/>
      */
+    private final String maxResults ="5";
+    private final String offset = "1";
     private final String sql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
-    private final Map<String, String> expectedResults = new HashMap<String, String>();
-    private final String topSql = "SELECT TOP 5 jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
+    private final Map<String, String> expectedLimitResults = new HashMap<String, String>();
+    private final Map<String, String> expectedLimitAndOffsetResults = new HashMap<String, String>();
+    private final String top = "SELECT TOP %s jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
+    private final String topSql = String.format(top, maxResults);
     private final String limitSql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC LIMIT 5";
-    private final String subQuerySql = "SELECT ID FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) WHERE ROWNUM <= 5";
+    private final String subQuery = "SELECT ID FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) WHERE ROWNUM <= ";
+    private final String subQuerySql = subQuery + maxResults;
+    private final String limitWithOffsetSql = "SELECT LIMIT 1 5 jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
+    private final String limitWithOffsetForPostgresSql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC LIMIT 5 OFFSET 1";
+    private final String limitWithOffsetForOracleSql = subQuery + maxResults + " MINUS " + subQuery + offset;
+    private final String limitWithOffsetForMSSQLSql = topSql + " EXCEPT " + String.format(top, offset);
     private final List<ModelField> emptyFields = new ArrayList<ModelField>();
     private final List<ModelField> idFields = new ArrayList<ModelField>();
 
     @Before
     public void setupMocks() {
-        expectedResults.put("hsql", topSql);
-        expectedResults.put("mysql", limitSql);
-        expectedResults.put("mssql",topSql);
-        expectedResults.put("oracle", subQuerySql);
-        expectedResults.put("oracle10g",subQuerySql);
-        expectedResults.put("postgres", limitSql);
-        expectedResults.put("postgres72", limitSql);
+        expectedLimitResults.put("hsql", topSql);
+        expectedLimitResults.put("mysql", limitSql);
+        expectedLimitResults.put("mssql", topSql);
+        expectedLimitResults.put("oracle", subQuerySql);
+        expectedLimitResults.put("oracle10g", subQuerySql);
+        expectedLimitResults.put("postgres", limitSql);
+        expectedLimitResults.put("postgres72", limitSql);
+        expectedLimitAndOffsetResults.put("hsql", limitWithOffsetSql);
+        expectedLimitAndOffsetResults.put("mysql", limitWithOffsetForPostgresSql);
+        expectedLimitAndOffsetResults.put("mssql", limitWithOffsetForMSSQLSql);
+        expectedLimitAndOffsetResults.put("oracle", limitWithOffsetForOracleSql);
+        expectedLimitAndOffsetResults.put("oracle10g", limitWithOffsetForOracleSql);
+        expectedLimitAndOffsetResults.put("postgres", limitWithOffsetForPostgresSql);
+        expectedLimitAndOffsetResults.put("postgres72", limitWithOffsetForPostgresSql);
         ModelField idField = mock(ModelField.class);
         when(idField.getColName()).thenReturn("jiraissue.ID");
         idFields.add(idField);
@@ -85,9 +100,9 @@ public class TestLimitHelper {
 
     @Test
     public void testSupportedFieldTypes() {
-        for (String fieldType : expectedResults.keySet()) {
+        for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType+" is supposed to return", expectedResults.get(fieldType), helper.addLimitClause(sql,idFields,5));
+            Assert.assertEquals(fieldType+" is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql,idFields,5));
         }
     }
     
@@ -98,9 +113,17 @@ public class TestLimitHelper {
     }
 
     @Test
+    public void testOffsetForSupportedFieldTypes() {
+        for (String fieldType : expectedLimitAndOffsetResults.keySet()) {
+            LimitHelper helper = new LimitHelper(fieldType);
+            Assert.assertEquals(fieldType+" is supposed to return", expectedLimitAndOffsetResults.get(fieldType), helper.addLimitClause(sql,idFields,1,5));
+        }
+    }
+
+    @Test
     public void testZeroOrNegativeMaxResultsDoesNotAffectQuery() {
         int maxResults = 0;
-        for (String fieldType : expectedResults.keySet()) {
+        for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
             Assert.assertEquals(fieldType+" is supposed to return", sql, helper.addLimitClause(sql,idFields,maxResults--));
         }
