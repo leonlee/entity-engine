@@ -1032,7 +1032,7 @@ public class GenericDAO {
         sqlBuilder.append(SqlJdbcUtil.makeOrderByClause(modelEntity, orderBy, datasourceInfo));
         String sql = sqlBuilder.toString();
         if (findOptions.getMaxResults() > 0) {
-            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getMaxResults());
+            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
         }
 
         SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);

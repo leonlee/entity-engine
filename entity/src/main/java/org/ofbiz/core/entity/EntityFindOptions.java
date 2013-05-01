@@ -169,6 +169,17 @@ public class EntityFindOptions implements java.io.Serializable {
         this.maxResults = maxResults;
     }
 
+    /**Specifies the number of rows to be skipped */
+    public int getOffset()
+    {
+        return offset;
+    }
+
+    public void setOffset(final int offset)
+    {
+        this.offset = offset;
+    }
+
     /** Specifies the value to use for the fetch size on the prepared statement.  Please
      * see the comments in {@link #setFetchSize(int)} for restrictions.
      */
