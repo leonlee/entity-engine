@@ -164,20 +164,27 @@ public class EntityFindOptions implements java.io.Serializable {
         return maxResults;
     }
 
-    /** Specifies the maximum number of results to be returned by the query. */
+    /** Specifies the maximum number of results to be returned by the query. Must be positive */
     public void setMaxResults(int maxResults) {
-        this.maxResults = maxResults;
+        if (maxResults > 0)
+        {
+            this.maxResults = maxResults;
+        }
     }
 
-    /**Specifies the number of rows to be skipped */
+    /**Gets the number of rows to be skipped */
     public int getOffset()
     {
         return offset;
     }
 
+    /** Specifies the number of rows to be skipped,  This is ignored if maxResults is not also set. Must be non negative */
     public void setOffset(final int offset)
     {
-        this.offset = offset;
+        if (offset >= 0)
+        {
+            this.offset = offset;
+        }
     }
 
     /** Specifies the value to use for the fetch size on the prepared statement.  Please

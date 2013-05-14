@@ -14,7 +14,7 @@ public class LimitHelper
 
     private final String databaseTypeName;
     private final int SELECT_OFFSET = 7;
-    private final String SUBQUERY_VARIABLE = "sq";
+    private final String SUBQUERY_VARIABLE = "_sq_";
 
     public LimitHelper(String databaseTypeName)
     {
@@ -40,7 +40,7 @@ public class LimitHelper
         }
         if (maxResults > 0)
         {
-            // mysql and postgres append LIMIT
+            // mysql and postgres append LIMIT, which is shorthand for return this many rows, so substitute with maxResults.
             if (databaseTypeName.equals("mysql") || databaseTypeName.startsWith("postgres"))
             {
                 sqlBuilder.append(sql);

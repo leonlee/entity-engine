@@ -32,12 +32,12 @@ public class TestLimitHelper {
      *   <field-type name="oracle" loader="maincp" location="entitydefs/fieldtype-oracle.xml"/>
      *   <field-type name="oracle10g" loader="maincp" location="entitydefs/fieldtype-oracle10g.xml"/>
      *   <field-type name="postgres" loader="maincp" location="entitydefs/fieldtype-postgres.xml"/>
-     *  <field-type name="postgres72" loader="maincp" location="entitydefs/fieldtype-postgres72.xml"/>   
-     *   
+     *  <field-type name="postgres72" loader="maincp" location="entitydefs/fieldtype-postgres72.xml"/>
+     *
      *    Unsupported types
      *   <field-type name="cloudscape" loader="maincp" location="entitydefs/fieldtype-cloudscape.xml"/>
      *   <field-type name="firebird" loader="maincp" location="entitydefs/fieldtype-firebird.xml"/>
-     *   <field-type name="mckoidb" loader="maincp" location="entitydefs/fieldtype-mckoidb.xml"/> 
+     *   <field-type name="mckoidb" loader="maincp" location="entitydefs/fieldtype-mckoidb.xml"/>
      *   <field-type name="sapdb" loader="maincp" location="entitydefs/fieldtype-sapdb.xml"/>
      *   <field-type name="sybase" loader="maincp" location="entitydefs/fieldtype-sybase.xml"/>
      *   <field-type name="db2" loader="maincp" location="entitydefs/fieldtype-db2.xml"/>
@@ -50,12 +50,12 @@ public class TestLimitHelper {
     private final String top = "SELECT TOP %s jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
     private final String topSql = String.format(top, maxResults);
     private final String limitSql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC LIMIT 5";
-    private final String limitSqlForMSSQL = "SELECT sq.ID FROM (SELECT jiraissue.ID, ROW_NUMBER() OVER (ORDER BY cg.CREATED DESC) rnum FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) )) sq WHERE sq.rnum <= 5";
-    private final String limitSqlForOracle = "SELECT sq.ID FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) sq WHERE ROWNUM <= 5";
+    private final String limitSqlForMSSQL = "SELECT _sq_.ID FROM (SELECT jiraissue.ID, ROW_NUMBER() OVER (ORDER BY cg.CREATED DESC) rnum FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) )) _sq_ WHERE _sq_.rnum <= 5";
+    private final String limitSqlForOracle = "SELECT _sq_.ID FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) _sq_ WHERE ROWNUM <= 5";
     private final String limitWithOffsetSql = "SELECT LIMIT 1 5 jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
     private final String limitWithOffsetForPostgresSql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC LIMIT 5 OFFSET 1";
-    private final String limitWithOffsetForOracleSql = "SELECT ID FROM (SELECT sq.ID,ROWNUM rnum FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) sq WHERE ROWNUM <= 6) WHERE rnum > 1";
-    private final String limitWithOffsetForMSSQLSql = "SELECT sq.ID FROM (SELECT jiraissue.ID, ROW_NUMBER() OVER (ORDER BY cg.CREATED DESC) rnum FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) )) sq WHERE sq.rnum <= 6 AND sq.rnum > 1";
+    private final String limitWithOffsetForOracleSql = "SELECT ID FROM (SELECT _sq_.ID,ROWNUM rnum FROM (SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC) _sq_ WHERE ROWNUM <= 6) WHERE rnum > 1";
+    private final String limitWithOffsetForMSSQLSql = "SELECT _sq_.ID FROM (SELECT jiraissue.ID, ROW_NUMBER() OVER (ORDER BY cg.CREATED DESC) rnum FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) )) _sq_ WHERE _sq_.rnum <= 6 AND _sq_.rnum > 1";
     private final List<ModelField> emptyFields = new ArrayList<ModelField>();
     private final List<ModelField> idFields = new ArrayList<ModelField>();
 
@@ -86,37 +86,37 @@ public class TestLimitHelper {
     public void testOracleProducesSensibleResultsForProvidedFields() {
         String sql = "SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a";
         LimitHelper helper = new LimitHelper("oracle");
-        ModelField field1 = mock(ModelField.class); 
-        ModelField field2 = mock(ModelField.class); 
-        ModelField field3 = mock(ModelField.class); 
-        ModelField field4 = mock(ModelField.class); 
+        ModelField field1 = mock(ModelField.class);
+        ModelField field2 = mock(ModelField.class);
+        ModelField field3 = mock(ModelField.class);
+        ModelField field4 = mock(ModelField.class);
         when(field1.getColName()).thenReturn("abc.a");
         when(field2.getColName()).thenReturn("A12.b");
         when(field3.getColName()).thenReturn("ABC.c");
         when(field4.getColName()).thenReturn("a12.D");
         List<ModelField> modelFields = Arrays.asList(field1, field2, field3, field4);
-        Assert.assertEquals("SELECT sq.a,sq.b,sq.c,sq.D FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq WHERE ROWNUM <= 5", helper.addLimitClause(sql, modelFields, 5));
+        Assert.assertEquals("SELECT _sq_.a,_sq_.b,_sq_.c,_sq_.D FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) _sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, modelFields, 5));
     }
 
     @Test
     public void TestOracleProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a";
         LimitHelper helper = new LimitHelper("oracle");
-        Assert.assertEquals("SELECT sq.* FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq WHERE ROWNUM <= 5", helper.addLimitClause(sql, emptyFields, 5));
+        Assert.assertEquals("SELECT _sq_.* FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) _sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, emptyFields, 5));
     }
 
     @Test
     public void TestOracleOffsetProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT * FROM jiraissue ORDER BY pkey";
         LimitHelper helper = new LimitHelper("oracle");
-        Assert.assertEquals("Oracle should produce sensible output","SELECT * FROM (SELECT sq.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) sq WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
+        Assert.assertEquals("Oracle should produce sensible output","SELECT * FROM (SELECT _sq_.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) _sq_ WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
     }
 
     @Test
     public void TestMSSQLOffsetProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT * FROM jiraissue ORDER BY pkey";
         LimitHelper helper = new LimitHelper("mssql");
-        Assert.assertEquals("MS SQL should produce sensible output", "SELECT sq.* FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY pkey) rnum FROM jiraissue) sq WHERE sq.rnum <= 6 AND sq.rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
+        Assert.assertEquals("MS SQL should produce sensible output", "SELECT _sq_.* FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY pkey) rnum FROM jiraissue) _sq_ WHERE _sq_.rnum <= 6 AND _sq_.rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
     }
 
     @Test
@@ -126,7 +126,7 @@ public class TestLimitHelper {
             Assert.assertEquals(fieldType+" is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql, idFields, 5));
         }
     }
-    
+
     @Test
     public void testUnsupportedFieldTypes() {
         exception.expect(IllegalArgumentException.class);
