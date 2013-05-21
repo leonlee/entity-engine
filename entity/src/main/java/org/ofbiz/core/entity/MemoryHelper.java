@@ -499,6 +499,17 @@ public class MemoryHelper implements GenericHelper {
         return removeAll(removeList);
     }
 
+    public int removeByCondition(final ModelEntity modelEntity, final EntityCondition whereCondition)
+            throws GenericEntityException
+    {
+        Map<GenericEntity, GenericValue> entityCache = cache.get(modelEntity.getEntityName());
+        if (entityCache == null) {
+            return 0;
+        }
+        List<GenericValue> foundValues = findByCondition(modelEntity, whereCondition, null, null);
+        return removeAll(foundValues);
+    }
+
     public int store(GenericValue value) throws GenericEntityException {
         if (addToCache(value)) {
             return 1;

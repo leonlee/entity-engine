@@ -133,6 +133,13 @@ public interface GenericHelper {
      */
     public int removeByAnd(ModelEntity modelEntity, Map<String, ?> fields) throws GenericEntityException;
 
+    /** Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
+     *@param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     *@param whereCondition The EntityCondition object that specifies how to constrain this query
+     *@return int representing number of rows effected by this operation
+     */
+    public int removeByCondition(ModelEntity modelEntity, EntityCondition whereCondition) throws GenericEntityException;
+
     /** Store the Entity from the GenericValue to the persistent store
      *@param value GenericValue instance containing the entity
      *@return int representing number of rows effected by this operation

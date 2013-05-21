@@ -25,6 +25,8 @@
 package org.ofbiz.core.entity;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.*;
@@ -86,6 +88,14 @@ public class GenericDAO {
         this.modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
         this.datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         this.limitHelper = new LimitHelper(datasourceInfo.getFieldTypeName());
+    }
+
+    @VisibleForTesting
+    GenericDAO(String helperName, ModelFieldTypeReader modelFieldTypeReader, DatasourceInfo datasourceInfo, LimitHelper limitHelper) {
+        this.helperName = helperName;
+        this.modelFieldTypeReader = modelFieldTypeReader;
+        this.datasourceInfo = datasourceInfo;
+        this.limitHelper = limitHelper;
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -1231,6 +1241,41 @@ public class GenericDAO {
             SqlJdbcUtil.setPkValues(sqlP, modelEntity, entity, modelFieldTypeReader);
             retVal = sqlP.executeUpdate();
             entity.modified = true;
+        } finally {
+            sqlP.close();
+        }
+        return retVal;
+    }
+
+    public int deleteByCondition(ModelEntity modelEntity, EntityCondition whereCondition) throws GenericEntityException {
+        if (modelEntity == null) {
+            throw new GenericModelException("Could not find ModelEntity record for entityName: " + modelEntity.getEntityName());
+        }
+        if (modelEntity instanceof ModelViewEntity) {
+            throw new org.ofbiz.core.entity.GenericNotImplementedException("Operation delete not supported yet for view entities");
+        }
+        String whereClause = "";
+        final LinkedList<EntityConditionParam> whereConditionParams = Lists.newLinkedList();
+        if (whereCondition != null)
+        {
+            whereClause = " WHERE " + whereCondition.makeWhereString(modelEntity, whereConditionParams);
+        }
+
+        String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + whereClause;
+
+        SQLProcessor sqlP = new AutoCommitSQLProcessor(helperName);
+
+        int retVal;
+
+        try {
+            sqlP.prepareStatement(sql);
+            if (whereCondition != null)
+            {
+                for (EntityConditionParam param : whereConditionParams) {
+                    SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(), modelFieldTypeReader);
+                }
+            }
+            retVal = sqlP.executeUpdate();
         } finally {
             sqlP.close();
         }

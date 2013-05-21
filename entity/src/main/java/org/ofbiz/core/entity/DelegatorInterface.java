@@ -155,6 +155,10 @@ public interface DelegatorInterface {
 
     int removeByAnd(String entityName, Map<String, ?> fields, boolean doCacheClear) throws GenericEntityException;
 
+    int removeByCondition(String entityName, EntityCondition entityCondition) throws GenericEntityException;
+
+    int removeByCondition(String entityName, EntityCondition entityCondition, boolean doCacheClear) throws GenericEntityException;
+
     List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo, List<String> orderBy) throws GenericEntityException;
 
     List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo) throws GenericEntityException;

@@ -193,6 +193,15 @@ public class GenericHelperDAO implements GenericHelper {
         return genericDAO.deleteByAnd(modelEntity, fields);
     }
 
+    public int removeByCondition(final ModelEntity modelEntity, final EntityCondition whereCondition)
+            throws GenericEntityException
+    {
+        if (modelEntity == null) {
+            return 0;
+        }
+        return genericDAO.deleteByCondition(modelEntity, whereCondition);
+    }
+
     /** Store the Entity from the GenericValue to the persistent store
      *@param value GenericValue instance containing the entity
      *@return int representing number of rows effected by this operation

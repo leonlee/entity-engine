@@ -1104,6 +1104,38 @@ public class GenericDelegator implements DelegatorInterface {
         return num;
     }
 
+    /** Removes/deletes Generic Entity records found by matching the EntityCondition
+     *@param entityName The Name of the Entity as defined in the entity XML file
+     *@param whereCondition The EntityCondition object that specifies how to constrain this query
+     *@return int representing number of rows effected by this operation
+     */
+    public int removeByCondition(final String entityName, final EntityCondition whereCondition)
+            throws GenericEntityException
+    {
+        return removeByCondition(entityName, whereCondition, true);
+    }
+
+    /** Removes/deletes Generic Entity records found by matching the EntityCondition
+     *@param entityName The Name of the Entity as defined in the entity XML file
+     *@param whereCondition The EntityCondition object that specifies how to constrain this query
+     *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
+     *@return int representing number of rows effected by this operation
+     */
+    public int removeByCondition(final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
+            throws GenericEntityException
+    {
+        //Todo :decide whether we need to eval ECA rules
+        ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
+        GenericHelper helper = getEntityHelper(entityName);
+
+        if (doCacheClear) {
+            // always clear cache before the operation
+            Collection<GenericValue> toBeDeleted = helper.findByCondition(modelEntity, whereCondition, null, null);
+            this.clearAllCacheLinesByValue(toBeDeleted);
+        }
+        return helper.removeByCondition(modelEntity, whereCondition);
+    }
+
     /**
      * Get the named Related Entity for the GenericValue from the persistent store across another Relation.
      * Helps to get related Values in a multi-to-multi relationship.
