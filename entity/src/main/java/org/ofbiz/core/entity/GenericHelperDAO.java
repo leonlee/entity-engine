@@ -250,4 +250,9 @@ public class GenericHelperDAO implements GenericHelper {
     public void checkDataSource(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) throws GenericEntityException {
         genericDAO.checkDb(modelEntities, messages, addMissing);
     }
+
+    public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+            final EntityFindOptions findOptions)  throws GenericEntityException {
+        return genericDAO.count(modelEntity, fieldName, entityCondition, findOptions);
+    }
 }

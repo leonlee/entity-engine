@@ -28,7 +28,14 @@ import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.eca.EntityEcaHandler;
-import org.ofbiz.core.entity.model.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelFieldType;
+import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.entity.model.ModelGroupReader;
+import org.ofbiz.core.entity.model.ModelKeyMap;
+import org.ofbiz.core.entity.model.ModelReader;
+import org.ofbiz.core.entity.model.ModelRelation;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilCache;
 import org.ofbiz.core.util.UtilMisc;
@@ -38,9 +45,18 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Generic Data Source Delegator Class
@@ -957,6 +973,75 @@ public class GenericDelegator implements DelegatorInterface {
         absorbList(list);
 
         return list;
+    }
+
+    /**
+     * Returns the count of the results that match all of the specified expressions (ie: combined using AND)
+     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
+     * distinct, in which case a select (distinct fieldname) is issued. <p>
+     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
+     *
+     * @return  the number of rows that match the query
+     */
+    public int countByAnd(final String entityName, final String fieldName, final List<? extends EntityCondition> expressions,
+            final EntityFindOptions findOptions) throws GenericEntityException {
+        final EntityConditionList ecl = (expressions != null) ? new EntityConditionList(expressions, EntityOperator.AND)
+                                                              : null;
+        return countByCondition(entityName, fieldName, ecl, findOptions);
+    }
+
+    /**
+     * Returns the count of the results that match any of the specified expressions (ie: combined using OR)
+     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
+     * distinct, in which case a select (distinct fieldname) is issued. <p>
+     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
+     *
+     * @return  the number of rows that match the query
+     */
+    public int countByOr(final String entityName, final String fieldName, final List<? extends EntityCondition> expressions,
+            final EntityFindOptions findOptions) throws GenericEntityException {
+        final EntityConditionList ecl = (expressions != null) ? new EntityConditionList(expressions, EntityOperator.OR)
+                : null;
+        return countByCondition(entityName, fieldName, ecl, findOptions);
+    }
+
+    /**
+     * Returns the count of the results that match any of the specified expressions (ie: combined using OR)
+     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param entityCondition The EntityCondition object that specifies how to constrain this query The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
+     * distinct, in which case a select (distinct fieldname) is issued. <p>
+     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
+     *
+     * @return  the number of rows that match the query
+     */
+    public int countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
+            final EntityFindOptions findOptions) throws GenericEntityException {
+
+        ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
+        if (entityCondition != null)
+        {
+            entityCondition.checkCondition(modelEntity);
+        }
+        GenericHelper helper = getEntityHelper(entityName);
+        return helper.count(modelEntity, fieldName, entityCondition, findOptions);
+    }
+
+    /**
+     * Returns the row count of the specified entity
+     * @param entityName The Name of the Entity as defined in the entity model XML file
+     *
+     * @return  the number of rows in the table
+     */
+    public int countAll(final String entityName)  throws GenericEntityException {
+        return countByCondition(entityName, null, null, null);
     }
 
     /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.

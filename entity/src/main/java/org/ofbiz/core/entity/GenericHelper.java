@@ -177,4 +177,18 @@ public interface GenericHelper {
      *@param addMissing Flag indicating whether or not to add missing entities and fields on the server
      */
     public void checkDataSource(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) throws GenericEntityException;
+
+    /**
+     * Returns the count of the results that matches the specified condition
+     *
+     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param entityCondition The EntityCondition object that specifies how to constrain this query The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
+* distinct, in which case a select (distinct fieldname) is issued. <p>
+* If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
+*    @return  the number of rows that match the query
+     */
+    int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition, final EntityFindOptions findOptions)
+            throws GenericEntityException;
 }

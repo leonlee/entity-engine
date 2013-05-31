@@ -24,6 +24,7 @@
 
 package org.ofbiz.core.entity;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.collections.comparators.ComparatorChain;
 import org.apache.commons.collections.comparators.ReverseComparator;
 import org.ofbiz.core.entity.comparator.OFBizFieldComparator;
@@ -548,5 +549,16 @@ public class MemoryHelper implements GenericHelper {
     }
 
     public void checkDataSource(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) throws GenericEntityException {
+    }
+
+    //Ignore Find Options for this implementation
+    public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+            final EntityFindOptions findOptions) throws GenericEntityException  {
+        Map<GenericEntity, GenericValue> entityCache = cache.get(modelEntity.getEntityName());
+        if (entityCache == null) {
+            return 0;
+        }
+        List<GenericValue> genericValues = this.findByCondition(modelEntity, entityCondition, Lists.newArrayList(fieldName), null);
+        return genericValues.size();
     }
 }

@@ -61,6 +61,7 @@ public class GenericDAO {
     protected ModelFieldTypeReader modelFieldTypeReader = null;
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
+    private final CountHelper countHelper;
 
     public static synchronized void removeGenericDAO(String helperName)
     {
@@ -88,14 +89,16 @@ public class GenericDAO {
         this.modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
         this.datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         this.limitHelper = new LimitHelper(datasourceInfo.getFieldTypeName());
+        this.countHelper = new CountHelper();
     }
 
     @VisibleForTesting
-    GenericDAO(String helperName, ModelFieldTypeReader modelFieldTypeReader, DatasourceInfo datasourceInfo, LimitHelper limitHelper) {
+    GenericDAO(String helperName, ModelFieldTypeReader modelFieldTypeReader, DatasourceInfo datasourceInfo, LimitHelper limitHelper, CountHelper countHelper) {
         this.helperName = helperName;
         this.modelFieldTypeReader = modelFieldTypeReader;
         this.datasourceInfo = datasourceInfo;
         this.limitHelper = limitHelper;
+        this.countHelper = countHelper;
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -1376,5 +1379,73 @@ public class GenericDAO {
         DatabaseUtil dbUtil = new DatabaseUtil(this.helperName);
 
         return dbUtil.induceModelFromDb(messages);
+    }
+
+    public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+            final EntityFindOptions findOptions) throws GenericEntityException{
+        int count = 0;
+        if (modelEntity == null) {
+            return count;
+        }
+        boolean distinct;
+        if (findOptions == null) {
+            distinct = false;
+        } else {
+            distinct = findOptions.getDistinct();
+        }
+        boolean verboseOn = Debug.verboseOn();
+
+        if (verboseOn) {
+            // put this inside an if statement so that we don't have to generate the string when not used...
+            Debug.logVerbose("Doing count with whereEntityCondition: " + entityCondition);
+        }
+        ModelField fieldToSelect =  modelEntity.getField(fieldName);
+        String columnName = null;
+        if (fieldToSelect != null)
+        {
+            columnName = fieldToSelect.getColName();
+        }
+        final String tableName = modelEntity.getTableName(datasourceInfo);
+        String entityCondWhereString = null;
+        List<EntityConditionParam> whereEntityConditionParams = new LinkedList<EntityConditionParam>();
+
+        if (entityCondition != null) {
+            entityCondWhereString = entityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
+        }
+        final String sql = countHelper.buildCountSelectStatement(tableName, columnName, entityCondWhereString, distinct);
+
+        SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
+
+        sqlP.prepareStatement(sql);
+        if (verboseOn) {
+            // put this inside an if statement so that we don't have to generate the string when not used...
+            Debug.logVerbose("Setting the whereEntityConditionParams: " + whereEntityConditionParams);
+        }
+        // set all of the values from the Where EntityCondition
+
+        for (EntityConditionParam param : whereEntityConditionParams) {
+            SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(), modelFieldTypeReader);
+        }
+        ResultSet resultSet = null;
+        try {
+            resultSet = sqlP.executeQuery();
+            if (resultSet.next()) {
+                count = resultSet.getInt(1);
+            }
+        }
+        catch (SQLException e) {
+            throw new GenericEntityException("SQL Exception while executing the following:" + sql, e);
+        }
+        finally {
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (SQLException ignore) {}
+            }
+            if (sqlP != null) {
+                sqlP.close();
+            }
+        }
+        return count;
     }
 }
