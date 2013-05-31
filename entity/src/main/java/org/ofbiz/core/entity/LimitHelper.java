@@ -14,7 +14,7 @@ public class LimitHelper
 
     private final String databaseTypeName;
     private final int SELECT_OFFSET = 7;
-    private final String SUBQUERY_VARIABLE = "_sq_";
+    private final String SUBQUERY_VARIABLE = "sq_";
 
     public LimitHelper(String databaseTypeName)
     {
