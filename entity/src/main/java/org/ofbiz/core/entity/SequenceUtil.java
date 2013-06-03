@@ -183,10 +183,10 @@ public class SequenceUtil {
             try {
                 connection = ConnectionFactory.getConnection(parentUtil.helperName);
             } catch (SQLException sqle) {
-                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to esablish a connection with the database... Error was:", module);
+                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
                 Debug.logWarning(sqle.getMessage(), module);
             } catch (GenericEntityException e) {
-                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to esablish a connection with the database... Error was:", module);
+                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
                 Debug.logWarning(e.getMessage(), module);
             }
 

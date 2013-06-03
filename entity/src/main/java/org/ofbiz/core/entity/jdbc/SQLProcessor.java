@@ -368,7 +368,7 @@ public class SQLProcessor
         }
         catch (SQLException sqle)
         {
-            throw new GenericDataSourceException("Unable to esablish a connection with the database.", sqle);
+            throw new GenericDataSourceException("Unable to establish a connection with the database.", sqle);
         }
 
         if (Debug.verboseOn())
