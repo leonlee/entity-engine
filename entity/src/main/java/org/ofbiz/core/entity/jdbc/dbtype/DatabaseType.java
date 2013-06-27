@@ -30,4 +30,13 @@ public interface DatabaseType {
      *  @return the SQL text to change the column, or {@code null}, if not supported.
      */
     String getChangeColumnTypeSQL(String tableName, String columnName, String targetSqlType);
+
+    /**
+     *  Builds a DB-specific SQL statement for dropping index.
+     *  @param schemaName the of the schema containing table.
+     *  @param tableName the name of the table to be changed.
+     *  @param indexName the name of the index to be dropped.
+     *  @return the SQL text to drop the index.
+     */
+    String getDropIndexSQL(String schemaName, String tableName, String indexName);
 }

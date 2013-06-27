@@ -2204,14 +2204,9 @@ public class DatabaseUtil
             return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
-        // TODO: also remove the constraint if this was a unique index, in most databases dropping the index does not drop the constraint
-
-        StringBuilder indexSqlBuf = new StringBuilder("DROP INDEX ");
-        indexSqlBuf.append(entity.getTableName(datasourceInfo));
-        indexSqlBuf.append(".");
-        indexSqlBuf.append(modelIndex.getName());
-
-        String deleteIndexSql = indexSqlBuf.toString();
+        final DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
+        final String deleteIndexSql = dbType.getDropIndexSQL(datasourceInfo.getSchemaName(),
+                entity.getPlainTableName(), modelIndex.getName());
 
         if (Debug.verboseOn())
         {

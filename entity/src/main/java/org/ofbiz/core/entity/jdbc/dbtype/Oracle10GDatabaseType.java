@@ -58,4 +58,9 @@ public class Oracle10GDatabaseType extends AbstractDatabaseType {
                 && (4 * ccInfo.columnSize == ccInfo.maxSizeInBytes));
     }
 
+    @Override
+    public String getDropIndexStructure()
+    {
+        return DROP_INDEX_SCHEMA_DOT_INDEX;
+    }
 }

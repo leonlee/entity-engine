@@ -12,6 +12,10 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN = "ALTER TABLE {0} ALTER COLUMN {1} {2}";
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY = "ALTER TABLE {0} MODIFY {1} {2}";
 
+    protected static final String DROP_INDEX_SCHEMA_DOT_INDEX = "DROP INDEX {schemaName_with_dot}{indexName}";
+    protected static final String DROP_INDEX_SCHEMA_DOT_TABLE_DOT_INDEX = "DROP INDEX {schemaName_with_dot}{tableName}.{indexName}";
+    protected static final String ALTER_TABLE_DROP_INDEX = "ALTER TABLE {schemaName_with_dot}{tableName} DROP INDEX {indexName}";
+
     /**
      * The name that should be used in entityengine.xml (eg. postgres72, oracle10g
      */
@@ -179,6 +183,30 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     {
         final String clauseStructure = getChangeColumnTypeStructure();
         return clauseStructure == null ? null : MessageFormat.format(clauseStructure, tableName, columnName, targetSqlType);
+    }
+
+    /**
+     * @return a format string to compose an SQL query to drop index in DB.
+     */
+    public String getDropIndexStructure()
+    {
+        return DROP_INDEX_SCHEMA_DOT_TABLE_DOT_INDEX;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String getDropIndexSQL(final String schemaName, final String tableName, final String indexName)
+    {
+        return getDropIndexStructure()
+                .replaceAll("\\{schemaName_with_dot}", appendDotIfNotEmpty(schemaName))
+                .replaceAll("\\{tableName}", tableName)
+                .replaceAll("\\{indexName}", indexName);
+    }
+
+    private String appendDotIfNotEmpty(final String schemaName)
+    {
+        return schemaName != null && !schemaName.isEmpty() ? schemaName + "." : "";
     }
 }
 

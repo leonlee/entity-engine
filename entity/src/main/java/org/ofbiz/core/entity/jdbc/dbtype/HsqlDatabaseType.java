@@ -12,4 +12,10 @@ public class HsqlDatabaseType extends SimpleDatabaseType
     {
         return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
     }
+
+    @Override
+    public String getDropIndexStructure()
+    {
+        return DROP_INDEX_SCHEMA_DOT_INDEX;
+    }
 }

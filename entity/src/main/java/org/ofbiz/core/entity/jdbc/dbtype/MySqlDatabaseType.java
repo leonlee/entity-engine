@@ -12,4 +12,10 @@ public class MySqlDatabaseType extends SimpleDatabaseType
     {
         return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
     }
+
+    @Override
+    public String getDropIndexStructure()
+    {
+        return ALTER_TABLE_DROP_INDEX;
+    }
 }

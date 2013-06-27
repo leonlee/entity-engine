@@ -23,4 +23,10 @@ public class Postgres73DatabaseType extends AbstractPostgresDatabaseType
     {
         return "ALTER TABLE {0} ALTER COLUMN {1} TYPE {2}";
     }
+
+    @Override
+    public String getDropIndexStructure()
+    {
+        return DROP_INDEX_SCHEMA_DOT_INDEX;
+    }
 }
