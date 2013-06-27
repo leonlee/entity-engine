@@ -299,7 +299,7 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
             @Override
-            Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
+            public Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
                 tableNamesReceived.set(tableNames);
                 if (includeUniqueReceived.get()) {
                     fail("unexpected second call (breaks test invariant)");
