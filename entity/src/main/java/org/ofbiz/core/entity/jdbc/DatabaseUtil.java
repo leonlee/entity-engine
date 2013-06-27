@@ -1346,7 +1346,7 @@ public class DatabaseUtil
      * @param includeUnique if true, the index info will include unique indexes which could include pk indexes.
      * @return a map of table names to sets of index names or null on failure.
      */
-    Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages, boolean includeUnique)
+    public Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages, boolean includeUnique)
     {
         Connection connection = null;
         try
