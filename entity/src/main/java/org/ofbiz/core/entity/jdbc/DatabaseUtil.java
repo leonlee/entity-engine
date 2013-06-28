@@ -1502,7 +1502,11 @@ public class DatabaseUtil
         // i.e
         // 'create table issues' will create table with name ISSUES and inside getIndexInfo 'ISSUES' must be used.
         // OFBiz does not put table names in quotes when it creates them thus for oracle they are always uppercased.
-        if (DatabaseTypeFactory.ORACLE_10G == dbType || DatabaseTypeFactory.ORACLE_8I == dbType)
+        //
+        // The same rule can be used for HSQLDB
+        if (DatabaseTypeFactory.ORACLE_10G == dbType
+                || DatabaseTypeFactory.ORACLE_8I == dbType
+                || DatabaseTypeFactory.HSQL == dbType)
         {
             rsCols = dbData.getIndexInfo(null, schemaName, tableName.toUpperCase(), false, true);
         }
