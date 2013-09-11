@@ -11,6 +11,7 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import static org.ofbiz.core.util.UtilValidate.isEmpty;
@@ -25,6 +26,7 @@ public class DatasourceInfo
     private final String name;
     private final String helperClass;
     private String fieldTypeName;
+    private DatabaseType databaseType;
 
     private JndiDatasourceInfo jndiDatasource;
     private Element tyrexDataSourceElement;
@@ -354,7 +356,15 @@ public class DatasourceInfo
     {
         try
         {
-            return getDatabaseTypeFromJDBCConnection().getSchemaName(ConnectionFactory.getConnection(name));
+            final Connection connection = ConnectionFactory.getConnection(name);
+            try
+            {
+                return getDatabaseTypeFromJDBCConnection().getSchemaName(connection);
+            }
+            finally
+            {
+                silentlyClose(connection);
+            }
         }
         catch (Exception e)
         {
@@ -384,17 +394,26 @@ public class DatasourceInfo
      */
     public DatabaseType getDatabaseTypeFromJDBCConnection()
     {
-        try
+        if (databaseType == null)
         {
-            final Connection connection = ConnectionFactory.getConnection(name);
-            return getDatabaseTypeFromJDBCConnection(connection);
+            Connection connection = null;
+            try
+            {
+                connection = ConnectionFactory.getConnection(name);
+                databaseType = getDatabaseTypeFromJDBCConnection(connection);
+            }
+            catch (Exception e)
+            {
+                String error = "Could not determine database type.";
+                Debug.logError(e, error);
+                throw new GeneralRuntimeException(error, e);
+            }
+            finally
+            {
+                silentlyClose(connection);
+            }
         }
-        catch (Exception e)
-        {
-            String error = "Could not determine database type.";
-            Debug.logError(e, error);
-            throw new GeneralRuntimeException(error, e);
-        }
+        return databaseType;
     }
 
     /**
@@ -486,5 +505,19 @@ public class DatasourceInfo
     public String getJoinStyle()
     {
         return joinStyle;
+    }
+
+    private void silentlyClose(final Connection connection)
+    {
+        if (connection != null) {
+            try
+            {
+                connection.close();
+            }
+            catch (SQLException e)
+            {
+                //ignore
+            }
+        }
     }
 }

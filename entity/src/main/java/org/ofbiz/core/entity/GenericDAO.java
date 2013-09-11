@@ -26,10 +26,17 @@ package org.ofbiz.core.entity;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.*;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.*;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
@@ -39,6 +46,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import javax.annotation.Nullable;
 
 /**
  * Generic Entity Data Access Object - Handles persisntence for any defined entity.
@@ -55,6 +63,7 @@ import java.util.*;
 public class GenericDAO {
 
     public static final String module = GenericDAO.class.getName();
+    public static final int ORACLE_MAX_LIST_SIZE = 1000;
 
     protected static Map<String, GenericDAO> genericDAOs = CopyOnWriteMap.newHashMap();
     protected String helperName;
@@ -947,6 +956,14 @@ public class GenericDAO {
 
         boolean verboseOn = Debug.verboseOn();
 
+        //JRA-19317: Oracle does not allow lists with more than 1000 elements ORA-01795
+        // if we are on Oracle we split such long lists into equivalent expression
+        // e.g. pid in (1, 2, 3, ..., 1000, 1001, 1002, ...) will be split into (pid in (1, 2, 3, ..., 1000) or pid in (1001, 1002, ...))
+        final DatabaseType databaseType = datasourceInfo.getDatabaseTypeFromJDBCConnection();
+        if (databaseType == DatabaseTypeFactory.ORACLE_8I || databaseType == DatabaseTypeFactory.ORACLE_10G) {
+            whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
+        }
+
         if (verboseOn) {
             // put this inside an if statement so that we don't have to generate the string when not used...
             Debug.logVerbose("Doing selectListIteratorByCondition with whereEntityCondition: " + whereEntityCondition);
@@ -1074,6 +1091,45 @@ public class GenericDAO {
         sqlP.executeQuery();
 
         return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+    }
+
+    static private EntityCondition rewriteConditionToSplitListsLargerThan(EntityCondition whereEntityCondition, final int maxListSize) {
+        if (conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(whereEntityCondition, maxListSize)) {
+            return transformConditionSplittingInClauseListsToChunksNoLongerThanMaxSize(whereEntityCondition, maxListSize);
+        } else {
+            return whereEntityCondition;
+        }
+    }
+
+    @VisibleForTesting
+    static boolean conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(EntityCondition whereEntityCondition, final int maxListSize) {
+        return !EntityConditionHelper.predicateTrueForEachLeafExpression(whereEntityCondition, Predicates.not(new Predicate<EntityExpr>() {
+            public boolean apply(EntityExpr input) {
+                return input.getOperator().equals(EntityOperator.IN) && input.getRhs() instanceof Collection && ((Collection<?>) input.getRhs()).size() > maxListSize;
+            }
+        }));
+    }
+
+    @VisibleForTesting
+    static EntityCondition transformConditionSplittingInClauseListsToChunksNoLongerThanMaxSize(EntityCondition whereEntityCondition, final int maxListSize) {
+        return EntityConditionHelper.transformCondition(whereEntityCondition, new Function<EntityExpr, EntityCondition>() {
+            public EntityCondition apply(final EntityExpr input) {
+                if (input.getOperator().equals(EntityOperator.IN) && input.getRhs() instanceof Collection && ((Collection<?>) input.getRhs()).size() > maxListSize) {
+                    //split into list of expressions
+                    final ImmutableList<EntityExpr> listOfExpressions = ImmutableList.copyOf(
+                            Iterables.transform(
+                                    Iterables.partition(((Collection<?>) input.getRhs()), maxListSize),
+                                    new Function<List<?>, EntityExpr>() {
+                                        public EntityExpr apply(@Nullable final List<?> list) {
+                                            return new EntityExpr((String) input.getLhs(), input.getOperator(), list);
+                                        }
+                                    }));
+                    return new EntityExprList(listOfExpressions, EntityOperator.OR);
+                } else {
+                    return input;
+                }
+            }
+        });
     }
 
     private void setFetchSize(final SQLProcessor sqlP, final int fetchSize)
