@@ -1,32 +1,40 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.atlassian.ofbiz</groupId>
-	<artifactId>entityengine-parent</artifactId>
-	<packaging>pom</packaging>
-	<version>1.0.40-SNAPSHOT</version>
-	<name>Atlassian OFBiz Fork</name>
-	<url>http://maven.apache.org</url>
+
 	<parent>
 		<groupId>com.atlassian.pom</groupId>
 		<artifactId>atlassian-public-pom</artifactId>
 		<version>27</version>
 	</parent>
-	<scm>
-		<connection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</connection>
-		<developerConnection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</developerConnection>
-		<url>https://bitbucket.org/atlassian/entity-engine</url>
-	</scm>
 
-    <modules>
-        <module>share</module>
-        <module>entity</module>
-    </modules>
+	<groupId>com.atlassian.ofbiz</groupId>
+	<artifactId>entityengine-parent</artifactId>
+	<version>1.0.40-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<name>Atlassian OFBiz Fork</name>
+	<url>http://maven.apache.org</url>
     <licenses>
         <license>
             <name>Apache 2</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
+
+    <modules>
+        <module>share</module>
+        <module>entity</module>
+    </modules>
+
+	<scm>
+		<connection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</connection>
+		<developerConnection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</developerConnection>
+		<url>https://bitbucket.org/atlassian/entity-engine</url>
+	</scm>
+
+    <properties>
+    </properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -41,6 +49,7 @@
             <scope>test</scope>
         </dependency>
 	</dependencies>
+
     <build>
         <plugins>
             <plugin>
