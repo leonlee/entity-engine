@@ -170,7 +170,13 @@ public class EntityOperator implements java.io.Serializable {
     }
 
     public boolean equals(Object obj) {
-        EntityOperator otherOper = (EntityOperator) obj;
-        return this.idInt == otherOper.idInt;
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof EntityOperator)) {
+            return false;
+        }
+        final EntityOperator otherOper = (EntityOperator) obj;
+        return this.idInt == otherOper.getId();
     }
 }
