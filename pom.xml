@@ -12,9 +12,9 @@
 		<version>27</version>
 	</parent>
 	<scm>
-		<connection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</connection>
-		<developerConnection>scm:svn:https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</developerConnection>
-		<url>https://svn.atlassian.com/svn/public/atlassian/entityengine/trunk</url>
+		<connection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</connection>
+		<developerConnection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</developerConnection>
+		<url>https://bitbucket.org/atlassian/entity-engine</url>
 	</scm>
 
     <modules>
