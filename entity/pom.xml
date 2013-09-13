@@ -22,7 +22,7 @@
         <dependency>
             <groupId>com.atlassian.ofbiz</groupId>
             <artifactId>entityengine-share</artifactId>
-            <version>${pom.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>jta</groupId>
