@@ -89,6 +89,12 @@ public class GenericDelegator implements DelegatorInterface {
      */
     protected static Map<String, GenericDelegator> delegatorCache = CopyOnWriteMap.newHashMap();
 
+    /**
+     * Factory method for a GenericDelegator with the given name.
+     *
+     * @param delegatorName the name of the server configuration that corresponds to this delegator
+     * @return null if there was a problem creating the instance
+     */
     public static GenericDelegator getGenericDelegator(final String delegatorName) {
         GenericDelegator delegator = delegatorCache.get(delegatorName);
 
@@ -146,6 +152,8 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Contructor is protected to enforce creation through the factory method.
+     *
+     * @param delegatorName the name of the server configuration that corresponds to this delegator
      */
     protected GenericDelegator(final String delegatorName) throws GenericEntityException {
         if (Debug.infoOn()) {
