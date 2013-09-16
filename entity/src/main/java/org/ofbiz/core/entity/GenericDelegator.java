@@ -20,7 +20,6 @@
  * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  */
 package org.ofbiz.core.entity;
 
@@ -45,6 +44,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,6 +58,21 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.xml.parsers.ParserConfigurationException;
 
+import static org.ofbiz.core.entity.EntityOperator.AND;
+import static org.ofbiz.core.entity.EntityOperator.LIKE;
+import static org.ofbiz.core.entity.EntityOperator.OR;
+import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_CACHE_CHECK;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_CACHE_CLEAR;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_CACHE_PUT;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_RETURN;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_RUN;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.EV_VALIDATE;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.OP_CREATE;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.OP_FIND;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.OP_REMOVE;
+import static org.ofbiz.core.entity.eca.EntityEcaHandler.OP_STORE;
+
 /**
  * Generic Data Source Delegator Class
  *
@@ -70,38 +85,23 @@ import javax.xml.parsers.ParserConfigurationException;
  * @version    $Revision: 1.3 $
  * @since      1.0
  */
+@SuppressWarnings("deprecation")
 public class GenericDelegator implements DelegatorInterface {
 
-    private static boolean isLocked = false;
-
+    // ------------------------------- Statics --------------------------------
+    
+    public static final String ECA_HANDLER_CLASS_NAME = "org.ofbiz.core.extentity.eca.DelegatorEcaHandler";
     public static final String module = GenericDelegator.class.getName();
 
-    /** the delegatorCache will now be a HashMap, allowing reload of definitions,
-     * but the delegator will always be the same object for the given name */
+    private static boolean isLocked;
+    
+    /**
+     * The delegatorCache will now be a HashMap, allowing reload of definitions,
+     * but the delegator will always be the same object for the given name.
+     */
     protected static Map<String, GenericDelegator> delegatorCache = CopyOnWriteMap.newHashMap();
-    protected String delegatorName;
-    protected EntityConfigUtil.DelegatorInfo delegatorInfo = null;
 
-    /** set this to true for better performance; set to false to be able to reload definitions at runtime throught the cache manager */
-    public final boolean keepLocalReaders = true;
-    protected ModelReader modelReader = null;
-    protected ModelGroupReader modelGroupReader = null;
-
-    protected UtilCache<GenericEntity, GenericValue> primaryKeyCache = null;
-    protected UtilCache<String, List<GenericValue>> allCache = null;
-    protected UtilCache<GenericPK, List<GenericValue>> andCache = null;
-
-    // keeps a list of field key sets used in the by and cache, a Set (of Sets of fieldNames) for each entityName
-    protected Map<String, Set<Set<String>>> andCacheFieldSets = new HashMap<String, Set<Set<String>>>();
-
-    protected DistributedCacheClear distributedCacheClear = null;
-
-    protected EntityEcaHandler entityEcaHandler = null;
-    public static final String ECA_HANDLER_CLASS_NAME = "org.ofbiz.core.extentity.eca.DelegatorEcaHandler";
-
-    protected SequenceUtil sequencer = null;
-
-    public static GenericDelegator getGenericDelegator(String delegatorName) {
+    public static GenericDelegator getGenericDelegator(final String delegatorName) {
         GenericDelegator delegator = delegatorCache.get(delegatorName);
 
         if (delegator == null) {
@@ -127,7 +127,7 @@ public class GenericDelegator implements DelegatorInterface {
         return delegator;
     }
 
-    public static synchronized void removeGenericDelegator(String delegatorName)
+    public static synchronized void removeGenericDelegator(final String delegatorName)
     {
         delegatorCache.remove(delegatorName);
     }
@@ -136,10 +136,36 @@ public class GenericDelegator implements DelegatorInterface {
         isLocked = true;
     }
 
-    /** Only allow creation through the factory method */
+    // ----------------------------- Non-statics ------------------------------
+
+    /**
+     * Set this to true for better performance; set to false to be able to
+     * reload definitions at runtime throught the cache manager.
+     */
+    public final boolean keepLocalReaders = true;
+    
+    protected DelegatorInfo delegatorInfo;
+    protected DistributedCacheClear distributedCacheClear;
+    protected EntityEcaHandler entityEcaHandler;
+    protected ModelGroupReader modelGroupReader;
+    protected ModelReader modelReader;
+    protected SequenceUtil sequencer;
+    protected String delegatorName;
+    protected UtilCache<GenericEntity, GenericValue> primaryKeyCache;
+    protected UtilCache<GenericPK, List<GenericValue>> andCache;
+    protected UtilCache<String, List<GenericValue>> allCache;
+
+    // keeps a list of field key sets used in the by and cache, a Set (of Sets of fieldNames) for each entityName
+    protected Map<String, Set<Set<String>>> andCacheFieldSets = new HashMap<String, Set<Set<String>>>();
+
+    /** 
+     * Contructor is protected to enforce creation through the factory method.
+     */
     protected GenericDelegator() {}
 
-    /** Only allow creation through the factory method */
+    /**
+     * Contructor is protected to enforce creation through the factory method.
+     */
     protected GenericDelegator(String delegatorName) throws GenericEntityException {
         if (Debug.infoOn()) Debug.logInfo("Creating new Delegator with name \"" + delegatorName + "\".", module);
 
@@ -167,7 +193,9 @@ public class GenericDelegator implements DelegatorInterface {
             if (helperName != null && helperName.length() > 0) {
                 // make sure each helper is only loaded once
                 if (helpersDone.contains(helperName)) {
-                    if (Debug.infoOn()) Debug.logInfo("Helper \"" + helperName + "\" already initialized, not re-initializing.", module);
+                    if (Debug.infoOn()) {
+                        Debug.logInfo("Helper \"" + helperName + "\" already initialized, not re-initializing.", module);
+                    }
                     continue;
                 }
                 helpersDone.add(helperName);
@@ -179,9 +207,13 @@ public class GenericDelegator implements DelegatorInterface {
                 DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
                 if (datasourceInfo.isCheckOnStart()) {
-                    if (Debug.infoOn()) Debug.logInfo("Doing database check as requested in entityengine.xml with addMissing=" + datasourceInfo.isAddMissingOnStart(), module);
+                    if (Debug.infoOn()) {
+                        Debug.logInfo("Doing database check as requested in entityengine.xml with addMissing=" +
+                                datasourceInfo.isAddMissingOnStart(), module);
+                    }
                     try {
-                        helper.checkDataSource(this.getModelEntityMapByGroup(groupName), null, datasourceInfo.isAddMissingOnStart());
+                        helper.checkDataSource(this.getModelEntityMapByGroup(groupName), null,
+                                datasourceInfo.isAddMissingOnStart());
                     } catch (GenericEntityException e) {
                         Debug.logWarning(e.getMessage(), module);
                     }
@@ -204,13 +236,17 @@ public class GenericDelegator implements DelegatorInterface {
                 this.distributedCacheClear = (DistributedCacheClear) dccClass.newInstance();
                 this.distributedCacheClear.setDelegator(this, getDelegatorInfo().distributedCacheClearUserLoginId);
             } catch (ClassNotFoundException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName + " was not found, distributed cache clearing will be disabled");
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " was not found, distributed cache clearing will be disabled");
             } catch (InstantiationException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName + " could not be instantiated, distributed cache clearing will be disabled");
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " could not be instantiated, distributed cache clearing will be disabled");
             } catch (IllegalAccessException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName + " could not be accessed (illegal), distributed cache clearing will be disabled");
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " could not be accessed (illegal), distributed cache clearing will be disabled");
             } catch (ClassCastException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName + " does not implement the DistributedCacheClear interface, distributed cache clearing will be disabled");
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " does not implement the DistributedCacheClear interface, distributed cache clearing will be disabled");
             }
         }
 
@@ -220,32 +256,40 @@ public class GenericDelegator implements DelegatorInterface {
             this.entityEcaHandler = (EntityEcaHandler) eecahClass.newInstance();
             this.entityEcaHandler.setDelegator(this);
         } catch (ClassNotFoundException e) {
-            //Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME + " was not found, Entity ECA Rules will be disabled");
+            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME +
+                    " could not be loaded, Entity ECA Rules will be disabled");
         } catch (InstantiationException e) {
-            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME + " could not be instantiated, Entity ECA Rules will be disabled");
+            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME +
+                    " could not be instantiated, Entity ECA Rules will be disabled");
         } catch (IllegalAccessException e) {
-            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME + " could not be accessed (illegal), Entity ECA Rules will be disabled");
+            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME +
+                    " could not be accessed (illegal), Entity ECA Rules will be disabled");
         } catch (ClassCastException e) {
-            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME + " does not implement the EntityEcaHandler interface, Entity ECA Rules will be disabled");
+            Debug.logWarning(e, "EntityEcaHandler class with name " + ECA_HANDLER_CLASS_NAME +
+                    " does not implement the EntityEcaHandler interface, Entity ECA Rules will be disabled");
         }
     }
 
-    /** Gets the name of the server configuration that corresponds to this delegator
+    /**
+     * Gets the name of the server configuration that corresponds to this delegator.
+     * 
      * @return server configuration name
      */
     public String getDelegatorName() {
         return this.delegatorName;
     }
 
-    protected EntityConfigUtil.DelegatorInfo getDelegatorInfo() {
+    protected DelegatorInfo getDelegatorInfo() {
         if (delegatorInfo == null) {
             delegatorInfo = EntityConfigUtil.getInstance().getDelegatorInfo(this.delegatorName);
         }
         return delegatorInfo;
     }
 
-    /** Gets the instance of ModelReader that corresponds to this delegator
-     *@return ModelReader that corresponds to this delegator
+    /**
+     * Gets the instance of ModelReader that corresponds to this delegator.
+     * 
+     * @return ModelReader that corresponds to this delegator
      */
     public ModelReader getModelReader() {
         if (keepLocalReaders) {
@@ -260,8 +304,10 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Gets the instance of ModelGroupReader that corresponds to this delegator
-     *@return ModelGroupReader that corresponds to this delegator
+    /**
+     * Gets the instance of ModelGroupReader that corresponds to this delegator.
+     * 
+     * @return ModelGroupReader that corresponds to this delegator
      */
     public ModelGroupReader getModelGroupReader() {
         if (keepLocalReaders) {
@@ -276,9 +322,11 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Gets the instance of ModelEntity that corresponds to this delegator and the specified entityName
-     *@param entityName The name of the entity to get
-     *@return ModelEntity that corresponds to this delegator and the specified entityName
+    /**
+     * Gets the instance of ModelEntity that corresponds to this delegator and the specified entityName.
+     * 
+     * @param entityName The name of the entity to get
+     * @return ModelEntity that corresponds to this delegator and the specified entityName
      */
     public ModelEntity getModelEntity(String entityName) {
         try {
@@ -289,17 +337,21 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Gets the helper name that corresponds to this delegator and the specified entityName
-     *@param entityName The name of the entity to get the helper for
-     *@return String with the helper name that corresponds to this delegator and the specified entityName
+    /**
+     * Gets the helper name that corresponds to this delegator and the specified entityName.
+     * 
+     * @param entityName The name of the entity to get the helper for
+     * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getEntityGroupName(String entityName) {
         return getModelGroupReader().getEntityGroupName(entityName);
     }
 
-    /** Gets a list of entity models that are in a group corresponding to the specified group name
-     *@param groupName The name of the group
-     *@return List of ModelEntity instances
+    /**
+     * Gets a list of entity models that are in a group corresponding to the specified group name.
+     *
+     * @param groupName The name of the group
+     * @return List of ModelEntity instances
      */
     public List<ModelEntity> getModelEntitiesByGroup(String groupName) {
         final Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
@@ -317,9 +369,11 @@ public class GenericDelegator implements DelegatorInterface {
         return entities;
     }
 
-    /** Gets a Map of entity name & entity model pairs that are in the named group
-     *@param groupName The name of the group
-     *@return Map of entityName String keys and ModelEntity instance values
+    /**
+     * Gets a Map of entity name & entity model pairs that are in the named group.
+     *
+     * @param groupName The name of the group
+     * @return Map of entityName String keys and ModelEntity instance values
      */
     public Map<String, ModelEntity> getModelEntityMapByGroup(String groupName) {
         Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
@@ -341,7 +395,8 @@ public class GenericDelegator implements DelegatorInterface {
                 }
             } catch (GenericEntityException ex) {
                 errorCount++;
-                Debug.logError("Entity " + ename + " named in Entity Group with name " + groupName + " are not defined in any Entity Definition file");
+                Debug.logError("Entity " + ename + " named in Entity Group with name " + groupName +
+                        " are not defined in any Entity Definition file");
             }
         }
 
@@ -352,120 +407,149 @@ public class GenericDelegator implements DelegatorInterface {
         return entities;
     }
 
-    /** Gets the helper name that corresponds to this delegator and the specified entityName
-     *@param groupName The name of the group to get the helper name for
-     *@return String with the helper name that corresponds to this delegator and the specified entityName
+    /**
+     * Gets the helper name that corresponds to this delegator and the specified entityName.
+     *
+     * @param groupName The name of the group to get the helper name for
+     * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
-    public String getGroupHelperName(String groupName) {
-        EntityConfigUtil.DelegatorInfo delegatorInfo = this.getDelegatorInfo();
-
+    public String getGroupHelperName(final String groupName) {
+        DelegatorInfo delegatorInfo = this.getDelegatorInfo();
         return delegatorInfo.groupMap.get(groupName);
     }
 
-    /** Gets the helper name that corresponds to this delegator and the specified entityName
-     *@param entityName The name of the entity to get the helper name for
-     *@return String with the helper name that corresponds to this delegator and the specified entityName
+    /**
+     * Gets the helper name that corresponds to this delegator and the specified entityName.
+     * 
+     * @param entityName The name of the entity to get the helper name for
+     * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
-    public String getEntityHelperName(String entityName) {
-        String groupName = getModelGroupReader().getEntityGroupName(entityName);
-
+    public String getEntityHelperName(final String entityName) {
+        final String groupName = getModelGroupReader().getEntityGroupName(entityName);
         return this.getGroupHelperName(groupName);
     }
 
-    /** Gets the helper name that corresponds to this delegator and the specified entity
-     *@param entity The entity to get the helper for
-     *@return String with the helper name that corresponds to this delegator and the specified entity
+    /**
+     * Gets the helper name that corresponds to this delegator and the specified entity.
+     * 
+     * @param entity The entity to get the helper for
+     * @return String with the helper name that corresponds to this delegator and the specified entity
      */
-    public String getEntityHelperName(ModelEntity entity) {
-        if (entity == null)
+    public String getEntityHelperName(final ModelEntity entity) {
+        if (entity == null) {
             return null;
+        }
         return getEntityHelperName(entity.getEntityName());
     }
 
-    /** Gets the an instance of helper that corresponds to this delegator and the specified entityName
-     *@param entityName The name of the entity to get the helper for
-     *@return GenericHelper that corresponds to this delegator and the specified entityName
+    /**
+     * Gets the helper that corresponds to this delegator and the specified entityName.
+     * 
+     * @param entityName The name of the entity to get the helper for
+     * @return GenericHelper that corresponds to this delegator and the specified entityName
      */
-    public GenericHelper getEntityHelper(String entityName) throws GenericEntityException {
-        String helperName = getEntityHelperName(entityName);
-
-        if (helperName != null && helperName.length() > 0)
+    public GenericHelper getEntityHelper(final String entityName) throws GenericEntityException {
+        final String helperName = getEntityHelperName(entityName);
+        if (helperName != null && helperName.length() > 0) {
             return GenericHelperFactory.getHelper(helperName);
-        else
-            throw new GenericEntityException("Helper name not found for entity " + entityName);
+        }
+        throw new GenericEntityException("Helper name not found for entity " + entityName);
     }
 
-    /** Gets the an instance of helper that corresponds to this delegator and the specified entity
-     *@param entity The entity to get the helper for
-     *@return GenericHelper that corresponds to this delegator and the specified entity
+    /**
+     * Gets the helper that corresponds to this delegator and the specified entity.
+     * 
+     * @param entity The entity for which to get the helper (required)
+     * @return GenericHelper that corresponds to this delegator and the specified entity
      */
-    public GenericHelper getEntityHelper(ModelEntity entity) throws GenericEntityException {
+    public GenericHelper getEntityHelper(final ModelEntity entity) throws GenericEntityException {
         return getEntityHelper(entity.getEntityName());
     }
 
-    /** Gets a field type instance by name from the helper that corresponds to the specified entity
-     *@param entity The entity
-     *@param type The name of the type
-     *@return ModelFieldType instance for the named type from the helper that corresponds to the specified entity
+    /**
+     * Gets a field type instance by name from the helper that corresponds to the specified entity.
+     *
+     * @param entity The entity
+     * @param type The name of the type
+     * @return ModelFieldType instance for the named type from the helper that corresponds to the specified entity
      */
-    public ModelFieldType getEntityFieldType(ModelEntity entity, String type) throws GenericEntityException {
-        String helperName = getEntityHelperName(entity);
-
-        if (helperName == null || helperName.length() <= 0)
+    public ModelFieldType getEntityFieldType(final ModelEntity entity, final String type) throws GenericEntityException {
+        final String helperName = getEntityHelperName(entity);
+        if (helperName == null || helperName.length() == 0) {
             return null;
+        }
         ModelFieldTypeReader modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
 
         if (modelFieldTypeReader == null) {
-            throw new GenericEntityException("ModelFieldTypeReader not found for entity " + entity.getEntityName() + " with helper name " + helperName);
+            throw new GenericEntityException("ModelFieldTypeReader not found for entity " + entity.getEntityName() +
+                    " with helper name " + helperName);
         }
         return modelFieldTypeReader.getModelFieldType(type);
     }
 
-    /** Gets field type names from the helper that corresponds to the specified entity
-     *@param entity The entity
-     *@return Collection of field type names from the helper that corresponds to the specified entity
+    /**
+     * Gets field type names from the helper that corresponds to the specified entity.
+     *
+     * @param entity The entity
+     * @return Collection of field type names from the helper that corresponds to the specified entity
      */
-    public Collection<String> getEntityFieldTypeNames(ModelEntity entity) throws GenericEntityException {
-        String helperName = getEntityHelperName(entity);
-
-        if (helperName == null || helperName.length() <= 0)
+    public Collection<String> getEntityFieldTypeNames(final ModelEntity entity) throws GenericEntityException {
+        final String helperName = getEntityHelperName(entity);
+        if (helperName == null || helperName.length() == 0) {
             return null;
+        }
         ModelFieldTypeReader modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
 
         if (modelFieldTypeReader == null) {
-            throw new GenericEntityException("ModelFieldTypeReader not found for entity " + entity.getEntityName() + " with helper name " + helperName);
+            throw new GenericEntityException("ModelFieldTypeReader not found for entity " + entity.getEntityName() +
+                    " with helper name " + helperName);
         }
         return modelFieldTypeReader.getFieldTypeNames();
     }
 
-    /** Creates a Entity in the form of a GenericValue without persisting it */
-    public GenericValue makeValue(String entityName, Map<String, ?> fields) {
-        ModelEntity entity = this.getModelEntity(entityName);
-
+    /**
+     * Creates a Entity in the form of a GenericValue without persisting it.
+     *
+     * @param entityName the type of entity to create (must exist in the model)
+     * @param fields the entity fields and their values (can be null)
+     * @return the created value
+     */
+    public GenericValue makeValue(final String entityName, final Map<String, ?> fields) {
+        final ModelEntity entity = this.getModelEntity(entityName);
         if (entity == null) {
-            throw new IllegalArgumentException("[GenericDelegator.makeValue] could not find entity for entityName: " + entityName);
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.makeValue] could not find entity for entityName: " + entityName);
         }
-        GenericValue value = new GenericValue(this, entity, fields);
-        return value;
+        return new GenericValue(this, entity, fields);
     }
 
-    /** Creates a Primary Key in the form of a GenericPK without persisting it */
-    public GenericPK makePK(String entityName, Map<String, ?> fields) {
+    /**
+     * Creates a Primary Key in the form of a GenericPK without persisting it.
+     *
+     * @param entityName the type of entity for which to create a PK (must exist in the model)
+     * @param fields the primary key fields and their values (can be null)
+     * @return the created PK
+     */
+    public GenericPK makePK(final String entityName, final Map<String, ?> fields) {
         ModelEntity entity = this.getModelEntity(entityName);
 
         if (entity == null) {
-            throw new IllegalArgumentException("[GenericDelegator.makePK] could not find entity for entityName: " + entityName);
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.makePK] could not find entity for entityName: " + entityName);
         }
-        GenericPK pk = new GenericPK(entity, fields);
-
+        final GenericPK pk = new GenericPK(entity, fields);
         pk.setDelegator(this);
         return pk;
     }
 
-    /** Creates a Entity in the form of a GenericValue and write it to the database
-     *@return GenericValue instance containing the new instance
+    /**
+     * Creates a Entity in the form of a GenericValue and write it to the database.
+     *
+     * @param entityName the type of entity to create (if null, this method does nothing)
+     * @param fields the field values to use (if null, this method does nothing)
+     * @return the created instance
      */
-    public GenericValue create(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public GenericValue create(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
         if (entityName == null || fields == null) {
             return null;
         }
@@ -475,30 +559,28 @@ public class GenericDelegator implements DelegatorInterface {
         return this.create(genericValue, true);
     }
 
-    /** Creates a Entity in the form of a GenericValue and write it to the datasource
-     *@param value The GenericValue to create a value in the datasource from
-     *@return GenericValue instance containing the new instance
+    /**
+     * Creates a Entity in the form of a GenericValue and write it to the datasource.
+     *
+     * @param value The GenericValue to create a value in the datasource from
+     * @return GenericValue instance containing the new instance
      */
-    public GenericValue create(GenericValue value) throws GenericEntityException {
+    public GenericValue create(final GenericValue value) throws GenericEntityException {
         return this.create(value, true);
     }
 
-    /** Creates a Entity in the form of a GenericValue and write it to the datasource
-     *@param value The GenericValue to create a value in the datasource from
-     *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return GenericValue instance containing the new instance
+    /**
+     * Creates a Entity in the form of a GenericValue and write it to the datasource.
+     *
+     * @param value The GenericValue from which to create a value in the datasource (required)
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
+     * @return GenericValue instance containing the new instance
      */
-    public GenericValue create(GenericValue value, boolean doCacheClear) throws GenericEntityException {
+    public GenericValue create(GenericValue value, final boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
-
-        if (value == null) {
-            throw new IllegalArgumentException("Cannot create a null value");
-        }
+        this.evalEcaRules(EV_VALIDATE, OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
         GenericHelper helper = getEntityHelper(value.getEntityName());
-
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
-
+        this.evalEcaRules(EV_RUN, OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
         value.setDelegator(this);
         value = helper.create(value);
 
@@ -508,124 +590,148 @@ public class GenericDelegator implements DelegatorInterface {
                 refresh(value, doCacheClear);
             } else {
                 if (doCacheClear) {
-                    this.evalEcaRules(EntityEcaHandler.EV_CACHE_CLEAR, EntityEcaHandler.OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
+                    this.evalEcaRules(EV_CACHE_CLEAR, OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
                     this.clearCacheLine(value);
                 }
             }
         }
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_CREATE, value, ecaEventMap, (ecaEventMap == null), false);
         return value;
     }
 
-    /** Creates a Entity in the form of a GenericValue and write it to the datasource
-     *@param primaryKey The GenericPK to create a value in the datasource from
-     *@return GenericValue instance containing the new instance
+    /**
+     * Creates a Entity in the form of a GenericValue and write it to the datasource.
+     *
+     * @param primaryKey The GenericPK to create a value in the datasource from
+     * @return GenericValue instance containing the new instance
      */
-    public GenericValue create(GenericPK primaryKey) throws GenericEntityException {
+    public GenericValue create(final GenericPK primaryKey) throws GenericEntityException {
         return this.create(primaryKey, true);
     }
 
-    /** Creates a Entity in the form of a GenericValue and write it to the datasource
-     *@param primaryKey The GenericPK to create a value in the datasource from
-     *@param doCacheClear boolean that specifies whether to clear related cache entries for this primaryKey to be created
-     *@return GenericValue instance containing the new instance
+    /**
+     * Creates a Entity in the form of a GenericValue and write it to the datasource.
+     *
+     * @param primaryKey the PK from which to create a value in the datasource (required)
+     * @param doCacheClear whether to clear related cache entries for this primaryKey to be created
+     * @return GenericValue instance containing the new instance
      */
-    public GenericValue create(GenericPK primaryKey, boolean doCacheClear) throws GenericEntityException {
+    public GenericValue create(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
         if (primaryKey == null) {
             throw new IllegalArgumentException("Cannot create from a null primaryKey");
         }
-
         return this.create(new GenericValue(primaryKey), doCacheClear);
     }
 
-    /** Find a Generic Entity by its Primary Key
-     *@param primaryKey The primary key to find by.
-     *@return The GenericValue corresponding to the primaryKey
+    /**
+     * Find a Generic Entity by its Primary Key.
+     *
+     * @param primaryKey The primary key to find by.
+     * @return The GenericValue corresponding to the primaryKey
      */
-    public GenericValue findByPrimaryKey(GenericPK primaryKey) throws GenericEntityException {
+    public GenericValue findByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
         Map<?,?> ecaEventMap = this.getEcaEntityEventMap(primaryKey.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
 
         GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
-        GenericValue value = null;
 
         if (!primaryKey.isPrimaryKey()) {
-            throw new IllegalArgumentException("[GenericDelegator.findByPrimaryKey] Passed primary key is not a valid primary key: " + primaryKey);
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.findByPrimaryKey] Passed primary key is not a valid primary key: " + primaryKey);
         }
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        GenericValue value;
         try {
             value = helper.findByPrimaryKey(primaryKey);
         } catch (GenericEntityNotFoundException e) {
             value = null;
         }
-        if (value != null) value.setDelegator(this);
+        if (value != null) {
+            value.setDelegator(this);
+        }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
         return value;
     }
 
-    /** Find a CACHED Generic Entity by its Primary Key
-     *@param primaryKey The primary key to find by.
-     *@return The GenericValue corresponding to the primaryKey
+    /**
+     * Find a CACHED Generic Entity by its Primary Key.
+     *
+     * @param primaryKey The primary key to find by.
+     * @return The GenericValue corresponding to the primaryKey
      */
-    public GenericValue findByPrimaryKeyCache(GenericPK primaryKey) throws GenericEntityException {
+    public GenericValue findByPrimaryKeyCache(final GenericPK primaryKey) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(primaryKey.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_CACHE_CHECK, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_CACHE_CHECK, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
 
         GenericValue value = this.getFromPrimaryKeyCache(primaryKey);
         if (value == null) {
             value = findByPrimaryKey(primaryKey);
             if (value != null) {
-                this.evalEcaRules(EntityEcaHandler.EV_CACHE_PUT, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+                this.evalEcaRules(EV_CACHE_PUT, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
                 this.putInPrimaryKeyCache(primaryKey, value);
             }
         }
         return value;
     }
 
-    /** Find a Generic Entity by its Primary Key
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@return The GenericValue corresponding to the primaryKey
+    /**
+     * Find a Generic Entity by its Primary Key.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @return The GenericValue corresponding to the primaryKey
      */
-    public GenericValue findByPrimaryKey(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public GenericValue findByPrimaryKey(final String entityName, final Map<String, ?> fields)
+            throws GenericEntityException
+    {
         return findByPrimaryKey(makePK(entityName, fields));
     }
 
-    /** Find a CACHED Generic Entity by its Primary Key
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@return The GenericValue corresponding to the primaryKey
+    /**
+     * Find a CACHED Generic Entity by its Primary Key.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @return The GenericValue corresponding to the primaryKey
      */
-    public GenericValue findByPrimaryKeyCache(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public GenericValue findByPrimaryKeyCache(final String entityName, final Map<String, ?> fields)
+            throws GenericEntityException
+    {
         return findByPrimaryKeyCache(makePK(entityName, fields));
     }
 
-    /** Find a Generic Entity by its Primary Key and only returns the values requested by the passed keys (names)
-     *@param primaryKey The primary key to find by.
-     *@param keys The keys, or names, of the values to retrieve; only these values will be retrieved
-     *@return The GenericValue corresponding to the primaryKey
+    /**
+     * Find a Generic Entity by its Primary Key and only returns the values
+     * requested by the passed keys (names).
+     *
+     * @param primaryKey The primary key to find by.
+     * @param keys The keys, or names, of the values to retrieve; only these values will be retrieved
+     * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set<String> keys) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(primaryKey.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
 
         GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
-        GenericValue value = null;
 
         if (!primaryKey.isPrimaryKey()) {
-            throw new IllegalArgumentException("[GenericDelegator.findByPrimaryKey] Passed primary key is not a valid primary key: " + primaryKey);
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.findByPrimaryKey] Passed primary key is not a valid primary key: " + primaryKey);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        GenericValue value;
         try {
             value = helper.findByPrimaryKeyPartial(primaryKey, keys);
         } catch (GenericEntityNotFoundException e) {
             value = null;
         }
-        if (value != null) value.setDelegator(this);
+        if (value != null) {
+            value.setDelegator(this);
+        }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, primaryKey, ecaEventMap, (ecaEventMap == null), false);
         return value;
     }
 
@@ -633,7 +739,9 @@ public class GenericDelegator implements DelegatorInterface {
      *@param primaryKeys A Collection of primary keys to find by.
      *@return List of GenericValue objects corresponding to the passed primaryKey objects
      */
-    public List<GenericValue> findAllByPrimaryKeys(Collection<? extends GenericPK> primaryKeys) throws GenericEntityException {
+    public List<GenericValue> findAllByPrimaryKeys(final Collection<? extends GenericPK> primaryKeys)
+            throws GenericEntityException
+    {
         //TODO: add eca eval calls
         if (primaryKeys == null) return null;
         List<GenericValue> results = new LinkedList<GenericValue>();
@@ -662,14 +770,18 @@ public class GenericDelegator implements DelegatorInterface {
         return results;
     }
 
-    /** Find a number of Generic Value objects by their Primary Keys, all at once;
-     *  this first looks in the local cache for each PK and if there then it puts it
-     *  in the return list rather than putting it in the batch to send to
-     *  a given helper.
-     *@param primaryKeys A Collection of primary keys to find by.
-     *@return List of GenericValue objects corresponding to the passed primaryKey objects
+    /**
+     * Find a number of Generic Value objects by their Primary Keys, all at
+     * once; this first looks in the local cache for each PK and if there then
+     * it puts it in the return list rather than putting it in the batch to
+     * send to a given helper.
+     *
+     * @param primaryKeys A Collection of primary keys to find by.
+     * @return List of GenericValue objects corresponding to the passed primaryKey objects
      */
-    public List<GenericValue> findAllByPrimaryKeysCache(Collection<? extends GenericPK> primaryKeys) throws GenericEntityException {
+    public List<GenericValue> findAllByPrimaryKeysCache(final Collection<? extends GenericPK> primaryKeys)
+            throws GenericEntityException
+    {
         //TODO: add eca eval calls
         if (primaryKeys == null)
             return null;
@@ -710,204 +822,291 @@ public class GenericDelegator implements DelegatorInterface {
         return results;
     }
 
-    /** Finds all Generic entities
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@return    List containing all Generic entities
+    /**
+     * Finds all Generic entities of the given type.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @return all entities of the given type
      */
-    public List<GenericValue> findAll(String entityName) throws GenericEntityException {
+    public List<GenericValue> findAll(final String entityName) throws GenericEntityException {
         return this.findByAnd(entityName, new HashMap<String, Object>(), null);
     }
 
-    /** Finds all Generic entities
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return    List containing all Generic entities
+    /**
+     * Finds all Generic entities of the given type, optionally sorted.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param orderBy the entity fields by which to order the query; optionally
+     * add " ASC" for ascending or " DESC" for descending to each field name
+     * @return List containing all Generic entities
      */
-    public List<GenericValue> findAll(String entityName, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findAll(final String entityName, final List<String> orderBy) throws GenericEntityException {
         return this.findByAnd(entityName, new HashMap<String, Object>(), orderBy);
     }
 
-    /** Finds all Generic entities, looking first in the cache
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@return    List containing all Generic entities
+    /**
+     * Finds all Generic entities of the given type, looking first in the cache.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @return List containing all Generic entities
      */
-    public List<GenericValue> findAllCache(String entityName) throws GenericEntityException {
+    public List<GenericValue> findAllCache(final String entityName) throws GenericEntityException {
         return this.findAllCache(entityName, null);
     }
 
-    /** Finds all Generic entities, looking first in the cache; uses orderBy for lookup, but only keys results on the entityName and fields
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return    List containing all Generic entities
+    /**
+     * Finds all Generic entities, looking first in the cache; uses orderBy for
+     * lookup, but only keys results on the entityName and fields.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param orderBy The fields of the named entity by which to order the
+     * query; optionally add " ASC" for ascending or " DESC" for descending
+     * @return all Generic entities
      */
-    public List<GenericValue> findAllCache(String entityName, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findAllCache(final String entityName, final List<String> orderBy)
+            throws GenericEntityException
+    {
         GenericValue dummyValue = makeValue(entityName, null);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
-        this.evalEcaRules(EntityEcaHandler.EV_CACHE_CHECK, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_CACHE_CHECK, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
 
         List<GenericValue> lst = this.getFromAllCache(entityName);
 
         if (lst == null) {
             lst = findAll(entityName, orderBy);
             if (lst != null) {
-                this.evalEcaRules(EntityEcaHandler.EV_CACHE_PUT, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+                this.evalEcaRules(EV_CACHE_PUT, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
                 this.putInAllCache(entityName, lst);
             }
         }
         return lst;
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using AND)
+    /**
+     * Finds Generic Entity records by all of the specified fields (ie: combined using AND).
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
      * @param fields The fields of the named entity to query by with their corresponging values
      * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public List<GenericValue> findByAnd(final String entityName, final Map<String, ?> fields)
+            throws GenericEntityException
+    {
         return this.findByAnd(entityName, fields, null);
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using OR)
+    /**
+     * Finds Generic Entity records by any of the specified fields (i.e. combined using OR).
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
      * @param fields The fields of the named entity to query by with their corresponging values
      * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByOr(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields)
+            throws GenericEntityException
+    {
         return this.findByOr(entityName, fields, null);
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using AND)
+    /**
+     * Finds Generic Entity records by all of the specified fields (i.e.
+     * combined using AND).
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields the names and values of the fields by which to query (can be null)
      * @param orderBy The fields of the named entity to order the query by;
      *      optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAnd(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findByAnd(
+            final String entityName, final Map<String, ?> fields, final List<String> orderBy)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericValue dummyValue = new GenericValue(this, modelEntity, fields);
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, dummyValue, null, false, false);
         return findByAnd(modelEntity, fields, orderBy);
     }
 
-    public List<GenericValue> findByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+    /**
+     * Finds any entities matching the given criteria.
+     *
+     * @param modelEntity the type of entity to find (required)
+     * @param fields the names and values of the fields by which to query (can be null)
+     * @param orderBy the names of fields by which to sort the results (can be null)
+     * @return any matching entities
+     * @throws GenericEntityException
+     */
+    public List<GenericValue> findByAnd(
+            final ModelEntity modelEntity, final Map<String, ?> fields, final List<String> orderBy)
+        throws GenericEntityException
+    {
         GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
 
         GenericHelper helper = getEntityHelper(modelEntity);
 
         if (fields != null && !modelEntity.areFields(fields.keySet())) {
-            throw new GenericModelException("At least one of the passed fields is not valid: " + fields.keySet().toString());
+            throw new GenericModelException("At least one of the passed fields is not valid: " + fields.keySet());
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
-        List<GenericValue> list = null;
-        list = helper.findByAnd(modelEntity, fields, orderBy);
+        this.evalEcaRules(EV_RUN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        final List<GenericValue> list = helper.findByAnd(modelEntity, fields, orderBy);
         absorbList(list);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         return list;
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using OR)
+    /**
+     * Finds Generic Entity records by all of the specified fields (i.e.
+     * combined using OR).
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
      * @param fields The fields of the named entity to query by with their corresponging values
      * @param orderBy The fields of the named entity to order the query by;
      *      optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByOr(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields, final List<String> orderBy)
+            throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, dummyValue, null, false, false);
 
         GenericHelper helper = getEntityHelper(entityName);
 
         if (fields != null && !modelEntity.areFields(fields.keySet())) {
-            throw new IllegalArgumentException("[GenericDelegator.findByOr] At least of the passed fields is not valid: " + fields.keySet().toString());
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.findByOr] At least of the passed fields is not valid: " + fields.keySet());
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
-        List<GenericValue> list = null;
-        list = helper.findByOr(modelEntity, fields, orderBy);
+        this.evalEcaRules(EV_RUN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        final List<GenericValue> list = helper.findByOr(modelEntity, fields, orderBy);
         absorbList(list);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         return list;
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using AND), looking first in the cache; uses orderBy for lookup, but only keys results on the entityName and fields
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified fields (i.e.
+     * combined using AND), looking first in the cache; uses orderBy for
+     * lookup, but only keys results on the entityName and fields.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public List<GenericValue> findByAndCache(final String entityName, final Map<String, ?> fields)
+            throws GenericEntityException
+    {
         return this.findByAndCache(entityName, fields, null);
     }
 
-    /** Finds Generic Entity records by all of the specified fields (ie: combined using AND), looking first in the cache; uses orderBy for lookup, but only keys results on the entityName and fields
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified fields (i.e.
+     * combined using AND), looking first in the cache; uses orderBy for
+     * lookup, but only keys results on the entityName and fields.
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param orderBy The fields of the named entity to order the query by;
+     * optionally add " ASC" for ascending or " DESC" for descending
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findByAndCache(
+            final String entityName, final Map<String, ?> fields, final List<String> orderBy)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericValue dummyValue = new GenericValue(this, modelEntity);
-        Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(modelEntity.getEntityName());
+        this.getEcaEntityEventMap(modelEntity.getEntityName());
 
-        this.evalEcaRules(EntityEcaHandler.EV_CACHE_CHECK, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
+        this.evalEcaRules(EV_CACHE_CHECK, OP_FIND, dummyValue, null, false, false);
         List<GenericValue> lst = this.getFromAndCache(modelEntity, fields);
 
         if (lst == null) {
             lst = findByAnd(modelEntity, fields, orderBy);
             if (lst != null) {
-                this.evalEcaRules(EntityEcaHandler.EV_CACHE_PUT, EntityEcaHandler.OP_FIND, dummyValue, null, false, false);
+                this.evalEcaRules(EV_CACHE_PUT, OP_FIND, dummyValue, null, false, false);
                 this.putInAndCache(modelEntity, fields, lst);
             }
         }
         return lst;
     }
 
-    /** Finds Generic Entity records by all of the specified expressions (ie: combined using AND)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified expressions (ie: combined using AND).
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to
+     * compare to
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAnd(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException {
-        EntityConditionList ecl = new EntityConditionList(expressions, EntityOperator.AND);
+    public List<GenericValue> findByAnd(final String entityName, final List<? extends EntityCondition> expressions)
+            throws GenericEntityException
+    {
+        EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, null);
     }
 
-    /** Finds Generic Entity records by all of the specified expressions (ie: combined using AND)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified expressions (i.e.
+     * combined using AND).
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to
+     * compare to
+     * @param orderBy The fields of the named entity to order the query by;
+     * optionally add " ASC" for ascending or " DESC" for descending
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByAnd(String entityName, List<? extends EntityCondition> expressions, List<String> orderBy) throws GenericEntityException {
-        EntityConditionList ecl = new EntityConditionList(expressions, EntityOperator.AND);
+    public List<GenericValue> findByAnd(
+            final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
+        throws GenericEntityException
+    {
+        EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
-    /** Finds Generic Entity records by all of the specified expressions (ie: combined using OR)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified expressions (i.e.
+     * combined using OR).
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to
+     * compare to
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByOr(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException {
-        EntityConditionList ecl = new EntityConditionList(expressions, EntityOperator.OR);
+    public List<GenericValue> findByOr(final String entityName, final List<? extends EntityCondition> expressions)
+            throws GenericEntityException
+    {
+        EntityConditionList ecl = new EntityConditionList(expressions, OR);
         return findByCondition(entityName, ecl, null, null);
     }
 
-    /** Finds Generic Entity records by all of the specified expressions (ie: combined using OR)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue instances that match the query
+    /**
+     * Finds Generic Entity records by all of the specified expressions (i.e.
+     * combined using OR).
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param orderBy The fields of the named entity to order the query by;
+     * optionally add " ASC" for ascending or " DESC" for descending
+     * @return List of GenericValue instances that match the query
      */
-    public List<GenericValue> findByOr(String entityName, List<? extends EntityCondition> expressions, List<String> orderBy) throws GenericEntityException {
-        EntityConditionList ecl = new EntityConditionList(expressions, EntityOperator.OR);
+    public List<GenericValue> findByOr(
+            final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
+        throws GenericEntityException
+    {
+        EntityConditionList ecl = new EntityConditionList(expressions, OR);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
@@ -915,116 +1114,118 @@ public class GenericDelegator implements DelegatorInterface {
         return findByLike(entityName, fields, null);
     }
 
-    public List<GenericValue> findByLike(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findByLike(
+            final String entityName, final Map<String, ?> fields, final List<String> orderBy)
+        throws GenericEntityException
+    {
         List<EntityExpr> likeExpressions = new LinkedList<EntityExpr>();
         if (fields != null) {
             for (Map.Entry<String, ?> entry : fields.entrySet()) {
-                likeExpressions.add(new EntityExpr(entry.getKey(), EntityOperator.LIKE, entry.getValue()));
+                likeExpressions.add(new EntityExpr(entry.getKey(), LIKE, entry.getValue()));
             }
         }
-        EntityConditionList ecl = new EntityConditionList(likeExpressions, EntityOperator.AND);
+        EntityConditionList ecl = new EntityConditionList(likeExpressions, AND);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
-/* tentatively removing by clause methods, unless there are really big complaints... because it is a kludge
-    public List findByClause(String entityName, List entityClauses, Map fields) throws GenericEntityException {
-        return findByClause(entityName, entityClauses, fields, null);
-    }
-
-    public List findByClause(String entityName, List entityClauses, Map fields, List orderBy) throws GenericEntityException {
-        //TODO: add eca eval calls
-        if (entityClauses == null) return null;
-        ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        GenericHelper helper = getEntityHelper(entityName);
-
-        for (int i = 0; i < entityClauses.size(); i++) {
-            EntityClause genEntityClause = (EntityClause) entityClauses.get(i);
-            genEntityClause.setModelEntities(getModelReader());
-        }
-
-        List list = null;
-        list = helper.findByClause(modelEntity, entityClauses, fields, orderBy);
-        absorbList(list);
-        return list;
-    }
-*/
-
-    /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.
-     *@param entityName The Name of the Entity as defined in the entity model XML file
-     *@param entityCondition The EntityCondition object that specifies how to constrain this query
-     *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue objects representing the result
+    /**
+     * Finds any GenericValues matching the given conditions.
+     *
+     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * @param entityCondition The EntityCondition object that specifies how to constrain this query
+     * @param fieldsToSelect The fields of the named entity to get from the
+     * database; if empty or null all fields will be retreived
+     * @param orderBy The fields of the named entity by which to order the
+     * query; optionally add " ASC" for ascending or " DESC" for descending
+     * @return any matching values
      */
-    public List<GenericValue> findByCondition(String entityName, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> findByCondition(final String entityName, final EntityCondition entityCondition,
+            final Collection<String> fieldsToSelect, final List<String> orderBy)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
 
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         if (entityCondition != null) entityCondition.checkCondition(modelEntity);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         GenericHelper helper = getEntityHelper(entityName);
-        List<GenericValue> list = null;
-        list = helper.findByCondition(modelEntity, entityCondition, fieldsToSelect, orderBy);
+        final List<GenericValue> list = helper.findByCondition(modelEntity, entityCondition, fieldsToSelect, orderBy);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         absorbList(list);
 
         return list;
     }
 
     /**
-     * Returns the count of the results that match all of the specified expressions (ie: combined using AND)
+     * Returns the count of the results that match all of the specified expressions (i.e. combined using AND).
+     *
      * @param entityName The Name of the Entity as defined in the entity model XML file
      * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
-     * @param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
-     * distinct, in which case a select (distinct fieldname) is issued. <p>
-     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
-     *
-     * @return  the number of rows that match the query
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to
+     * compare to
+     * @param findOptions An instance of EntityFindOptions that specifies
+     * advanced query options.  The only option that is used is distinct, in
+     * which case a select (distinct fieldname) is issued.<p>If you issue a
+     * distinct without a fieldName, it will be ignored because <code>select
+     * count (distinct *)</code> makes no sense
+     * @return the number of rows that match the query
      */
-    public int countByAnd(final String entityName, final String fieldName, final List<? extends EntityCondition> expressions,
-            final EntityFindOptions findOptions) throws GenericEntityException {
-        final EntityConditionList ecl = (expressions != null) ? new EntityConditionList(expressions, EntityOperator.AND)
-                                                              : null;
+    public int countByAnd(final String entityName, final String fieldName,
+            final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
+        throws GenericEntityException
+    {
+        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, AND);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
 
     /**
-     * Returns the count of the results that match any of the specified expressions (ie: combined using OR)
+     * Returns the count of the results that match any of the specified
+     * expressions (i.e. combined using OR).
+     *
      * @param entityName The Name of the Entity as defined in the entity model XML file
      * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
-     * @param expressions The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
-     * distinct, in which case a select (distinct fieldname) is issued. <p>
-     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
-     *
-     * @return  the number of rows that match the query
+     * @param expressions The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions An instance of EntityFindOptions that specifies
+     * advanced query options. The only option that is used is distinct, in
+     * which case a <code>select (distinct fieldname)</code> is issued.<p>If
+     * you issue a distinct without a fieldName, it will be ignored because
+     * <code>select count (distinct *)</code> makes no sense
+     * @return the number of rows that match the query
      */
-    public int countByOr(final String entityName, final String fieldName, final List<? extends EntityCondition> expressions,
-            final EntityFindOptions findOptions) throws GenericEntityException {
-        final EntityConditionList ecl = (expressions != null) ? new EntityConditionList(expressions, EntityOperator.OR)
-                : null;
+    public int countByOr(final String entityName, final String fieldName,
+            final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
+        throws GenericEntityException
+    {
+        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, OR);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
 
     /**
-     * Returns the count of the results that match any of the specified expressions (ie: combined using OR)
+     * Returns the count of the results that match any of the specified expressions (ie: combined using OR).
+     *
      * @param entityName The Name of the Entity as defined in the entity model XML file
      * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
-     * @param entityCondition The EntityCondition object that specifies how to constrain this query The expressions to use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that is used is
-     * distinct, in which case a select (distinct fieldname) is issued. <p>
-     * If you issue a distinct without a fieldName  it will be ignored as select count (distinct *) makes no sense
-     *
-     * @return  the number of rows that match the query
+     * @param entityCondition The EntityCondition object that specifies how to
+     * constrain this query The expressions to use for the lookup, each
+     * consisting of at least a field name, an EntityOperator, and a value to
+     * compare to
+     * @param findOptions An instance of EntityFindOptions that specifies
+     * advanced query options.  The only option that is used is distinct, in
+     * which case a select (distinct fieldname) is issued.<p>If you issue a
+     * distinct without a fieldName, it will be ignored as <code>select count
+     * (distinct *)</code> makes no sense
+     * @return the number of rows that match the query
      */
     public int countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
-            final EntityFindOptions findOptions) throws GenericEntityException {
-
+            final EntityFindOptions findOptions)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (entityCondition != null)
         {
@@ -1035,164 +1236,207 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     /**
-     * Returns the row count of the specified entity
-     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * Returns the row count of the specified entity.
      *
+     * @param entityName The Name of the Entity as defined in the entity model XML file
      * @return  the number of rows in the table
      */
-    public int countAll(final String entityName)  throws GenericEntityException {
+    public int countAll(final String entityName) throws GenericEntityException {
         return countByCondition(entityName, null, null, null);
     }
 
-    /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.
-     *@param entityName The Name of the Entity as defined in the entity model XML file
-     *@param entityCondition The EntityCondition object that specifies how to constrain this query before any groupings are done (if this is a view entity with group-by aliases)
-     *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE
-     *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+    /**
+     * Finds GenericValues by the given conditions.
+     * 
+     * @param entityName The Name of the Entity as defined in the entity model
+     * XML file
+     * @param entityCondition The EntityCondition object that specifies how to
+     * constrain this query before any groupings are done (if this is a view
+     * entity with group-by aliases)
+     * @param fieldsToSelect The fields of the named entity to get from the
+     * database; if empty or null all fields will be retreived
+     * @param orderBy The fields of the named entity to order the query by;
+     * optionally add " ASC" for ascending or " DESC" for descending
+     * @return EntityListIterator representing the result of the query: NOTE
+     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
-    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition entityCondition,
-        Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
-        return this.findListIteratorByCondition(entityName, entityCondition, null, fieldsToSelect, orderBy, null);
+    public EntityListIterator findListIteratorByCondition(
+            final String entityName, final EntityCondition entityCondition, final Collection<String> fieldsToSelect,
+            final List<String> orderBy)
+        throws GenericEntityException
+    {
+        return this.findListIteratorByCondition(
+                entityName, entityCondition, null, fieldsToSelect, orderBy, null);
     }
 
-    /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.
-     *@param entityName The ModelEntity of the Entity as defined in the entity XML file
-     *@param whereEntityCondition The EntityCondition object that specifies how to constrain this query before any groupings are done (if this is a view entity with group-by aliases)
-     *@param havingEntityCondition The EntityCondition object that specifies how to constrain this query after any groupings are done (if this is a view entity with group-by aliases)
-     *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@param findOptions An instance of EntityFindOptions that specifies advanced query options. See the EntityFindOptions JavaDoc for more details.
-     *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE
-     *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+    /**
+     * Finds GenericValues by the given conditions.
+     * 
+     * @param entityName The ModelEntity of the Entity as defined in the entity
+     * XML file
+     * @param whereEntityCondition The EntityCondition object that specifies
+     * how to constrain this query before any groupings are done (if this is a
+     * view entity with group-by aliases)
+     * @param havingEntityCondition The EntityCondition object that specifies
+     * how to constrain this query after any groupings are done (if this is a
+     * view entity with group-by aliases)
+     * @param fieldsToSelect The fields of the named entity to get from the
+     * database; if empty or null all fields will be retreived
+     * @param orderBy The fields of the named entity to order the query by;
+     * optionally add " ASC" for ascending or " DESC" for descending
+     * @param findOptions An instance of EntityFindOptions that specifies
+     * advanced query options. See the EntityFindOptions JavaDoc for more
+     * details.
+     * @return EntityListIterator representing the result of the query: NOTE
+     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     * @see EntityCondition
      */
-    public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition whereEntityCondition,
-            EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
-            throws GenericEntityException {
-
+    public EntityListIterator findListIteratorByCondition(
+            final String entityName, final EntityCondition whereEntityCondition,
+            final EntityCondition havingEntityCondition, final Collection<String> fieldsToSelect,
+            final List<String> orderBy, final EntityFindOptions findOptions)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericValue dummyValue = new GenericValue(this, modelEntity);
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
 
         if (whereEntityCondition != null) whereEntityCondition.checkCondition(modelEntity);
         if (havingEntityCondition != null) havingEntityCondition.checkCondition(modelEntity);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         GenericHelper helper = getEntityHelper(entityName);
         EntityListIterator eli = helper.findListIteratorByCondition(modelEntity, whereEntityCondition,
                 havingEntityCondition, fieldsToSelect, orderBy, findOptions);
         eli.setDelegator(this);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_FIND, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         return eli;
     }
 
-    /** Remove a Generic Entity corresponding to the primaryKey
-     *@param primaryKey  The primary key of the entity to remove.
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove a Generic Entity corresponding to the primaryKey.
+     * 
+     * @param primaryKey  The primary key of the entity to remove.
+     * @return int representing number of rows affected by this operation
      */
-    public int removeByPrimaryKey(GenericPK primaryKey) throws GenericEntityException {
+    public int removeByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
         return this.removeByPrimaryKey(primaryKey, true);
     }
 
-    /** Remove a Generic Entity corresponding to the primaryKey
-     *@param primaryKey  The primary key of the entity to remove.
-     *@param doCacheClear boolean that specifies whether to clear cache entries for this primaryKey to be removed
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove a Generic Entity corresponding to the primaryKey.
+     * 
+     * @param primaryKey  The primary key of the entity to remove.
+     * @param doCacheClear boolean that specifies whether to clear cache entries for this primaryKey to be removed
+     * @return int representing number of rows affected by this operation
      */
-    public int removeByPrimaryKey(GenericPK primaryKey, boolean doCacheClear) throws GenericEntityException {
+    public int removeByPrimaryKey(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(primaryKey.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
 
         GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
 
         if (doCacheClear) {
             // always clear cache before the operation
-            this.evalEcaRules(EntityEcaHandler.EV_CACHE_CLEAR, EntityEcaHandler.OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+            this.evalEcaRules(EV_CACHE_CLEAR, OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
             this.clearCacheLine(primaryKey);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
         int num = helper.removeByPrimaryKey(primaryKey);
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_REMOVE, primaryKey, ecaEventMap, (ecaEventMap == null), false);
         return num;
     }
 
-    /** Remove a Generic Value from the database
-     *@param value The GenericValue object of the entity to remove.
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove a Generic Value from the database.
+     * 
+     * @param value The GenericValue object of the entity to remove.
+     * @return int representing number of rows affected by this operation
      */
-    public int removeValue(GenericValue value) throws GenericEntityException {
+    public int removeValue(final GenericValue value) throws GenericEntityException {
         return this.removeValue(value, true);
     }
 
-    /** Remove a Generic Value from the database
-     *@param value The GenericValue object of the entity to remove.
-     *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove a Generic Value from the database.
+     * 
+     * @param value The GenericValue object of the entity to remove.
+     * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
+     * @return int representing number of rows affected by this operation
      */
-    public int removeValue(GenericValue value, boolean doCacheClear) throws GenericEntityException {
-        Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
+    public int removeValue(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
+        final Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
+        this.evalEcaRules(EV_VALIDATE, OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
 
-        GenericHelper helper = getEntityHelper(value.getEntityName());
+        final GenericHelper helper = getEntityHelper(value.getEntityName());
 
         if (doCacheClear) {
-            this.evalEcaRules(EntityEcaHandler.EV_CACHE_CLEAR, EntityEcaHandler.OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
+            this.evalEcaRules(EV_CACHE_CLEAR, OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
             this.clearCacheLine(value);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
         int num = helper.removeByPrimaryKey(value.getPrimaryKey());
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_REMOVE, value, ecaEventMap, (ecaEventMap == null), false);
         return num;
     }
 
-    /** Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@return int representing number of rows affected by this operation
+    /**
+     * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND).
+     * 
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @return int representing number of rows affected by this operation
      */
-    public int removeByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException {
+    public int removeByAnd(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
         return this.removeByAnd(entityName, fields, true);
     }
 
-    /** Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
-     *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows affected by this operation
+    /**
+     * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND).
+     * 
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
+     * @return int representing number of rows affected by this operation
      */
-    public int removeByAnd(String entityName, Map<String, ?> fields, boolean doCacheClear) throws GenericEntityException {
+    public int removeByAnd(final String entityName, final Map<String, ?> fields, final boolean doCacheClear)
+            throws GenericEntityException
+    {
         GenericValue dummyValue = makeValue(entityName, fields);
 
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(entityName);
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
 
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericHelper helper = getEntityHelper(entityName);
 
         if (doCacheClear) {
             // always clear cache before the operation
-            this.evalEcaRules(EntityEcaHandler.EV_CACHE_CLEAR, EntityEcaHandler.OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+            this.evalEcaRules(EV_CACHE_CLEAR, OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
             this.clearCacheLine(entityName, fields);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         int num = helper.removeByAnd(modelEntity, dummyValue.getAllFields());
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_REMOVE, dummyValue, ecaEventMap, (ecaEventMap == null), false);
         return num;
     }
 
-    /** Removes/deletes Generic Entity records found by matching the EntityCondition
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param whereCondition The EntityCondition object that specifies how to constrain this query
-     *@return int representing number of rows affected by this operation
+    /**
+     * Removes/deletes Generic Entity records found by matching the EntityCondition.
+     * 
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param whereCondition The EntityCondition object that specifies how to constrain this query
+     * @return int representing number of rows affected by this operation
      */
     public int removeByCondition(final String entityName, final EntityCondition whereCondition)
             throws GenericEntityException
@@ -1200,13 +1444,16 @@ public class GenericDelegator implements DelegatorInterface {
         return removeByCondition(entityName, whereCondition, true);
     }
 
-    /** Removes/deletes Generic Entity records found by matching the EntityCondition
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param whereCondition The EntityCondition object that specifies how to constrain this query
-     *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows affected by this operation
+    /**
+     * Removes/deletes Generic Entity records found by matching the EntityCondition.
+     * 
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param whereCondition The EntityCondition object that specifies how to constrain this query
+     * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
+     * @return int representing number of rows affected by this operation
      */
-    public int removeByCondition(final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
+    public int removeByCondition(
+                final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
             throws GenericEntityException
     {
         //Todo :decide whether we need to eval ECA rules
@@ -1222,8 +1469,10 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     /**
-     * Get the named Related Entity for the GenericValue from the persistent store across another Relation.
-     * Helps to get related Values in a multi-to-multi relationship.
+     * Get the named Related Entity for the GenericValue from the persistent
+     * store across another Relation. Helps to get related Values in a
+     * multi-to-multi relationship.
+     * 
      * @param relationNameOne String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file, for first relation
@@ -1233,7 +1482,10 @@ public class GenericDelegator implements DelegatorInterface {
      *      optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> getMultiRelation(final GenericValue value, final String relationNameOne,
+                final String relationNameTwo, final List<String> orderBy)
+            throws GenericEntityException
+    {
         //TODO: add eca eval calls
         // traverse the relationships
         ModelEntity modelEntity = value.getModelEntity();
@@ -1244,12 +1496,15 @@ public class GenericDelegator implements DelegatorInterface {
 
         GenericHelper helper = getEntityHelper(modelEntity);
 
-        return helper.findByMultiRelation(value, modelRelationOne, modelEntityOne, modelRelationTwo, modelEntityTwo, orderBy);
+        return helper.findByMultiRelation(
+                value, modelRelationOne, modelEntityOne, modelRelationTwo, modelEntityTwo, orderBy);
     }
 
     /**
-     * Get the named Related Entity for the GenericValue from the persistent store across another Relation.
-     * Helps to get related Values in a multi-to-multi relationship.
+     * Get the named Related Entity for the GenericValue from the persistent
+     * store across another Relation. Helps to get related Values in a
+     * multi-to-multi relationship.
+     * 
      * @param relationNameOne String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file, for first relation
@@ -1257,7 +1512,10 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getMultiRelation(GenericValue value, String relationNameOne, String relationNameTwo) throws GenericEntityException {
+    public List<GenericValue> getMultiRelation(
+                final GenericValue value, final String relationNameOne, final String relationNameTwo)
+            throws GenericEntityException
+    {
         return getMultiRelation(value, relationNameOne, relationNameTwo, null);
     }
 
@@ -1268,11 +1526,15 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getRelated(String relationName, GenericValue value) throws GenericEntityException {
+    public List<GenericValue> getRelated(final String relationName, final GenericValue value)
+            throws GenericEntityException
+    {
         return getRelated(relationName, null, null, value);
     }
 
-    /** Get the named Related Entity for the GenericValue from the persistent store
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent store.
+     * 
      * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
@@ -1280,11 +1542,16 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getRelatedByAnd(String relationName, Map<String, ?> byAndFields, GenericValue value) throws GenericEntityException {
+    public List<GenericValue> getRelatedByAnd(
+                final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
+            throws GenericEntityException
+    {
         return this.getRelated(relationName, byAndFields, null, value);
     }
 
-    /** Get the named Related Entity for the GenericValue from the persistent store
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent store.
+     * 
      * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
@@ -1293,11 +1560,16 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getRelatedOrderBy(String relationName, List<String> orderBy, GenericValue value) throws GenericEntityException {
+    public List<GenericValue> getRelatedOrderBy(
+                final String relationName, final List<String> orderBy, final GenericValue value)
+            throws GenericEntityException
+    {
         return this.getRelated(relationName, null, orderBy, value);
     }
 
-    /** Get the named Related Entity for the GenericValue from the persistent store
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent store.
+     * 
      * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
@@ -1307,17 +1579,22 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getRelated(String relationName, Map<String, ?> byAndFields, List<String> orderBy, GenericValue value) throws GenericEntityException {
+    public List<GenericValue> getRelated(final String relationName, final Map<String, ?> byAndFields,
+                final List<String> orderBy, final GenericValue value)
+            throws GenericEntityException
+    {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
 
         // put the byAndFields (if not null) into the hash map first,
         // they will be overridden by value's fields if over-specified this is important for security and cleanliness
-        Map<String, Object> fields = byAndFields == null ? new HashMap<String, Object>() : new HashMap<String, Object>(byAndFields);
+        final Map<String, Object> fields = byAndFields == null ?
+                new HashMap<String, Object>() : new HashMap<String, Object>(byAndFields);
         for (int i = 0; i < relation.getKeyMapsSize(); i++) {
             ModelKeyMap keyMap = relation.getKeyMap(i);
             fields.put(keyMap.getRelFieldName(), value.get(keyMap.getFieldName()));
@@ -1326,7 +1603,9 @@ public class GenericDelegator implements DelegatorInterface {
         return this.findByAnd(relation.getRelEntityName(), fields, orderBy);
     }
 
-    /** Get a dummy primary key for the named Related Entity for the GenericValue
+    /**
+     * Get a dummy primary key for the named Related Entity for the GenericValue.
+     * 
      * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
@@ -1334,18 +1613,23 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity
      * @return GenericPK containing a possibly incomplete PrimaryKey object representing the related entity or entities
      */
-    public GenericPK getRelatedDummyPK(String relationName, Map<String, ?> byAndFields, GenericValue value) throws GenericEntityException {
+    public GenericPK getRelatedDummyPK(
+            final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
+        throws GenericEntityException
+    {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
         ModelEntity relatedEntity = getModelReader().getModelEntity(relation.getRelEntityName());
 
         // put the byAndFields (if not null) into the hash map first,
         // they will be overridden by value's fields if over-specified this is important for security and cleanliness
-        Map<String, Object> fields = byAndFields == null ? new HashMap<String, Object>() : new HashMap<String, Object>(byAndFields);
+        final Map<String, Object> fields = byAndFields == null ?
+                new HashMap<String, Object>() : new HashMap<String, Object>(byAndFields);
         for (int i = 0; i < relation.getKeyMapsSize(); i++) {
             ModelKeyMap keyMap = relation.getKeyMap(i);
             fields.put(keyMap.getRelFieldName(), value.get(keyMap.getFieldName()));
@@ -1356,19 +1640,25 @@ public class GenericDelegator implements DelegatorInterface {
         return dummyPK;
     }
 
-    /** Get the named Related Entity for the GenericValue from the persistent store, checking first in the cache to see if the desired value is there
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent
+     * store, checking first in the cache to see if the desired value is there.
+     * 
      * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
      * @param value GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
-    public List<GenericValue> getRelatedCache(String relationName, GenericValue value) throws GenericEntityException {
+    public List<GenericValue> getRelatedCache(final String relationName, final GenericValue value)
+            throws GenericEntityException
+    {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
 
         Map<String, Object> fields = new HashMap<String, Object>();
@@ -1380,18 +1670,23 @@ public class GenericDelegator implements DelegatorInterface {
         return this.findByAndCache(relation.getRelEntityName(), fields, null);
     }
 
-    /** Get related entity where relation is of type one, uses findByPrimaryKey
+    /**
+     * Get related entity where relation is of type one, uses findByPrimaryKey.
+     *
+     * @param relationName the name of the relation to get (required)
+     * @param value the value whose relation to get (required)
      * @throws IllegalArgumentException if the list found has more than one item
      */
-    public GenericValue getRelatedOne(String relationName, GenericValue value) throws GenericEntityException {
-        ModelEntity modelEntity = value.getModelEntity();
+    public GenericValue getRelatedOne(final String relationName, final GenericValue value) throws GenericEntityException {
         ModelRelation relation = value.getModelEntity().getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
         if (!"one".equals(relation.getType()) && !"one-nofk".equals(relation.getType())) {
-            throw new IllegalArgumentException("Relation is not a 'one' or a 'one-nofk' relation: " + relationName + " of entity " + value.getEntityName());
+            throw new IllegalArgumentException("Relation is not a 'one' or a 'one-nofk' relation: " + relationName +
+                    " of entity " + value.getEntityName());
         }
 
         Map<String, Object> fields = new HashMap<String, Object>();
@@ -1403,18 +1698,27 @@ public class GenericDelegator implements DelegatorInterface {
         return this.findByPrimaryKey(relation.getRelEntityName(), fields);
     }
 
-    /** Get related entity where relation is of type one, uses findByPrimaryKey, checking first in the cache to see if the desired value is there
+    /**
+     * Get related entity where relation is of type one, uses findByPrimaryKey,
+     * checking first in the cache to see if the desired value is there.
+     * 
+     * @param relationName the name of the relation to get (required)
+     * @param value the value whose relation to get (required)
      * @throws IllegalArgumentException if the list found has more than one item
      */
-    public GenericValue getRelatedOneCache(String relationName, GenericValue value) throws GenericEntityException {
+    public GenericValue getRelatedOneCache(final String relationName, final GenericValue value)
+            throws GenericEntityException
+    {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
         if (!"one".equals(relation.getType()) && !"one-nofk".equals(relation.getType())) {
-            throw new IllegalArgumentException("Relation is not a 'one' or a 'one-nofk' relation: " + relationName + " of entity " + value.getEntityName());
+            throw new IllegalArgumentException("Relation is not a 'one' or a 'one-nofk' relation: " + relationName +
+                    " of entity " + value.getEntityName());
         }
 
         Map<String, Object> fields = new HashMap<String, Object>();
@@ -1426,31 +1730,39 @@ public class GenericDelegator implements DelegatorInterface {
         return this.findByPrimaryKeyCache(relation.getRelEntityName(), fields);
     }
 
-    /** Remove the named Related Entity for the GenericValue from the persistent store
-     *@param relationName String containing the relation name which is the
+    /**
+     * Remove the named Related Entity for the GenericValue from the persistent store.
+     * 
+     * @param relationName String containing the relation name which is the
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
-     *@param value GenericValue instance containing the entity
-     *@return int representing number of rows affected by this operation
+     * @param value GenericValue instance containing the entity
+     * @return int representing number of rows affected by this operation
      */
-    public int removeRelated(String relationName, GenericValue value) throws GenericEntityException {
+    public int removeRelated(final String relationName, final GenericValue value) throws GenericEntityException {
         return this.removeRelated(relationName, value, true);
     }
 
-    /** Remove the named Related Entity for the GenericValue from the persistent store
-     *@param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     *@param value GenericValue instance containing the entity
-     *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove the named Related Entity for the GenericValue from the persistent store.
+     * 
+     * @param relationName String containing the relation name which is the
+     * combination of relation.title and relation.rel-entity-name as specified
+     * in the entity XML definition file
+     * @param value GenericValue instance containing the entity
+     * @param doCacheClear boolean that specifies whether to clear cache
+     * entries for this value to be removed
+     * @return int representing number of rows affected by this operation
      */
-    public int removeRelated(String relationName, GenericValue value, boolean doCacheClear) throws GenericEntityException {
+    public int removeRelated(final String relationName, final GenericValue value, final boolean doCacheClear)
+            throws GenericEntityException
+    {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
         if (relation == null) {
-            throw new GenericModelException("Could not find relation for relationName: " + relationName + " for value " + value);
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
         }
 
         Map<String, Object> fields = new HashMap<String, Object>();
@@ -1462,18 +1774,22 @@ public class GenericDelegator implements DelegatorInterface {
         return this.removeByAnd(relation.getRelEntityName(), fields, doCacheClear);
     }
 
-    /** Refresh the Entity for the GenericValue from the persistent store
-     *@param value GenericValue instance containing the entity to refresh
+    /**
+     * Refresh the Entity for the GenericValue from the persistent store.
+     *
+     * @param value GenericValue instance containing the entity to refresh
      */
-    public void refresh(GenericValue value) throws GenericEntityException {
+    public void refresh(final GenericValue value) throws GenericEntityException {
         this.refresh(value, true);
     }
 
-    /** Refresh the Entity for the GenericValue from the persistent store
-     *@param value GenericValue instance containing the entity to refresh
-     *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
+    /**
+     * Refresh the Entity for the GenericValue from the persistent store.
+     * 
+     * @param value GenericValue instance containing the entity to refresh
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
      */
-    public void refresh(GenericValue value, boolean doCacheClear) throws GenericEntityException {
+    public void refresh(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
         if (doCacheClear) {
             // always clear cache before the operation
             clearCacheLine(value);
@@ -1489,31 +1805,35 @@ public class GenericDelegator implements DelegatorInterface {
         value.modified = false;
     }
 
-    /** Store the Entity from the GenericValue to the persistent store
-     *@param value GenericValue instance containing the entity
-     *@return int representing number of rows affected by this operation
+    /**
+     * Store the Entity from the GenericValue to the persistent store.
+     * 
+     * @param value GenericValue instance containing the entity
+     * @return int representing number of rows affected by this operation
      */
-    public int store(GenericValue value) throws GenericEntityException {
+    public int store(final GenericValue value) throws GenericEntityException {
         return this.store(value, true);
     }
 
-    /** Store the Entity from the GenericValue to the persistent store
-     *@param value GenericValue instance containing the entity
-     *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows affected by this operation
+    /**
+     * Store the Entity from the GenericValue to the persistent store.
+     * 
+     * @param value GenericValue instance containing the entity
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
+     * @return int representing number of rows affected by this operation
      */
-    public int store(GenericValue value, boolean doCacheClear) throws GenericEntityException {
+    public int store(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
-        this.evalEcaRules(EntityEcaHandler.EV_VALIDATE, EntityEcaHandler.OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_VALIDATE, OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
         GenericHelper helper = getEntityHelper(value.getEntityName());
 
         if (doCacheClear) {
             // always clear cache before the operation
-            this.evalEcaRules(EntityEcaHandler.EV_CACHE_CLEAR, EntityEcaHandler.OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
+            this.evalEcaRules(EV_CACHE_CLEAR, OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
             this.clearCacheLine(value);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RUN, EntityEcaHandler.OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RUN, OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
         int retVal = helper.store(value);
 
         // refresh the valueObject to get the new version
@@ -1521,36 +1841,42 @@ public class GenericDelegator implements DelegatorInterface {
             refresh(value, doCacheClear);
         }
 
-        this.evalEcaRules(EntityEcaHandler.EV_RETURN, EntityEcaHandler.OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
+        this.evalEcaRules(EV_RETURN, OP_STORE, value, ecaEventMap, (ecaEventMap == null), false);
         return retVal;
     }
 
-    /** Store the Entities from the List GenericValue instances to the persistent store.
-     *  <br>This is different than the normal store method in that the store method only does
-     *  an update, while the storeAll method checks to see if each entity exists, then
-     *  either does an insert or an update as appropriate.
-     *  <br>These updates all happen in one transaction, so they will either all succeed or all fail,
-     *  if the data source supports transactions. This is just like to othersToStore feature
-     *  of the GenericEntity on a create or store.
-     *@param values List of GenericValue instances containing the entities to store
-     *@return int representing number of rows affected by this operation
+    /**
+     * Store the Entities from the List GenericValue instances to the persistent store.
+     * <br>This is different than the normal store method in that the store method only does
+     * an update, while the storeAll method checks to see if each entity exists, then
+     * either does an insert or an update as appropriate.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions. This is just like to othersToStore feature
+     * of the GenericEntity on a create or store.
+     * 
+     * @param values List of GenericValue instances containing the entities to store
+     * @return int representing number of rows affected by this operation
      */
-    public int storeAll(List<? extends GenericValue> values) throws GenericEntityException {
+    public int storeAll(final List<? extends GenericValue> values) throws GenericEntityException {
         return this.storeAll(values, true);
     }
 
-    /** Store the Entities from the List GenericValue instances to the persistent store.
-     *  <br>This is different than the normal store method in that the store method only does
-     *  an update, while the storeAll method checks to see if each entity exists, then
-     *  either does an insert or an update as appropriate.
-     *  <br>These updates all happen in one transaction, so they will either all succeed or all fail,
-     *  if the data source supports transactions. This is just like to othersToStore feature
-     *  of the GenericEntity on a create or store.
-     *@param values List of GenericValue instances containing the entities to store
-     *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows affected by this operation
+    /**
+     * Store the Entities from the List GenericValue instances to the persistent store.
+     * <br>This is different than the normal store method in that the store method only does
+     * an update, while the storeAll method checks to see if each entity exists, then
+     * either does an insert or an update as appropriate.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions. This is just like to othersToStore feature
+     * of the GenericEntity on a create or store.
+     * 
+     * @param values List of GenericValue instances containing the entities to store
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
+     * @return int representing number of rows affected by this operation
      */
-    public int storeAll(List<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException {
+    public int storeAll(final List<? extends GenericValue> values, final boolean doCacheClear)
+            throws GenericEntityException
+    {
         //TODO: add eca eval calls
         if (values == null) {
             return 0;
@@ -1558,7 +1884,7 @@ public class GenericDelegator implements DelegatorInterface {
 
         // from the delegator level this is complicated because different GenericValue
         // objects in the list may correspond to different helpers
-        HashMap<String, List<GenericValue>> valuesPerHelper = new HashMap<String, List<GenericValue>>();
+        Map<String, List<GenericValue>> valuesPerHelper = new HashMap<String, List<GenericValue>>();
         Iterator<? extends GenericValue> viter = values.iterator();
 
         while (viter.hasNext()) {
@@ -1620,32 +1946,36 @@ public class GenericDelegator implements DelegatorInterface {
         return numberChanged;
     }
 
-    /** Remove the Entities from the List from the persistent store.
-     *  <br>The List contains GenericEntity objects, can be either GenericPK or GenericValue.
-     *  <br>If a certain entity contains a complete primary key, the entity in the datasource corresponding
-     *  to that primary key will be removed, this is like a removeByPrimary Key.
-     *  <br>On the other hand, if a certain entity is an incomplete or non primary key,
-     *  if will behave like the removeByAnd method.
-     *  <br>These updates all happen in one transaction, so they will either all succeed or all fail,
-     *  if the data source supports transactions.
-     *@param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove the Entities from the List from the persistent store.
+     * <br>The List contains GenericEntity objects, can be either GenericPK or GenericValue.
+     * <br>If a certain entity contains a complete primary key, the entity in the datasource corresponding
+     * to that primary key will be removed, this is like a removeByPrimary Key.
+     * <br>On the other hand, if a certain entity is an incomplete or non primary key,
+     * if will behave like the removeByAnd method.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions.
+     * 
+     * @param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
+     * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException {
         return this.removeAll(dummyPKs, true);
     }
 
-    /** Remove the Entities from the List from the persistent store.
-     *  <br>The List contains GenericEntity objects, can be either GenericPK or GenericValue.
-     *  <br>If a certain entity contains a complete primary key, the entity in the datasource corresponding
-     *  to that primary key will be removed, this is like a removeByPrimary Key.
-     *  <br>On the other hand, if a certain entity is an incomplete or non primary key,
-     *  if will behave like the removeByAnd method.
-     *  <br>These updates all happen in one transaction, so they will either all succeed or all fail,
-     *  if the data source supports transactions.
-     *@param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
-     *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows affected by this operation
+    /**
+     * Remove the Entities from the List from the persistent store.
+     * <br>The List contains GenericEntity objects, can be either GenericPK or GenericValue.
+     * <br>If a certain entity contains a complete primary key, the entity in the datasource corresponding
+     * to that primary key will be removed, this is like a removeByPrimary Key.
+     * <br>On the other hand, if a certain entity is an incomplete or non primary key,
+     * if will behave like the removeByAnd method.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions.
+     *  
+     * @param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
+     * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException {
         //TODO: add eca eval calls
@@ -1704,10 +2034,8 @@ public class GenericDelegator implements DelegatorInterface {
         return numRemoved;
     }
 
-    // ======================================
-    // ======= Cache Related Methods ========
-
-    /** This method is a shortcut to completely clear all entity engine caches.
+    /**
+     * This method is a shortcut to completely clear all entity engine caches.
      * For performance reasons this should not be called very often.
      */
     public void clearAllCaches() {
@@ -1725,9 +2053,11 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Remove a CACHED Generic Entity (List) from the cache, either a PK, ByAnd, or All
-     *@param entityName The Name of the Entity as defined in the entity XML file
-     *@param fields The fields of the named entity to query by with their corresponging values
+    /**
+     * Remove a CACHED Generic Entity (List) from the cache, either a PK, ByAnd, or All
+     * 
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
      */
     public void clearCacheLine(String entityName, Map<String, ?> fields) {
         // if no fields passed, do the all cache quickly and return
@@ -1738,7 +2068,8 @@ public class GenericDelegator implements DelegatorInterface {
 
         ModelEntity entity = this.getModelEntity(entityName);
         if (entity == null) {
-            throw new IllegalArgumentException("[GenericDelegator.clearCacheLine] could not find entity for entityName: " + entityName);
+            throw new IllegalArgumentException(
+                    "[GenericDelegator.clearCacheLine] could not find entity for entityName: " + entityName);
         }
         //if never cached, then don't bother clearing
         if (entity.getNeverCache()) return;
@@ -1747,18 +2078,20 @@ public class GenericDelegator implements DelegatorInterface {
         this.clearCacheLineFlexible(dummyPK);
     }
 
-    /** Remove a CACHED Generic Entity from the cache by its primary key.
-     * Checks to see if the passed GenericPK is a complete primary key, if
-     * it is then the cache line will be removed from the primaryKeyCache; if it
+    /**
+     * Remove a CACHED Generic Entity from the cache by its primary key. Checks
+     * whether the passed GenericPK is a complete primary key; if it is, then
+     * the cache line will be removed from the primaryKeyCache; if it
      * is NOT a complete primary key it will remove the cache line from the andCache.
      * If the fields map is empty, then the allCache for the entity will be cleared.
-     *@param dummyPK The dummy primary key to clear by.
+     * 
+     * @param dummyPK The dummy primary key to clear by.
      */
-    public void clearCacheLineFlexible(GenericEntity dummyPK) {
+    public void clearCacheLineFlexible(final GenericEntity dummyPK) {
         this.clearCacheLineFlexible(dummyPK, true);
     }
 
-    public void clearCacheLineFlexible(GenericEntity dummyPK, boolean distribute) {
+    public void clearCacheLineFlexible(final GenericEntity dummyPK, final boolean distribute) {
         if (dummyPK != null) {
             //if never cached, then don't bother clearing
             if (dummyPK.getModelEntity().getNeverCache()) return;
@@ -1794,15 +2127,19 @@ public class GenericDelegator implements DelegatorInterface {
      * Also tries to clear the corresponding all cache entry.
      *@param primaryKey The primary key to clear by.
      */
-    public void clearCacheLine(GenericPK primaryKey) {
+    public void clearCacheLine(final GenericPK primaryKey) {
         this.clearCacheLine(primaryKey, true);
     }
 
-    public void clearCacheLine(GenericPK primaryKey, boolean distribute) {
-        if (primaryKey == null) return;
+    public void clearCacheLine(final GenericPK primaryKey, final boolean distribute) {
+        if (primaryKey == null) {
+            return;
+        }
 
-        //if never cached, then don't bother clearing
-        if (primaryKey.getModelEntity().getNeverCache()) return;
+        // if never cached, then don't bother clearing
+        if (primaryKey.getModelEntity().getNeverCache()) {
+            return;
+        }
 
         // always auto clear the all cache too, since we know it's messed up in any case
         if (allCache != null) {
@@ -1818,26 +2155,31 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Remove a CACHED GenericValue from as many caches as it can. Automatically
-     * tries to remove entries from the all cache, the by primary key cache, and
-     * the by and cache. This is the ONLY method that tries to clear automatically
-     * from the by and cache.
-     *@param value The primary key to clear by.
+    /**
+     * Remove a CACHED GenericValue from as many caches as it can.
+     * Automatically tries to remove entries from the all cache, the by primary
+     * key cache, and the "by and" cache. This is the ONLY method that tries to
+     * clear automatically from the by and cache.
+     * 
+     * @param value The primary key to clear by.
      */
-    public void clearCacheLine(GenericValue value) {
+    public void clearCacheLine(final GenericValue value) {
         this.clearCacheLine(value, true);
     }
 
-    public void clearCacheLine(GenericValue value, boolean distribute) {
-        // TODO: make this a bit more intelligent by passing in the operation being done (create, update, remove) so we can not do unnecessary cache clears...
-        // for instance:
-        // on create don't clear by primary cache (and won't clear original values because there won't be any)
-        // on remove don't clear by and for new values, but do for original values
+    public void clearCacheLine(final GenericValue value, final boolean distribute) {
+        /*
+            TODO: make this a bit more intelligent by passing in the operation
+            being done (create, update, remove) so we don't clear the cache
+            unnecessarily. For instance:
+            * on create, don't clear by primary cache (and don't clear original
+              values because there won't be any)
+            * on remove, don't clear "by and" for new values, but do for original values
+         */
 
-        // Debug.logInfo("running clearCacheLine for value: " + value + ", distribute: " + distribute);
         if (value == null) return;
 
-        //if never cached, then don't bother clearing
+        // If never cached, then don't bother clearing
         if (value.getModelEntity().getNeverCache()) return;
 
         // always auto clear the all cache too, since we know it's messed up in any case
@@ -1913,117 +2255,157 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Gets a Set of Sets of fieldNames used in the by and cache for the given entityName */
-    public Set<Set<String>> getFieldNameSetsCopy(String entityName) {
-        Set<Set<String>> fieldNameSets = andCacheFieldSets.get(entityName);
+    /**
+     * Gets a Set of Sets of fieldNames used in the by and cache for the given entityName.
+     *
+     * @param entityName the entity for which to get the field names (can be null)
+     * @return null if the field name is null or simply unknown
+     */
+    public Set<Set<String>> getFieldNameSetsCopy(final String entityName) {
+        final Set<Set<String>> fieldNameSets = andCacheFieldSets.get(entityName);
 
-        if (fieldNameSets == null) return null;
+        if (fieldNameSets == null) {
+            return null;
+        }
 
         // create a new container set and a copy of each entry set
-        Set<Set<String>> setsCopy = new TreeSet<Set<String>>();
-        for (Set<String> fieldNameSet : fieldNameSets) {
+        final Set<Set<String>> setsCopy = new TreeSet<Set<String>>();
+        for (final Set<String> fieldNameSet : fieldNameSets) {
             setsCopy.add(new TreeSet<String>(fieldNameSet));
         }
         return setsCopy;
     }
 
-    public void clearAllCacheLinesByDummyPK(Collection<? extends GenericEntity> dummyPKs) {
-        if (dummyPKs == null) return;
-        for (GenericEntity dummyPK : dummyPKs) {
+    public void clearAllCacheLinesByDummyPK(final Collection<? extends GenericEntity> dummyPKs) {
+        if (dummyPKs == null) {
+            return;
+        }
+        for (final GenericEntity dummyPK : dummyPKs) {
             this.clearCacheLineFlexible(dummyPK);
         }
     }
 
-    public void clearAllCacheLinesByValue(Collection<? extends GenericValue> values) {
+    public void clearAllCacheLinesByValue(final Collection<? extends GenericValue> values) {
         if (values == null) return;
 
-        for (GenericValue value : values) {
+        for (final GenericValue value : values) {
             this.clearCacheLine(value);
         }
     }
 
-    public GenericValue getFromPrimaryKeyCache(GenericPK primaryKey) {
-        if (primaryKey == null) return null;
+    public GenericValue getFromPrimaryKeyCache(final GenericPK primaryKey) {
+        if (primaryKey == null) {
+            return null;
+        }
         return primaryKeyCache.get(primaryKey);
     }
 
-    public List<GenericValue> getFromAllCache(String entityName) {
-        if (entityName == null) return null;
+    public List<GenericValue> getFromAllCache(final String entityName) {
+        if (entityName == null) {
+            return null;
+        }
         return allCache.get(entityName);
     }
 
-    public List<GenericValue> getFromAndCache(String entityName, Map<String, ?> fields) {
-        if (entityName == null || fields == null) return null;
+    public List<GenericValue> getFromAndCache(final String entityName, final Map<String, ?> fields) {
+        if (entityName == null || fields == null) {
+            return null;
+        }
         ModelEntity entity = this.getModelEntity(entityName);
 
         return getFromAndCache(entity, fields);
     }
 
-    public List<GenericValue> getFromAndCache(ModelEntity entity, Map<String, ?> fields) {
-        if (entity == null || fields == null) return null;
-        GenericPK tempPK = new GenericPK(entity, fields);
-
-        if (tempPK == null) return null;
+    public List<GenericValue> getFromAndCache(final ModelEntity entity, final Map<String, ?> fields) {
+        if (entity == null || fields == null) {
+            return null;
+        }
+        final GenericPK tempPK = new GenericPK(entity, fields);
         return andCache.get(tempPK);
     }
 
-    public void putInPrimaryKeyCache(GenericPK primaryKey, GenericValue value) {
-        if (primaryKey == null || value == null) return;
+    public void putInPrimaryKeyCache(final GenericPK primaryKey, final GenericValue value) {
+        if (primaryKey == null || value == null) {
+            return;
+        }
 
         if (value.getModelEntity().getNeverCache()) {
-            Debug.logWarning("Tried to put a value of the " + value.getEntityName() + " entity in the BY PRIMARY KEY cache but this entity has never-cache set to true, not caching.");
+            Debug.logWarning("Tried to put a value of the " + value.getEntityName() +
+                    " entity in the BY PRIMARY KEY cache but this entity has never-cache set to true, not caching.");
             return;
         }
 
         primaryKeyCache.put(primaryKey, value);
     }
 
-    public void putAllInPrimaryKeyCache(List<? extends GenericValue> values) {
-        if (values == null) return;
-
-        for (GenericValue value : values) {
+    public void putAllInPrimaryKeyCache(final List<? extends GenericValue> values) {
+        if (values == null) {
+            return;
+        }
+        for (final GenericValue value : values) {
             this.putInPrimaryKeyCache(value.getPrimaryKey(), value);
         }
     }
 
-    public void putInAllCache(String entityName, List<? extends GenericValue> values) {
-        if (entityName == null || values == null) return;
-        ModelEntity entity = this.getModelEntity(entityName);
+    public void putInAllCache(final String entityName, final List<? extends GenericValue> values) {
+        if (entityName == null || values == null) {
+            return;
+        }
+        final ModelEntity entity = this.getModelEntity(entityName);
         this.putInAllCache(entity, values);
     }
 
-    public void putInAllCache(ModelEntity entity, List<? extends GenericValue> values) {
-        if (entity == null || values == null) return;
-
-        if (entity.getNeverCache()) {
-            Debug.logWarning("Tried to put values of the " + entity.getEntityName() + " entity in the ALL cache but this entity has never-cache set to true, not caching.");
+    public void putInAllCache(final ModelEntity entity, final List<? extends GenericValue> values) {
+        if (entity == null || values == null) {
             return;
         }
 
-        // make the values immutable so that the list can be returned directly from the cache without copying and still be safe
-        // NOTE that this makes the list immutable, but not the elements in it, those will still be changeable GenericValue objects...
+        if (entity.getNeverCache()) {
+            Debug.logWarning("Tried to put values of the " + entity.getEntityName() +
+                    " entity in the ALL cache but this entity has never-cache set to true, not caching.");
+            return;
+        }
+
+        /*
+            Make the values immutable so that the list can be returned directly
+            from the cache without copying and still be safe. NOTE that this
+            makes the list immutable, but not the elements in it, which will
+            still be mutable GenericValue objects.
+         */
         allCache.put(entity.getEntityName(), Collections.unmodifiableList(values));
     }
 
-    public void putInAndCache(String entityName, Map<String, ?> fields, List<? extends GenericValue> values) {
-        if (entityName == null || fields == null || values == null) return;
-        ModelEntity entity = this.getModelEntity(entityName);
+    public void putInAndCache(
+            final String entityName, final Map<String, ?> fields, final List<? extends GenericValue> values)
+    {
+        if (entityName == null || fields == null || values == null) {
+            return;
+        }
+        final ModelEntity entity = this.getModelEntity(entityName);
         putInAndCache(entity, fields, values);
     }
 
-    public void putInAndCache(ModelEntity entity, Map<String, ?> fields, List<? extends GenericValue> values) {
-        if (entity == null || fields == null || values == null) return;
-
-        if (entity.getNeverCache()) {
-            Debug.logWarning("Tried to put values of the " + entity.getEntityName() + " entity in the BY AND cache but this entity has never-cache set to true, not caching.");
+    public void putInAndCache(
+            final ModelEntity entity, final Map<String, ?> fields, final List<? extends GenericValue> values)
+    {
+        if (entity == null || fields == null || values == null) {
             return;
         }
 
-        GenericPK tempPK = new GenericPK(entity, fields);
+        if (entity.getNeverCache()) {
+            Debug.logWarning("Tried to put values of the " + entity.getEntityName() +
+                    " entity in the BY AND cache but this entity has never-cache set to true, not caching.");
+            return;
+        }
 
-        if (tempPK == null) return;
-        // make the values immutable so that the list can be returned directly from the cache without copying and still be safe
-        // NOTE that this makes the list immutable, but not the elements in it, those will still be changeable GenericValue objects...
+        final GenericPK tempPK = new GenericPK(entity, fields);
+
+        /*
+            Make the values immutable so that the list can be returned directly
+            from the cache without copying and still be safe. NOTE that this
+            makes the list immutable, but not the elements in it, which will
+            still be mutable GenericValue objects.
+         */
         andCache.put(tempPK, Collections.unmodifiableList(values));
 
         // now make sure the fieldName set used for this entry is in the
@@ -2047,13 +2429,17 @@ public class GenericDelegator implements DelegatorInterface {
         fieldNameSets.add(new HashSet<String>(fields.keySet()));
     }
 
-    // ======= XML Related Methods ========
-    public List<GenericValue> readXmlDocument(URL url) throws SAXException, ParserConfigurationException, java.io.IOException {
-        if (url == null) return null;
+    @SuppressWarnings("unused")
+    public List<GenericValue> readXmlDocument(final URL url)
+            throws SAXException, ParserConfigurationException, IOException
+    {
+        if (url == null) {
+            return null;
+        }
         return this.makeValues(UtilXml.readXmlDocument(url, false));
     }
 
-    public List<GenericValue> makeValues(Document document) {
+    public List<GenericValue> makeValues(final Document document) {
         if (document == null) return null;
         List<GenericValue> values = new LinkedList<GenericValue>();
 
@@ -2085,14 +2471,16 @@ public class GenericDelegator implements DelegatorInterface {
         return values;
     }
 
-    public GenericPK makePK(Element element) {
+    @SuppressWarnings("unused")
+    public GenericPK makePK(final Element element) {
         GenericValue value = makeValue(element);
-
         return value.getPrimaryKey();
     }
 
-    public GenericValue makeValue(Element element) {
-        if (element == null) return null;
+    public GenericValue makeValue(final Element element) {
+        if (element == null) {
+            return null;
+        }
         String entityName = element.getTagName();
 
         // if a dash or colon is in the tag name, grab what is after it
@@ -2126,28 +2514,33 @@ public class GenericDelegator implements DelegatorInterface {
         return value;
     }
 
-    // ======= Misc Methods ========
-
-    protected Map<?, ?> getEcaEntityEventMap(String entityName) {
-        if (this.entityEcaHandler == null) return null;
-        Map<?, ?> ecaEventMap = this.entityEcaHandler.getEntityEventMap(entityName);
-        //Debug.logWarning("for entityName " + entityName + " got ecaEventMap: " + ecaEventMap);
-        return ecaEventMap;
+    protected Map<?, ?> getEcaEntityEventMap(final String entityName) {
+        if (this.entityEcaHandler == null) {
+            return null;
+        }
+        return this.entityEcaHandler.getEntityEventMap(entityName);
     }
 
-    protected void evalEcaRules(String event, String currentOperation, GenericEntity value, Map<?,?> eventMap, boolean noEventMapFound, boolean isError) throws GenericEntityException {
+    protected void evalEcaRules(final String event, final String currentOperation, final GenericEntity value,
+                final Map<?, ?> eventMap, final boolean noEventMapFound, final boolean isError)
+            throws GenericEntityException
+    {
         // if this is true then it means that the caller had looked for an event map but found none for this entity
-        if (noEventMapFound) return;
-        if (this.entityEcaHandler == null) return;
-        //if (!"find".equals(currentOperation)) Debug.logWarning("evalRules for entity " + value.getEntityName() + ", currentOperation " + currentOperation + ", event " + event);
+        if (noEventMapFound) {
+            return;
+        }
+        if (this.entityEcaHandler == null) {
+            return;
+        }
         this.entityEcaHandler.evalRules(currentOperation, eventMap, event, value, isError);
     }
 
-
-    /** Get the next guaranteed unique seq id from the sequence with the given sequence name;
-     * if the named sequence doesn't exist, it will be created
-     *@param seqName The name of the sequence to get the next seq id from
-     *@return Long with the next seq id for the given sequence name
+    /**
+     * Get the next guaranteed unique seq id from the sequence with the given sequence name;
+     * if the named sequence doesn't exist, it will be created.
+     * 
+     * @param seqName The name of the sequence to get the next seq id from
+     * @return Long with the next seq id for the given sequence name
      */
     public Long getNextSeqId(String seqName) {
         if (sequencer == null) {
@@ -2160,16 +2553,16 @@ public class GenericDelegator implements DelegatorInterface {
                 }
             }
         }
-        if (sequencer != null) {
-            return sequencer.getNextSeqId(seqName);
-        } else {
-            return null;
-        }
+        return sequencer.getNextSeqId(seqName);
     }
 
-    /** Allows you to pass a SequenceUtil class (possibly one that overrides the getNextSeqId method);
-     * if null is passed will effectively refresh the sequencer. */
-    public void setSequencer(SequenceUtil sequencer) {
+    /**
+     * Allows you to pass a SequenceUtil class (possibly one that overrides the getNextSeqId method);
+     * if null is passed will effectively refresh the sequencer.
+     * 
+     * @param sequencer the sequencer to set
+     */
+    public void setSequencer(final SequenceUtil sequencer) {
         this.sequencer = sequencer;
     }
 
@@ -2179,7 +2572,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     protected void absorbList(List<GenericValue> lst) {
-        if (lst == null) return;
+        if (lst == null) {
+            return;
+        }
         for (GenericValue aLst : lst) {
             aLst.setDelegator(this);
         }
