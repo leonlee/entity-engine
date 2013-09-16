@@ -1091,7 +1091,7 @@ public class GenericDelegator implements DelegatorInterface {
 
     /** Remove a Generic Entity corresponding to the primaryKey
      *@param primaryKey  The primary key of the entity to remove.
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(GenericPK primaryKey) throws GenericEntityException {
         return this.removeByPrimaryKey(primaryKey, true);
@@ -1100,7 +1100,7 @@ public class GenericDelegator implements DelegatorInterface {
     /** Remove a Generic Entity corresponding to the primaryKey
      *@param primaryKey  The primary key of the entity to remove.
      *@param doCacheClear boolean that specifies whether to clear cache entries for this primaryKey to be removed
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(GenericPK primaryKey, boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(primaryKey.getEntityName());
@@ -1123,7 +1123,7 @@ public class GenericDelegator implements DelegatorInterface {
 
     /** Remove a Generic Value from the database
      *@param value The GenericValue object of the entity to remove.
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeValue(GenericValue value) throws GenericEntityException {
         return this.removeValue(value, true);
@@ -1132,7 +1132,7 @@ public class GenericDelegator implements DelegatorInterface {
     /** Remove a Generic Value from the database
      *@param value The GenericValue object of the entity to remove.
      *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeValue(GenericValue value, boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
@@ -1155,7 +1155,7 @@ public class GenericDelegator implements DelegatorInterface {
     /** Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
      *@param entityName The Name of the Entity as defined in the entity XML file
      *@param fields The fields of the named entity to query by with their corresponging values
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException {
         return this.removeByAnd(entityName, fields, true);
@@ -1165,7 +1165,7 @@ public class GenericDelegator implements DelegatorInterface {
      *@param entityName The Name of the Entity as defined in the entity XML file
      *@param fields The fields of the named entity to query by with their corresponging values
      *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByAnd(String entityName, Map<String, ?> fields, boolean doCacheClear) throws GenericEntityException {
         GenericValue dummyValue = makeValue(entityName, fields);
@@ -1192,7 +1192,7 @@ public class GenericDelegator implements DelegatorInterface {
     /** Removes/deletes Generic Entity records found by matching the EntityCondition
      *@param entityName The Name of the Entity as defined in the entity XML file
      *@param whereCondition The EntityCondition object that specifies how to constrain this query
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByCondition(final String entityName, final EntityCondition whereCondition)
             throws GenericEntityException
@@ -1204,7 +1204,7 @@ public class GenericDelegator implements DelegatorInterface {
      *@param entityName The Name of the Entity as defined in the entity XML file
      *@param whereCondition The EntityCondition object that specifies how to constrain this query
      *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeByCondition(final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
             throws GenericEntityException
@@ -1431,7 +1431,7 @@ public class GenericDelegator implements DelegatorInterface {
      *      combination of relation.title and relation.rel-entity-name as
      *      specified in the entity XML definition file
      *@param value GenericValue instance containing the entity
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeRelated(String relationName, GenericValue value) throws GenericEntityException {
         return this.removeRelated(relationName, value, true);
@@ -1443,7 +1443,7 @@ public class GenericDelegator implements DelegatorInterface {
      *      specified in the entity XML definition file
      *@param value GenericValue instance containing the entity
      *@param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeRelated(String relationName, GenericValue value, boolean doCacheClear) throws GenericEntityException {
         ModelEntity modelEntity = value.getModelEntity();
@@ -1491,7 +1491,7 @@ public class GenericDelegator implements DelegatorInterface {
 
     /** Store the Entity from the GenericValue to the persistent store
      *@param value GenericValue instance containing the entity
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int store(GenericValue value) throws GenericEntityException {
         return this.store(value, true);
@@ -1500,7 +1500,7 @@ public class GenericDelegator implements DelegatorInterface {
     /** Store the Entity from the GenericValue to the persistent store
      *@param value GenericValue instance containing the entity
      *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int store(GenericValue value, boolean doCacheClear) throws GenericEntityException {
         Map<?, ?> ecaEventMap = this.getEcaEntityEventMap(value.getEntityName());
@@ -1533,7 +1533,7 @@ public class GenericDelegator implements DelegatorInterface {
      *  if the data source supports transactions. This is just like to othersToStore feature
      *  of the GenericEntity on a create or store.
      *@param values List of GenericValue instances containing the entities to store
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int storeAll(List<? extends GenericValue> values) throws GenericEntityException {
         return this.storeAll(values, true);
@@ -1548,7 +1548,7 @@ public class GenericDelegator implements DelegatorInterface {
      *  of the GenericEntity on a create or store.
      *@param values List of GenericValue instances containing the entities to store
      *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int storeAll(List<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException {
         //TODO: add eca eval calls
@@ -1629,7 +1629,7 @@ public class GenericDelegator implements DelegatorInterface {
      *  <br>These updates all happen in one transaction, so they will either all succeed or all fail,
      *  if the data source supports transactions.
      *@param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException {
         return this.removeAll(dummyPKs, true);
@@ -1645,7 +1645,7 @@ public class GenericDelegator implements DelegatorInterface {
      *  if the data source supports transactions.
      *@param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
      *@param doCacheClear boolean that specifies whether or not to automatically clear cache entries related to this operation
-     *@return int representing number of rows effected by this operation
+     *@return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException {
         //TODO: add eca eval calls
