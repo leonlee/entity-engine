@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Can't declare a DOCTYPE location that will satisfy both IDEA and Maven -->
+<entitymodel>
+
+    <title>Test Entity Model</title>
+    <description>For integration testing the Entity Engine</description>
+    <copyright>Copyright (c) 2002-2013 Atlassian</copyright>
+    <author>The Atlassian Dev Team</author>
+    <version>1.0</version>
+
+    <!-- sequence generator table -->
+    <entity entity-name="SequenceValueItem" table-name="SEQUENCE_VALUE_ITEM" package-name="">
+        <field name="seqName" type="id-long-ne"/>
+        <field name="seqId" type="numeric"/>
+
+        <prim-key field="seqName"/>
+    </entity>
+
+    <entity entity-name="Project" table-name="project" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="key" col-name="pkey" type="long-varchar"/>
+        <field name="counter" col-name="pcounter" type="numeric"/>
+
+        <prim-key field="id"/>
+
+        <relation type="many" title="Child" rel-entity-name="Issue">
+            <key-map field-name="id" rel-field-name="project"/>
+        </relation>
+
+        <index name="idx_project_key" unique="true">
+            <index-field name="key"/>
+        </index>
+    </entity>
+
+    <entity entity-name="Issue" table-name="jiraissue" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="key" col-name="pkey" type="long-varchar"/>
+
+        <prim-key field="id"/>
+
+        <relation type="one" title="Parent" rel-entity-name="Project">
+            <key-map field-name="project" rel-field-name="id"/>
+        </relation>
+    </entity>
+
+    <!-- A dummy entity in another group -->
+    <entity entity-name="Junk" table-name="somejunk" package-name="">
+        <field name="id" type="numeric"/>
+        <field name="foo" col-name="bar" type="long-varchar"/>
+
+        <prim-key field="id"/>
+    </entity>
+
+</entitymodel>

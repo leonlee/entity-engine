@@ -23,7 +23,10 @@
  */
 package org.ofbiz.core.entity;
 
-import com.atlassian.util.concurrent.CopyOnWriteMap;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
@@ -63,15 +66,14 @@ import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
 
 /**
- * Generic Data Source Delegator Class
+ * Generic Data Source Delegator.
  *
- * todo The thread safety in here (and everywhere of ofbiz) is crap, improper double check locking, modification of
- * maps while other threads may be reading them, this class is not thread safe at all.
+ * TODO The thread safety in here (and everywhere in ofbiz) is crap, improper double checked locking,
+ * modification of maps while other threads may be reading them, this class is not thread safe at all.
  *
  * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
  * @author     <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
  * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a
- * @version    $Revision: 1.3 $
  * @since      1.0
  */
 @SuppressWarnings("deprecation")
@@ -81,53 +83,50 @@ public class GenericDelegator implements DelegatorInterface {
 
     public static final String module = GenericDelegator.class.getName();
 
+    // A cache of delegator names to instances
+    private static final Cache<String, GenericDelegator> delegatorCache =
+            CacheBuilder.newBuilder().build(new CacheLoader<String, GenericDelegator>()
+    {
+        @Override
+        public GenericDelegator load(final String delegatorName) throws GenericEntityException
+        {
+            if (isLocked) {
+                return new LockedDatabaseGenericDelegator();
+            }
+            return new GenericDelegator(delegatorName);
+        }
+    });
+
     private static boolean isLocked;
-    
-    /**
-     * The delegatorCache will now be a HashMap, allowing reload of definitions,
-     * but the delegator will always be the same object for the given name.
-     */
-    protected static Map<String, GenericDelegator> delegatorCache = CopyOnWriteMap.newHashMap();
 
     /**
      * Factory method for a GenericDelegator with the given name.
      *
      * @param delegatorName the name of the server configuration that corresponds to this delegator
-     * @return null if there was a problem creating the instance
+     * @return a non-null instance
+     * @throws RuntimeException if the delegator could not be instantiated
      */
     public static GenericDelegator getGenericDelegator(final String delegatorName) {
-        GenericDelegator delegator = delegatorCache.get(delegatorName);
-
-        if (delegator == null) {
-            synchronized (GenericDelegator.class) {
-                // must check if null again as one of the blocked threads can still enter
-                delegator = delegatorCache.get(delegatorName);
-                if (delegator == null) {
-                    try {
-                        if (isLocked) {
-                            delegator = new LockedDatabaseGenericDelegator();
-                        } else {
-                            delegator = new GenericDelegator(delegatorName);
-                        }
-                    } catch (GenericEntityException e) {
-                        Debug.logError(e, "Error creating delegator", module);
-                    }
-                    if (delegator != null) {
-                        delegatorCache.put(delegatorName, delegator);
-                    }
-                }
-            }
-        }
-        return delegator;
+        return delegatorCache.getUnchecked(delegatorName);
     }
 
+    /**
+     * Removes any references to the delegator with the given name.
+     *
+     * @param delegatorName the name of the server configuration that corresponds to this delegator
+     */
     public static synchronized void removeGenericDelegator(final String delegatorName)
     {
-        delegatorCache.remove(delegatorName);
+        delegatorCache.invalidate(delegatorName);
     }
 
     public static void lock() {
         isLocked = true;
+    }
+
+    @VisibleForTesting
+    static void unlock() {
+        isLocked = false;
     }
 
     // ----------------------------- Non-statics ------------------------------
@@ -338,7 +337,7 @@ public class GenericDelegator implements DelegatorInterface {
                 if (entity != null) {
                     entities.put(entity.getEntityName(), entity);
                 } else {
-                    throw new IllegalStateException("Programm Error: entity was null with name " + ename);
+                    throw new IllegalStateException("Program Error: entity was null with name " + ename);
                 }
             } catch (GenericEntityException ex) {
                 errorCount++;
@@ -378,7 +377,7 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Gets the helper name that corresponds to this delegator and the specified entity.
      * 
-     * @param entity The entity to get the helper for
+     * @param entity the entity for which to get the helper (can be null)
      * @return String with the helper name that corresponds to this delegator and the specified entity
      */
     public String getEntityHelperName(final ModelEntity entity) {
@@ -668,8 +667,9 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findAllByPrimaryKeys(final Collection<? extends GenericPK> primaryKeys)
             throws GenericEntityException
     {
-        //TODO: add eca eval calls
-        if (primaryKeys == null) return null;
+        if (primaryKeys == null) {
+            return null;
+        }
         List<GenericValue> results = new LinkedList<GenericValue>();
 
         // from the delegator level this is complicated because different GenericPK
@@ -708,7 +708,6 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findAllByPrimaryKeysCache(final Collection<? extends GenericPK> primaryKeys)
             throws GenericEntityException
     {
-        //TODO: add eca eval calls
         if (primaryKeys == null) {
             return null;
         }
@@ -1312,7 +1311,6 @@ public class GenericDelegator implements DelegatorInterface {
                 final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
             throws GenericEntityException
     {
-        //Todo :decide whether we need to eval ECA rules
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericHelper helper = getEntityHelper(entityName);
 
@@ -1342,7 +1340,6 @@ public class GenericDelegator implements DelegatorInterface {
                 final String relationNameTwo, final List<String> orderBy)
             throws GenericEntityException
     {
-        //TODO: add eca eval calls
         // traverse the relationships
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation modelRelationOne = modelEntity.getRelation(relationNameOne);
@@ -1726,7 +1723,6 @@ public class GenericDelegator implements DelegatorInterface {
     public int storeAll(final List<? extends GenericValue> values, final boolean doCacheClear)
             throws GenericEntityException
     {
-        //TODO: add eca eval calls
         if (values == null) {
             return 0;
         }
@@ -1827,7 +1823,6 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException {
-        //TODO: add eca eval calls
         if (dummyPKs == null) {
             return 0;
         }
@@ -2289,13 +2284,14 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> makeValues(final Document document) {
-        if (document == null) return null;
-        List<GenericValue> values = new LinkedList<GenericValue>();
-
-        Element docElement = document.getDocumentElement();
-
-        if (docElement == null)
+        if (document == null) {
             return null;
+        }
+        final List<GenericValue> values = new LinkedList<GenericValue>();
+        final Element docElement = document.getDocumentElement();
+        if (docElement == null) {
+            return null;
+        }
         if (!"entity-engine-xml".equals(docElement.getTagName())) {
             Debug.logError("[GenericDelegator.makeValues] Root node was not <entity-engine-xml>", module);
             throw new java.lang.IllegalArgumentException("Root node was not <entity-engine-xml>");
@@ -2330,29 +2326,21 @@ public class GenericDelegator implements DelegatorInterface {
         if (element == null) {
             return null;
         }
-        String entityName = element.getTagName();
-
-        // if a dash or colon is in the tag name, grab what is after it
-        if (entityName.indexOf('-') > 0)
-            entityName = entityName.substring(entityName.indexOf('-') + 1);
-        if (entityName.indexOf(':') > 0)
-            entityName = entityName.substring(entityName.indexOf(':') + 1);
-        GenericValue value = makeValue(entityName, null);
-
-        ModelEntity modelEntity = value.getModelEntity();
-
-        Iterator<ModelField> modelFields = modelEntity.getFieldsIterator();
+        final String entityName = getEntityName(element);
+        final GenericValue value = makeValue(entityName, null);
+        final ModelEntity modelEntity = value.getModelEntity();
+        final Iterator<ModelField> modelFields = modelEntity.getFieldsIterator();
 
         while (modelFields.hasNext()) {
-            ModelField modelField = modelFields.next();
-            String name = modelField.getName();
-            String attr = element.getAttribute(name);
+            final ModelField modelField = modelFields.next();
+            final String name = modelField.getName();
+            final String attr = element.getAttribute(name);
 
             if (attr != null && attr.length() > 0) {
                 value.setString(name, attr);
             } else {
                 // if no attribute try a subelement
-                Element subElement = UtilXml.firstChildElement(element, name);
+                final Element subElement = UtilXml.firstChildElement(element, name);
 
                 if (subElement != null) {
                     value.setString(name, UtilXml.elementValue(subElement));
@@ -2361,6 +2349,19 @@ public class GenericDelegator implements DelegatorInterface {
         }
 
         return value;
+    }
+
+    private String getEntityName(final Element element)
+    {
+        final String tagName = element.getTagName();
+        // if a dash or colon is in the tag name, grab what is after it
+        if (tagName.indexOf('-') > 0) {
+            return tagName.substring(tagName.indexOf('-') + 1);
+        }
+        if (tagName.indexOf(':') > 0) {
+            return tagName.substring(tagName.indexOf(':') + 1);
+        }
+        return tagName;
     }
 
     /**
@@ -2399,7 +2400,7 @@ public class GenericDelegator implements DelegatorInterface {
         this.sequencer = null;
     }
 
-    protected void absorbList(List<GenericValue> lst) {
+    protected void absorbList(final List<GenericValue> lst) {
         if (lst == null) {
             return;
         }

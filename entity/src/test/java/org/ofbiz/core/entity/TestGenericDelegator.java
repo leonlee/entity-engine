@@ -1,0 +1,481 @@
+package org.ofbiz.core.entity;
+
+import com.google.common.collect.ImmutableMap;
+import org.junit.Before;
+import org.junit.Test;
+import org.ofbiz.core.entity.model.ModelEntity;
+
+import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
+
+/**
+ * Integration test of GenericDelegator using an in-memory database and real collaborators.
+ */
+public class TestGenericDelegator
+{
+    // These names are from the test XML files in src/test/resources
+    private static final String DELEGATOR_NAME = "default";
+    private static final String ENTITY_GROUP_NAME = "default";
+    private static final String ID_FIELD = "id";
+    private static final String ISSUE_COUNT_FIELD = "counter";
+    private static final String ISSUE_ENTITY = "Issue";
+    private static final String ISSUE_KEY_FIELD = "key";
+    private static final String PROJECT_ENTITY = "Project";
+    private static final String PROJECT_KEY_FIELD = "key";
+    private static final String SEQUENCE_ENTITY = "SequenceValueItem";
+
+    // Be sure to list all entities in the "default" group here
+    private static final String[] ENTITIES = { ISSUE_ENTITY, SEQUENCE_ENTITY, PROJECT_ENTITY };
+
+    private GenericDelegator genericDelegator;
+
+    @Before
+    public void setUp() throws Exception {
+        GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
+        GenericDelegator.unlock();
+        genericDelegator = getGenericDelegator(DELEGATOR_NAME);
+        resetDatabase();
+    }
+
+    private void resetDatabase() throws Exception {
+        genericDelegator.removeByCondition(PROJECT_ENTITY, null);
+        genericDelegator.removeByCondition(ISSUE_ENTITY, null);
+    }
+
+    @Test
+    public void callingFactoryMethodWithIsLockedSetToFalseShouldReturnGenericDelegator() {
+        // Check
+        assertNotNull(genericDelegator);
+        assertEquals(GenericDelegator.class, genericDelegator.getClass());
+    }
+
+    @Test
+    public void callingFactoryMethodWithIsLockedSetToTrueShouldReturnLockedDelegator() {
+        // Set up
+        GenericDelegator.lock();
+
+        // Invoke
+        final GenericDelegator genericDelegator = getGenericDelegator("ignored");
+
+        // Check
+        assertEquals(LockedDatabaseGenericDelegator.class, genericDelegator.getClass());
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveGenericDelegator() {
+        // Set up
+        assertEquals(GenericDelegator.class, getGenericDelegator(DELEGATOR_NAME).getClass());
+
+        // Invoke
+        GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
+
+        // Check that a different instance has been returned, not the cached one
+        GenericDelegator.lock();
+        assertEquals(LockedDatabaseGenericDelegator.class, getGenericDelegator(DELEGATOR_NAME).getClass());
+    }
+
+    @Test
+    public void initialEntityCountShouldBeZero() throws Exception {
+        // Invoke
+        final int projectCount = genericDelegator.countAll(PROJECT_ENTITY);
+
+        // Check
+        assertEquals(0, projectCount);
+    }
+
+    @Test
+    public void entityCountShouldBeOneAfterInsertingAnEntity() throws Exception {
+        // Set up
+        final String projectKey = "FOO";
+        final int issueCount = 230;
+        final long projectId = genericDelegator.getNextSeqId(PROJECT_ENTITY);
+        final Map<String, Object> fields = getProjectFields(projectId, projectKey, issueCount);
+        final GenericValue project = genericDelegator.create(PROJECT_ENTITY, fields);
+
+        // Invoke
+        final int projectCount = genericDelegator.countAll(PROJECT_ENTITY);
+
+        // Check
+        assertEquals(1, projectCount);
+        assertProject(projectId, projectKey, issueCount, project);
+    }
+
+    private Map<String, Object> getProjectFields(final long projectId, final String projectKey, final long issueCount)
+    {
+        return ImmutableMap.<String, Object>of(
+                ID_FIELD, projectId,
+                PROJECT_KEY_FIELD, projectKey,
+                ISSUE_COUNT_FIELD, issueCount
+        );
+    }
+
+    @Test
+    public void shouldBeAbleToGetEntityGroupName() {
+        assertEquals(ENTITY_GROUP_NAME, genericDelegator.getEntityGroupName(PROJECT_ENTITY));
+    }
+
+    @Test
+    public void shouldBeAbleToGetModelEntitiesByGroup() {
+        // Invoke
+        final List<ModelEntity> entities = genericDelegator.getModelEntitiesByGroup(ENTITY_GROUP_NAME);
+
+        // Check
+        assertEquals(3, entities.size());
+        for (int i = 0; i < ENTITIES.length; i++) {
+            assertModelEntity(ENTITIES[i], entities.get(i));
+        }
+    }
+
+    @Test
+    public void shouldBeAbleToGetModelEntityMapByGroup() {
+        // Invoke
+        final Map<String, ModelEntity> entities = genericDelegator.getModelEntityMapByGroup(ENTITY_GROUP_NAME);
+
+        // Check
+        assertEquals(3, entities.size());
+        for (final String entityName : ENTITIES) {
+            assertModelEntity(entityName, entities.get(entityName));
+        }
+    }
+
+    @Test
+    public void getModelEntityShouldReturnNullForUnknownEntity() {
+        assertNull(genericDelegator.getModelEntity("dfhdfsfgfdgjhsg"));
+    }
+
+    @Test
+    public void getModelEntitiesByGroupShouldReturnEmptyListForUnknownGroup() {
+        assertEquals(Collections.<ModelEntity>emptyList(), genericDelegator.getModelEntitiesByGroup("fhgfdjhg"));
+    }
+
+    @Test
+    public void getModelEntityMapByGroupShouldReturnEmptyListForUnknownGroup() {
+        assertEquals(Collections.<String, ModelEntity>emptyMap(), genericDelegator.getModelEntityMapByGroup("fhgfdjhg"));
+    }
+
+    private void assertModelEntity(final String expectedName, final ModelEntity actualEntity) {
+        assertEquals(expectedName, actualEntity.getEntityName());
+    }
+
+    @Test
+    public void getEntityHelperNameShouldReturnNullForNullModelEntity() {
+        assertNull(genericDelegator.getEntityHelperName((ModelEntity) null));
+    }
+
+    @Test
+    public void shouldBeAbleToGetEntityHelperForKnownModelEntity() throws Exception {
+        // Set up
+        final ModelEntity mockModelEntity = mock(ModelEntity.class);
+        when(mockModelEntity.getEntityName()).thenReturn(ENTITIES[0]);
+
+        // Invoke
+        final GenericHelper entityHelper = genericDelegator.getEntityHelper(mockModelEntity);
+
+        // Check
+        assertEquals("defaultDS", entityHelper.getHelperName());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldNotBeAbleToMakeEntityWithInvalidName() {
+        genericDelegator.makeValue("gfjjhkdf", Collections.<String, Object>emptyMap());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldNotBeAbleToMakePrimaryKeyWithInvalidEntityName() {
+        genericDelegator.makePK("gfjjhkdf", Collections.<String, Object>emptyMap());
+    }
+
+    @Test
+    public void shouldBeAbleToMakeEntityWithValidName() throws Exception {
+        // Set up
+        final long projectId = 666;
+        final String projectKey = "BAR";
+        final int issueCount = 27;
+        final Map<String, Object> fields = getProjectFields(projectId, projectKey, issueCount);
+
+        // Invoke
+        final GenericValue genericValue = genericDelegator.makeValue(PROJECT_ENTITY, fields);
+
+        // Check
+        assertProject(projectId, projectKey, issueCount, genericValue);
+        assertEquals(0, genericDelegator.countAll(PROJECT_ENTITY));
+    }
+
+    @Test
+    public void shouldBeAbleToMakePrimaryKeyWithValidName() throws Exception {
+        // Set up
+        final long projectId = 42;
+        final String projectKey = "BAR";
+        final int issueCount = 2000;
+        final Map<String, Object> fields = getProjectFields(projectId, projectKey, issueCount);
+
+        // Invoke
+        final GenericPK primaryKey = genericDelegator.makePK(PROJECT_ENTITY, fields);
+
+        // Check
+        assertProject(projectId, projectKey, issueCount, primaryKey);
+        assertEquals(0, genericDelegator.countAll(PROJECT_ENTITY));
+    }
+
+    private void assertProject(final long expectedId, final String expectedKey, final long expectedIssueCount,
+            final GenericEntity actualProject)
+    {
+        assertNotNull(actualProject);
+        assertEquals(PROJECT_ENTITY, actualProject.getEntityName());
+        assertEquals(expectedId, actualProject.getLong(ID_FIELD).longValue());
+        assertEquals(expectedKey, actualProject.getString(PROJECT_KEY_FIELD));
+        assertEquals(expectedIssueCount, actualProject.getLong(ISSUE_COUNT_FIELD).longValue());
+        assertSame(genericDelegator, actualProject.getDelegator());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldNotBeAbleToCreateWithNullPrimaryKey() throws Exception {
+        genericDelegator.create((GenericPK) null, false);
+    }
+
+    @Test
+    public void creatingFromPrimaryKeyShouldInsertIntoTheDatabase() throws Exception {
+        // Set up
+        final long issueId = 1234;
+        final Map<String, ?> issueFields = ImmutableMap.of(ID_FIELD, issueId);
+        final GenericPK primaryKey = genericDelegator.makePK(ISSUE_ENTITY, issueFields);
+
+        // Invoke
+        final GenericValue createdValue = genericDelegator.create(primaryKey);
+
+        // Check
+        assertNotNull(createdValue);
+        assertEquals(issueId, createdValue.getLong(ID_FIELD).longValue());
+        assertSame(genericDelegator, createdValue.getDelegator());
+        assertNull(createdValue.getString(ISSUE_KEY_FIELD));
+    }
+
+    @Test
+    public void creatingWithNullEntityNameShouldReturnNull() throws Exception {
+        assertNull(genericDelegator.create(null, singletonMap("foo", 27)));
+    }
+
+    @Test
+    public void creatingWithNullFieldMapShouldReturnNull() throws Exception {
+        assertNull(genericDelegator.create(ISSUE_ENTITY, null));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void findByPrimaryKeyShouldRejectInvalidKey() throws Exception {
+        // Set up
+        final GenericPK genericPK = genericDelegator.makePK(ISSUE_ENTITY, Collections.<String, Object>emptyMap());
+
+        // Invoke
+        genericDelegator.findByPrimaryKey(genericPK);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void findPartialByPrimaryKeyShouldRejectInvalidKey() throws Exception {
+        // Set up
+        final GenericPK genericPK = genericDelegator.makePK(ISSUE_ENTITY, Collections.<String, Object>emptyMap());
+
+        // Invoke
+        genericDelegator.findByPrimaryKeyPartial(genericPK, singleton(ISSUE_KEY_FIELD));
+    }
+
+    @Test
+    public void newlyCreatedEntityShouldBeFindableByPrimaryKey() throws Exception {
+        // Set up
+        final long issueId = 345;
+        final GenericPK issuePK = genericDelegator.makePK(ISSUE_ENTITY, singletonMap(ID_FIELD, issueId));
+        genericDelegator.create(issuePK);
+
+        // Invoke
+        final GenericValue issueByPrimaryKey = genericDelegator.findByPrimaryKey(issuePK);
+
+        // Check
+        assertEquals(issueId, issueByPrimaryKey.getLong(ID_FIELD).longValue());
+    }
+
+    @Test
+    public void findingByUnknownPrimaryKeyShouldReturnNull() throws Exception {
+        // Set up
+        final GenericPK invalidPK = genericDelegator.makePK(ISSUE_ENTITY, singletonMap(ID_FIELD, Long.MAX_VALUE));
+
+        // Invoke and check
+        assertNull(genericDelegator.findByPrimaryKey(invalidPK));
+    }
+
+    @Test
+    public void findingPartialByUnknownPrimaryKeyShouldReturnNull() throws Exception {
+        // Set up
+        final GenericPK invalidPK = genericDelegator.makePK(ISSUE_ENTITY, singletonMap(ID_FIELD, Long.MAX_VALUE));
+
+        // Invoke and check
+        assertNull(genericDelegator.findByPrimaryKeyPartial(invalidPK, singleton(ISSUE_KEY_FIELD)));
+    }
+
+    @Test
+    public void entityShouldBeFindableByPrimaryKeyFields() throws Exception {
+        // Set up
+        final long issueId = 345;
+        final GenericPK issuePK = genericDelegator.makePK(ISSUE_ENTITY, singletonMap(ID_FIELD, issueId));
+        genericDelegator.create(issuePK);
+
+        // Invoke
+        final GenericValue issueByPrimaryKey =
+                genericDelegator.findByPrimaryKey(ISSUE_ENTITY, singletonMap(ID_FIELD, issueId));
+
+        // Check
+        assertEquals(issueId, issueByPrimaryKey.getLong(ID_FIELD).longValue());
+    }
+
+    @Test
+    public void findByPrimaryKeyPartialShouldOnlyReturnRequestedFields() throws Exception {
+        final Map<String, Object> fields = new HashMap<String, Object>();
+        fields.put(ID_FIELD, 27L);
+        fields.put(PROJECT_KEY_FIELD, "FOO");
+        final long issueCount = 500;
+        fields.put(ISSUE_COUNT_FIELD, issueCount);
+        final GenericPK insertedPK = genericDelegator.create(PROJECT_ENTITY, fields).getPrimaryKey();
+
+        // Invoke
+        final GenericValue partialProject =
+                genericDelegator.findByPrimaryKeyPartial(insertedPK, singleton(ISSUE_COUNT_FIELD));
+
+        // Check
+        assertNotNull(partialProject);
+        assertEquals(issueCount, partialProject.getLong(ISSUE_COUNT_FIELD).longValue());
+        assertFalse("Did not ask for the project key field", partialProject.containsKey(PROJECT_KEY_FIELD));
+    }
+
+    @Test
+    public void findAllByPrimaryKeysShouldReturnNullForNullArgument() throws Exception {
+        assertNull(genericDelegator.findAllByPrimaryKeys(null));
+    }
+
+    @Test
+    public void findAllByPrimaryKeysShouldBeAbleToFindMultipleEntityTypes() throws Exception {
+        // Set up
+        final GenericValue project = genericDelegator.create(PROJECT_ENTITY, getProjectFields(123, "PROJ", 456));
+        final GenericValue issue = genericDelegator.create(ISSUE_ENTITY, getIssueFields(789, "PROJ-345"));
+
+        // Invoke
+        final List<GenericValue> entities =
+                genericDelegator.findAllByPrimaryKeys(asList(project.getPrimaryKey(), issue.getPrimaryKey()));
+
+        // Check
+        assertEquals(2, entities.size());
+        assertEquals(project, entities.get(0));
+        assertEquals(issue, entities.get(1));
+    }
+
+    private Map<String,?> getIssueFields(final long id, final String key) {
+        return ImmutableMap.of(ID_FIELD, id, ISSUE_KEY_FIELD, key);
+    }
+
+    @Test
+    public void clearAllCacheLinesByDummyPKShouldAcceptNullArgument() {
+        genericDelegator.clearAllCacheLinesByDummyPK(null);
+    }
+
+    @Test
+    public void gettingFromPrimaryKeyCacheWithNullPrimaryKeyShouldReturnNull() {
+        assertNull(genericDelegator.getFromPrimaryKeyCache(null));
+    }
+
+    @Test
+    public void gettingFromAllCacheWithNullEntityNameShouldReturnNull() {
+        assertNull(genericDelegator.getFromAllCache(null));
+    }
+
+    @Test
+    public void gettingFromAndCacheWithNullEntityNameShouldReturnNull() {
+        assertNull(genericDelegator.getFromAndCache((String) null, singletonMap(ID_FIELD, 789L)));
+    }
+
+    @Test
+    public void gettingFromAndCacheWithNullModelEntityShouldReturnNull() {
+        assertNull(genericDelegator.getFromAndCache((ModelEntity) null, singletonMap(ID_FIELD, 789L)));
+    }
+
+    @Test
+    public void gettingFromAndCacheWithNullFieldMapShouldReturnNull() {
+        assertNull(genericDelegator.getFromAndCache(ISSUE_ENTITY, null));
+    }
+
+    @Test
+    public void makeValuesShouldReturnNullForNullXmlDocument() {
+        assertNull(genericDelegator.makeValues(null));
+    }
+
+    @Test
+    public void readXmlDocumentShouldReturnNullForNullUrl() throws Exception {
+        assertNull(genericDelegator.readXmlDocument(null));
+    }
+
+    @Test
+    public void shouldReadEntitiesFromValidXmlFile() throws Exception {
+        // Set up
+        final URL xmlFileUrl = getClass().getResource("test-entities.xml");
+
+        // Invoke
+        final List<GenericValue> entities = genericDelegator.readXmlDocument(xmlFileUrl);
+
+        // Check
+        assertEquals(3, entities.size());
+        assertProject(23, "BAZ", 567, entities.get(0));
+        assertProject(24, "BAR", 568, entities.get(1));
+        assertIssue(25, "BAR-123", entities.get(2));
+    }
+
+    private void assertIssue(final long expectedId, final String expectedKey, final GenericValue actualIssue) {
+        assertEquals(ISSUE_ENTITY, actualIssue.getEntityName());
+        assertEquals(expectedId, actualIssue.getLong(ID_FIELD).longValue());
+        assertEquals(expectedKey, actualIssue.getString(ISSUE_KEY_FIELD));
+    }
+
+    @Test
+    public void shouldRejectXmlFileWithWrongRootElement() throws Exception {
+        // Set up
+        final URL xmlFileUrl = getClass().getResource("bad-entities.xml");
+
+        // Invoke
+        try {
+            genericDelegator.readXmlDocument(xmlFileUrl);
+            fail("Expected a " + IllegalArgumentException.class);
+        }
+        catch (final IllegalArgumentException e)
+        {
+            assertEquals("Root node was not <entity-engine-xml>", e.getMessage());
+        }
+    }
+
+    @Test
+    public void makeValuesShouldReturnEmptyListWhenFileContainsNoEntities() throws Exception {
+        // Set up
+        final URL xmlFileUrl = getClass().getResource("no-entities.xml");
+
+        // Invoke
+        final List<GenericValue> entities = genericDelegator.readXmlDocument(xmlFileUrl);
+
+        // Check
+        assertEquals(Collections.<GenericValue>emptyList(), entities);
+    }
+
+    @Test
+    public void makeValueShouldReturnNullGivenNullElement() {
+        assertNull(genericDelegator.makeValue(null));
+    }
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Can't declare a DOCTYPE location that will satisfy both IDEA and Maven -->
+<entitygroup>
+    <entity-group group="default" entity="Issue"/>
+    <entity-group group="otherGroup" entity="Junk"/>
+    <entity-group group="default" entity="Project"/>
+    <entity-group group="default" entity="SequenceValueItem"/>
+</entitygroup>
