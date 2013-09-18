@@ -11,13 +11,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Copyright All Rights Reserved.
@@ -585,6 +585,13 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
     }
 
     public int storeAll(List<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException
+    {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
+    @Override
+    public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
+            final List<String> orderBy, final Transformation transformation)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }

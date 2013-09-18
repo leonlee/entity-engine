@@ -42,6 +42,7 @@ import java.util.Set;
  * @version    $Revision: 1.1 $
  * @since      2.0
  */
+@SuppressWarnings("unused")
 public interface DelegatorInterface {
     
     String getDelegatorName();
@@ -262,4 +263,33 @@ public interface DelegatorInterface {
     UtilCache<GenericPK, List<GenericValue>> getAndCache();
 
     UtilCache<String, List<GenericValue>> getAllCache();
+
+    /**
+     * Applies the given transformation to any entities matching the given condition.
+     *
+     * @param entityName      the type of entity to transform (required)
+     * @param entityCondition the condition that selects the entities to transform (null means transform all)
+     * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
+     * @param transformation  the transformation to apply (required)
+     * @return the transformed entities in the order they were selected (never null)
+     * @since 1.0.41
+     */
+    List<GenericValue> transform(
+            String entityName, EntityCondition entityCondition, List<String> orderBy, Transformation transformation)
+            throws GenericEntityException;
+
+    /**
+     * A transformation upon an entity.
+     *
+     * @since 1.0.41
+     */
+    interface Transformation {
+
+        /**
+         * Transforms the given entity in place.
+         *
+         * @param entity the entity to transform (never null)
+         */
+        void transform(GenericValue entity);
+    }
 }

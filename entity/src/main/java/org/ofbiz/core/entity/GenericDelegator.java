@@ -2420,4 +2420,18 @@ public class GenericDelegator implements DelegatorInterface {
     public UtilCache<String, List<GenericValue>> getAllCache() {
         return allCache;
     }
+
+    @Override
+    public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
+            final List<String> orderBy, final Transformation transformation)
+        throws GenericEntityException
+    {
+        // TODO Use "select for update" to perform these transformations atomically
+        final List<GenericValue> entities = findByCondition(entityName, entityCondition, null, orderBy);
+        for (final GenericValue entity : entities) {
+            transformation.transform(entity);
+            store(entity);
+        }
+        return entities;
+    }
 }

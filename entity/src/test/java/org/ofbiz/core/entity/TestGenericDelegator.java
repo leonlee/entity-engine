@@ -4,15 +4,20 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.ofbiz.core.entity.model.ModelEntity;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,6 +27,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.ofbiz.core.entity.DelegatorInterface.Transformation;
+import static org.ofbiz.core.entity.EntityOperator.EQUALS;
+import static org.ofbiz.core.entity.EntityOperator.LIKE;
 import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
 
 /**
@@ -38,6 +46,7 @@ public class TestGenericDelegator
     private static final String ISSUE_KEY_FIELD = "key";
     private static final String PROJECT_ENTITY = "Project";
     private static final String PROJECT_KEY_FIELD = "key";
+    private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%");
     private static final String SEQUENCE_ENTITY = "SequenceValueItem";
 
     // Be sure to list all entities in the "default" group here
@@ -427,17 +436,28 @@ public class TestGenericDelegator
 
     @Test
     public void shouldReadEntitiesFromValidXmlFile() throws Exception {
-        // Set up
-        final URL xmlFileUrl = getClass().getResource("test-entities.xml");
-
         // Invoke
-        final List<GenericValue> entities = genericDelegator.readXmlDocument(xmlFileUrl);
+        final List<GenericValue> entities = loadTestEntitiesFromXml("test-entities.xml");
 
         // Check
-        assertEquals(3, entities.size());
+        assertEquals(4, entities.size());
         assertProject(23, "BAZ", 567, entities.get(0));
         assertProject(24, "BAR", 568, entities.get(1));
-        assertIssue(25, "BAR-123", entities.get(2));
+        assertProject(25, "FOO", 600, entities.get(2));
+        assertIssue(25, "BAR-123", entities.get(3));
+        // Check the database was not updated
+        assertEquals(0, genericDelegator.countAll(PROJECT_ENTITY));
+        assertEquals(0, genericDelegator.countAll(ISSUE_ENTITY));
+    }
+
+    private List<GenericValue> loadTestEntitiesFromXml(final String xmlFilename)
+            throws SAXException, ParserConfigurationException, IOException
+    {
+        final Class<?> loadingClass = getClass();
+        final URL xmlUrl = loadingClass.getResource(xmlFilename);
+        assertNotNull(
+                "Couldn't find " + xmlFilename + " in the package " + loadingClass.getPackage().getName(), xmlUrl);
+        return genericDelegator.readXmlDocument(xmlUrl);
     }
 
     private void assertIssue(final long expectedId, final String expectedKey, final GenericValue actualIssue) {
@@ -477,5 +497,63 @@ public class TestGenericDelegator
     @Test
     public void makeValueShouldReturnNullGivenNullElement() {
         assertNull(genericDelegator.makeValue(null));
+    }
+
+    @Test
+    public void shouldBeAbleToFindUsingLikeOperator() throws Exception {
+        // Set up
+        genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
+        
+        // Invoke
+        final List<GenericValue> matchingProjects = genericDelegator.findByCondition(
+                PROJECT_ENTITY, PROJECT_KEY_LIKE_B_PERCENT, null, singletonList(ID_FIELD));
+
+        // Check
+        assertEquals(2, matchingProjects.size());
+        assertProject(23, "BAZ", 567, matchingProjects.get(0));
+        assertProject(24, "BAR", 568, matchingProjects.get(1));
+    }
+
+    @Test
+    public void shouldBeAbleToFindUsingNullSelectAndOrderByColumns() throws Exception {
+        // Set up
+        genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
+        final EntityExpr keyEqualsFoo = new EntityExpr(PROJECT_KEY_FIELD, EQUALS, "FOO");
+
+        // Invoke
+        final List<GenericValue> matchingProjects =
+                genericDelegator.findByCondition(PROJECT_ENTITY, keyEqualsFoo, null, null);
+
+        // Check
+        assertEquals(1, matchingProjects.size());
+        assertProject(25, "FOO", 600, matchingProjects.get(0));
+    }
+
+    @Test
+    public void transformShouldUpdateTheDatabaseAndReturnTheModifiedEntities() throws Exception {
+        // Set up
+        genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
+        final Transformation transformation = new Transformation() {
+
+            @Override
+            public void transform(final GenericValue project)
+            {
+                final long issueCount = project.getLong(ISSUE_COUNT_FIELD);
+                project.set(ISSUE_COUNT_FIELD, issueCount + 1);
+            }
+        };
+
+        // Invoke
+        final List<GenericValue> transformedProjects = genericDelegator.transform(
+                PROJECT_ENTITY, PROJECT_KEY_LIKE_B_PERCENT, singletonList("key ASC"), transformation);
+
+        // Check
+        assertEquals(2, transformedProjects.size());
+        for (final GenericValue transformedProject : transformedProjects) {
+            // Ensure the returned values are what's persisted in the database
+            assertEquals(transformedProject, genericDelegator.findByPrimaryKey(transformedProject.getPrimaryKey()));
+        }
+        assertProject(24, "BAR", 569, transformedProjects.get(0));
+        assertProject(23, "BAZ", 568, transformedProjects.get(1));
     }
 }
