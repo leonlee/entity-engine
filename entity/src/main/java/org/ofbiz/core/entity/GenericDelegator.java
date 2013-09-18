@@ -2273,6 +2273,12 @@ public class GenericDelegator implements DelegatorInterface {
         fieldNameSets.add(new HashSet<String>(fields.keySet()));
     }
 
+    /**
+     * Parses the given XML file for entities. Does not insert them into the database.
+     *
+     * @param url the URL of the XML file (can be null)
+     * @return null if a null URL was given, otherwise the parsed entities
+     */
     @SuppressWarnings("unused")
     public List<GenericValue> readXmlDocument(final URL url)
             throws SAXException, ParserConfigurationException, IOException
@@ -2283,6 +2289,12 @@ public class GenericDelegator implements DelegatorInterface {
         return makeValues(UtilXml.readXmlDocument(url, false));
     }
 
+    /**
+     * Parses the given XML document for entities. Does not insert them into the database.
+     *
+     * @param document the document to parse (can be null)
+     * @return null if a null document was given, otherwise the parsed entities
+     */
     public List<GenericValue> makeValues(final Document document) {
         if (document == null) {
             return null;
@@ -2294,7 +2306,7 @@ public class GenericDelegator implements DelegatorInterface {
         }
         if (!"entity-engine-xml".equals(docElement.getTagName())) {
             Debug.logError("[GenericDelegator.makeValues] Root node was not <entity-engine-xml>", module);
-            throw new java.lang.IllegalArgumentException("Root node was not <entity-engine-xml>");
+            throw new IllegalArgumentException("Root node was not <entity-engine-xml>");
         }
         docElement.normalize();
         Node curChild = docElement.getFirstChild();
@@ -2302,11 +2314,11 @@ public class GenericDelegator implements DelegatorInterface {
         if (curChild != null) {
             do {
                 if (curChild.getNodeType() == Node.ELEMENT_NODE) {
-                    Element element = (Element) curChild;
-                    GenericValue value = makeValue(element);
-
-                    if (value != null)
+                    final Element element = (Element) curChild;
+                    final GenericValue value = makeValue(element);
+                    if (value != null) {
                         values.add(value);
+                    }
                 }
             } while ((curChild = curChild.getNextSibling()) != null);
         } else {
