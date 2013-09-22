@@ -1,0 +1,9 @@
+.idea
+*.iml
+*.ipr
+*.iws
+*.log
+target/
+.classpath
+.project
+.settings
