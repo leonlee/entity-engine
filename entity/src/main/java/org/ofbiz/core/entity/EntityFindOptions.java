@@ -120,6 +120,7 @@ public class EntityFindOptions implements Serializable {
     protected int maxResults = -1;
     protected int offset;
     protected int fetchSize = -1;
+    private boolean forUpdate;
 
     /**
      * Default constructor. Defaults are as follows:
@@ -455,5 +456,27 @@ public class EntityFindOptions implements Serializable {
         this.maxResults = maxResults;
         this.offset = offset;
         return this;
+    }
+
+    /**
+     * Sets the <code>SELECT</code> mode to <code>FOR UPDATE</code>. Callers setting this flag should
+     * wrap this find operation and the subsequent update in a transaction so that the lock(s) obtained
+     * upon <code>SELECT</code> are released.
+     *
+     * @return {@code this}, for convenient use as a chained builder
+     */
+    public EntityFindOptions forUpdate() {
+        this.forUpdate = true;
+        return this;
+    }
+
+    /**
+     * Indicates whether the <code>SELECT</code> will be performed in <code>FOR UPDATE</code>
+     * mode, i.e. locking the selected row(s) until the transaction completes.
+     *
+     * @return false by default
+     */
+    public boolean isForUpdate() {
+        return forUpdate;
     }
 }

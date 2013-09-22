@@ -36,7 +36,7 @@ public class TestEntityFindOptions {
         final int offset = 100;
 
         // Invoke
-        options.distinct().fetchSize(fetchSize).maxResults(maxResults).scrollSensitive().updatable().setOffset(offset);
+        options.distinct().fetchSize(fetchSize).forUpdate().maxResults(maxResults).scrollSensitive().updatable().setOffset(offset);
         options.setSpecifyTypeAndConcur(false);
 
         // Check
@@ -47,6 +47,7 @@ public class TestEntityFindOptions {
         assertEquals(CONCUR_UPDATABLE, options.getResultSetConcurrency());
         assertEquals(TYPE_SCROLL_SENSITIVE, options.getResultSetType());
         assertFalse(options.getSpecifyTypeAndConcur());
+        assertTrue(options.isForUpdate());
     }
 
     private void assertDefaultOptions(final EntityFindOptions options) {
@@ -57,6 +58,7 @@ public class TestEntityFindOptions {
         assertEquals(CONCUR_READ_ONLY, options.getResultSetConcurrency());
         assertEquals(TYPE_FORWARD_ONLY, options.getResultSetType());
         assertTrue(options.getSpecifyTypeAndConcur());
+        assertFalse(options.isForUpdate());
     }
 
     @Test
