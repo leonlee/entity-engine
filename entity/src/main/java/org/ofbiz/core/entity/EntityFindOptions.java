@@ -112,7 +112,7 @@ public class EntityFindOptions implements Serializable {
         return new EntityFindOptions();
     }
 
-    protected boolean specifyTypeAndConcur = true;
+    protected boolean specifyTypeAndConcurrency = true;
     protected int resultSetType = ResultSet.TYPE_FORWARD_ONLY;
     protected int resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
     protected boolean distinct;
@@ -123,7 +123,7 @@ public class EntityFindOptions implements Serializable {
 
     /**
      * Default constructor. Defaults are as follows:
-     * specifyTypeAndConcur = true
+     * specifyTypeAndConcurrency = true
      * resultSetType = TYPE_FORWARD_ONLY
      * resultSetConcurrency = CONCUR_READ_ONLY
      * distinct = false
@@ -135,7 +135,7 @@ public class EntityFindOptions implements Serializable {
     /**
      * Constructor that allows some options to be provided at construction time.
      *
-     * @param specifyTypeAndConcur if {@code false}, then resultSetType and resultSetConcurrency are ignored, and the
+     * @param specifyTypeAndConcurrency if {@code false}, then resultSetType and resultSetConcurrency are ignored, and the
      *                             JDBC driver's defaults are used for these fields, instead
      * @param resultSetType either {@link #TYPE_FORWARD_ONLY}, {@link #TYPE_SCROLL_INSENSITIVE}, or {@link #TYPE_SCROLL_SENSITIVE}
      * @param resultSetConcurrency either {@link #CONCUR_READ_ONLY}, or {@link #CONCUR_UPDATABLE}
@@ -146,10 +146,10 @@ public class EntityFindOptions implements Serializable {
      */
     @Deprecated
     @SuppressWarnings("unused")
-    public EntityFindOptions(final boolean specifyTypeAndConcur, final int resultSetType,
+    public EntityFindOptions(final boolean specifyTypeAndConcurrency, final int resultSetType,
             final int resultSetConcurrency, final boolean distinct, final int maxResults)
     {
-        this.specifyTypeAndConcur = specifyTypeAndConcur;
+        this.specifyTypeAndConcurrency = specifyTypeAndConcurrency;
         this.resultSetType = resultSetType;
         this.resultSetConcurrency = resultSetConcurrency;
         this.distinct = distinct;
@@ -157,15 +157,27 @@ public class EntityFindOptions implements Serializable {
     }
 
     /**
-     * Indicates whether the {@code resultSetType} and
-     * {@code resultSetConcurrency} parameters will be used to specify how the
-     * results will be used; false means that the JDBC driver's default values
-     * will be used.
+     * Indicates whether the {@code resultSetType} and {@code resultSetConcurrency}
+     * fields will be used to specify how the results will be used; false means that
+     * the JDBC driver's default values will be used.
+     *
+     * @return see above
+     * @deprecated use {@link #isCustomResultSetTypeAndConcurrency()} instead; better named
+     */
+    @Deprecated
+    public boolean getSpecifyTypeAndConcur() {
+        return isCustomResultSetTypeAndConcurrency();
+    }
+
+    /**
+     * Indicates whether the {@code resultSetType} and {@code resultSetConcurrency}
+     * fields will be used to specify how the results will be used; false means that
+     * the JDBC driver's default values will be used.
      *
      * @return see above
      */
-    public boolean getSpecifyTypeAndConcur() {
-        return specifyTypeAndConcur;
+    public boolean isCustomResultSetTypeAndConcurrency() {
+        return specifyTypeAndConcurrency;
     }
 
     /**
@@ -174,10 +186,21 @@ public class EntityFindOptions implements Serializable {
      * results will be used; if false, the JDBC driver's default values will be
      * used.
      *
-     * @param specifyTypeAndConcur see above
+     * @param specifyTypeAndConcurrency see above
+     * @deprecated there's no valid use case for this method; call {@link #useDriverDefaultsForTypeAndConcurrency()} to
+     * revert to the driver's default settings for concurrency and type of result set
      */
-    public void setSpecifyTypeAndConcur(final boolean specifyTypeAndConcur) {
-        this.specifyTypeAndConcur = specifyTypeAndConcur;
+    @Deprecated
+    public void setSpecifyTypeAndConcur(final boolean specifyTypeAndConcurrency) {
+        this.specifyTypeAndConcurrency = specifyTypeAndConcurrency;
+    }
+
+    /**
+     * Specifies that the JDBC driver's default values should be used for concurrency and type of result set, in other
+     * words any custom settings for those options should be ignored.
+     */
+    public void useDriverDefaultsForTypeAndConcurrency() {
+        this.specifyTypeAndConcurrency = false;
     }
 
     /**
@@ -276,7 +299,7 @@ public class EntityFindOptions implements Serializable {
      * Specifies the number of rows to be skipped, which is ignored if
      * <code>maxResults</code> is not also set.
      *
-     * @param offset ignored if negative
+     * @param offset if negative, this method does nothing
      */
     @SuppressWarnings("unused")
     public void setOffset(final int offset) {
@@ -325,7 +348,7 @@ public class EntityFindOptions implements Serializable {
      */
     @SuppressWarnings("unused")
     public EntityFindOptions forwardOnly() {
-        specifyTypeAndConcur = true;
+        specifyTypeAndConcurrency = true;
         resultSetType = ResultSet.TYPE_FORWARD_ONLY;
         return this;
     }
@@ -340,7 +363,7 @@ public class EntityFindOptions implements Serializable {
      */
     @SuppressWarnings("unused")
     public EntityFindOptions scrollSensitive() {
-        specifyTypeAndConcur = true;
+        specifyTypeAndConcurrency = true;
         resultSetType = ResultSet.TYPE_SCROLL_SENSITIVE;
         return this;
     }
@@ -355,7 +378,7 @@ public class EntityFindOptions implements Serializable {
      */
     @SuppressWarnings("unused")
     public EntityFindOptions scrollInsensitive() {
-        specifyTypeAndConcur = true;
+        specifyTypeAndConcurrency = true;
         resultSetType = ResultSet.TYPE_SCROLL_INSENSITIVE;
         return this;
     }
@@ -369,7 +392,7 @@ public class EntityFindOptions implements Serializable {
      * @return {@code this}, for convenient use as a chained builder
      */
     public EntityFindOptions readOnly() {
-        specifyTypeAndConcur = true;
+        specifyTypeAndConcurrency = true;
         resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
         return this;
     }
@@ -383,7 +406,7 @@ public class EntityFindOptions implements Serializable {
      * @return {@code this}, for convenient use as a chained builder
      */
     public EntityFindOptions updatable() {
-        specifyTypeAndConcur = true;
+        specifyTypeAndConcurrency = true;
         resultSetConcurrency = ResultSet.CONCUR_UPDATABLE;
         return this;
     }

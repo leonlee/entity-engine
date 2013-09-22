@@ -58,4 +58,19 @@ public class TestEntityFindOptions {
         assertEquals(TYPE_FORWARD_ONLY, options.getResultSetType());
         assertTrue(options.getSpecifyTypeAndConcur());
     }
+
+    @Test
+    public void shouldRespectWishToUseDriverDefaultsForConcurrencyAndResultSetType() {
+        // Set up
+        final EntityFindOptions options = EntityFindOptions.findOptions();
+        assertTrue(options.getSpecifyTypeAndConcur());
+        assertTrue(options.isCustomResultSetTypeAndConcurrency());
+
+        // Invoke
+        options.useDriverDefaultsForTypeAndConcurrency();
+
+        // Check
+        assertFalse(options.getSpecifyTypeAndConcur());
+        assertFalse(options.isCustomResultSetTypeAndConcurrency());
+    }
 }
