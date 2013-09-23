@@ -1355,36 +1355,29 @@ public class GenericDAO {
         }
     }
 
-    private int deleteByAnd(final ModelEntity modelEntity, final Map<String, ?> fields, final Connection connection)
-            throws GenericEntityException
+    private int deleteByAnd(
+            final ModelEntity modelEntity, final Map<String, ?> whereFieldValues, final Connection connection)
+        throws GenericEntityException
     {
-        if (modelEntity == null || fields == null) {
+        if (modelEntity == null || whereFieldValues == null) {
             return 0;
         }
         if (modelEntity instanceof ModelViewEntity) {
             throw new GenericNotImplementedException("Operation deleteByAnd not supported yet for view entities");
         }
 
-        final List<ModelField> whereFields = new ArrayList<ModelField>();
-        if (!fields.isEmpty()) {
-            for (int fi = 0; fi < modelEntity.getFieldsSize(); fi++) {
-                final ModelField curField = modelEntity.getField(fi);
-                if (fields.containsKey(curField.getName())) {
-                    whereFields.add(curField);
-                }
-            }
-        }
+        final List<ModelField> whereFields = getWhereFields(modelEntity, whereFieldValues);
 
-        final GenericValue dummyValue = new GenericValue(modelEntity, fields);
+        final GenericValue dummyValue = new GenericValue(modelEntity, whereFieldValues);
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo);
-        if (!fields.isEmpty()) {
+        if (!whereFieldValues.isEmpty()) {
             sql += " WHERE " + SqlJdbcUtil.makeWhereStringFromFields(whereFields, dummyValue, "AND");
         }
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         try {
             sqlP.prepareStatement(sql);
-            if (!fields.isEmpty()) {
+            if (!whereFieldValues.isEmpty()) {
                 SqlJdbcUtil.setValuesWhereClause(sqlP, whereFields, dummyValue, modelFieldTypeReader);
             }
             return sqlP.executeUpdate();
@@ -1392,6 +1385,19 @@ public class GenericDAO {
         finally {
             sqlP.close();
         }
+    }
+
+    private List<ModelField> getWhereFields(final ModelEntity modelEntity, final Map<String, ?> fieldValues) {
+        final List<ModelField> whereFields = new ArrayList<ModelField>();
+        if (!fieldValues.isEmpty()) {
+            for (int fieldNumber = 0; fieldNumber < modelEntity.getFieldsSize(); fieldNumber++) {
+                final ModelField modelField = modelEntity.getField(fieldNumber);
+                if (fieldValues.containsKey(modelField.getName())) {
+                    whereFields.add(modelField);
+                }
+            }
+        }
+        return whereFields;
     }
 
     /** Called dummyPKs because they can be invalid PKs, doing a deleteByAnd instead of a normal delete */
