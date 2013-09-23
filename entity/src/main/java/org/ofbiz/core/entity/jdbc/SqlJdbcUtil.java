@@ -220,33 +220,58 @@ public class SqlJdbcUtil {
         return sql.toString();
     }
 
-    /** Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS null" if null, all AND separated */
-    public static String makeWhereStringFromFields(List<ModelField> modelFields, Map<String, ?> fields, String operator) {
-        return makeWhereStringFromFields(modelFields, fields, operator, null);
+    /**
+     * Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS NULL" if null, all separated by the
+     * given operator.
+     *
+     * @param modelFields the fields to include in the WHERE string (can be null)
+     * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
+     * @param operator the operator to insert between each column condition in the returned WHERE string (typically
+     * "AND" or "OR")
+     * @return an empty string if the given list of fields is null or empty, otherwise a string like
+     * "first_name IS NULL OR last_name=?"
+     */
+    public static String makeWhereStringFromFields(
+            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator)
+    {
+        return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
     }
 
-    /** Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS null" if null, all AND separated */
-    public static String makeWhereStringFromFields(List<ModelField> modelFields, Map<String, ?> fields, String operator, List<? super EntityConditionParam> entityConditionParams) {
-        StringBuilder returnString = new StringBuilder("");
-
-        if (modelFields.size() < 1) {
+    /**
+     * Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS NULL" if null, all separated by the
+     * given operator.
+     *
+     * @param modelFields the fields to include in the WHERE string (can be null)
+     * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
+     * @param operator the operator to insert between each column
+     * condition in the returned WHERE string (typically "AND" or "OR")
+     * @param entityConditionParams if not null, an element will be added to this list
+     * @return an empty string if the given list of fieldValues is null or empty, otherwise a string like
+     * "first_name IS NULL OR last_name=?"
+     */
+    public static String makeWhereStringFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues,
+            final String operator, final List<? super EntityConditionParam> entityConditionParams)
+    {
+        if (modelFields == null || modelFields.isEmpty()) {
             return "";
         }
-        Iterator<ModelField> iter = modelFields.iterator();
+
+        final StringBuilder returnString = new StringBuilder();
+        final Iterator<ModelField> iter = modelFields.iterator();
 
         while (iter.hasNext()) {
-            ModelField modelField = iter.next();
+            final ModelField modelField = iter.next();
 
             returnString.append(modelField.getColName());
-            Object fieldValue = fields.get(modelField.getName());
+            final Object fieldValue = fieldValues.get(modelField.getName());
 
-            if (fieldValue != null) {
+            if (fieldValue == null) {
+                returnString.append(" IS NULL");
+            } else {
                 returnString.append("=?");
                 if (entityConditionParams != null) {
                     entityConditionParams.add(new EntityConditionParam(modelField, fieldValue));
                 }
-            } else {
-                returnString.append(" IS NULL");
             }
 
             if (iter.hasNext()) {
@@ -477,7 +502,8 @@ public class SqlJdbcUtil {
      *
      * @param sqlP
      * @param list
-     * @param entity
+     * @param dummyValue
+     * @param modelFieldTypeReader
      * @throws GenericEntityException
      */
     public static void setValuesWhereClause(SQLProcessor sqlP, List<ModelField> list, GenericValue dummyValue, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
@@ -495,8 +521,9 @@ public class SqlJdbcUtil {
      *  to the an SQL statement (SQL-Processor)
      *
      * @param sqlP
-     * @param list
+     * @param modelEntity
      * @param entity
+     * @param modelFieldTypeReader
      * @throws GenericEntityException
      */
     public static void setPkValues(SQLProcessor sqlP, ModelEntity modelEntity, GenericEntity entity, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
