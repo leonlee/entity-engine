@@ -12,8 +12,11 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.isBoolean;
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 
 public class TestSqlJdbcUtil {
@@ -98,5 +101,15 @@ public class TestSqlJdbcUtil {
 
         // Check
         assertEquals("myColumn1=? OR myColumn2 IS NULL", whereString);
+    }
+
+    @Test
+    public void booleanFieldShouldBeReportedAsBoolean() {
+        assertTrue(isBoolean(Boolean.class.getName()));
+    }
+
+    @Test
+    public void nonBooleanFieldShouldNotBeReportedAsBoolean() {
+        assertFalse(isBoolean(String.class.getName()));
     }
 }

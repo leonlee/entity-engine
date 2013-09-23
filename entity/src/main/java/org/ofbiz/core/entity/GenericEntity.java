@@ -38,7 +38,13 @@ import org.w3c.dom.Element;
 
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Observable;
+import java.util.TreeSet;
 
 
 /**
@@ -229,53 +235,56 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         set(name, value, true);
     }
 
-    /** Sets the named field to the passed value. If value is null, it is only
-     *  set if the setIfNull parameter is true. This is useful because an update
-     *  will only set values that are included in the HashMap and will store null
-     *  values in the HashMap to the datastore. If a value is not in the HashMap,
-     *  it will be left unmodified in the datastore.
-     * @param name The field name to set
-     * @param value The value to set
-     * @param setIfNull Specifies whether or not to set the value if it is null
+    /**
+     * Sets the named field to the passed value. If value is null, it is only
+     * set if the setIfNull parameter is true. This is useful because an update
+     * will only set values that are included in the HashMap and will store null
+     * values in the HashMap to the datastore. If a value is not in the HashMap,
+     * it will be left unmodified in the datastore.
+     *
+     * @param field the name of the field to set; must be a valid field of this entity
+     * @param value the value to set; if null, will only be stored if <code>setIfNull</code> is true
+     * @param setIfNull specifies whether or not to set the value if it is null
+     * @return the previous value of the given field (whether updated or not)
      */
-    public synchronized Object set(String name, Object value, boolean setIfNull) {
-        ModelField modelField = getModelEntity().getField(name);
-
+    public synchronized Object set(final String field, final Object value, final boolean setIfNull) {
+        final ModelField modelField = getModelEntity().getField(field);
         if (modelField == null) {
-            throw new IllegalArgumentException("[GenericEntity.set] \"" + name + "\" is not a field of " + entityName);
-            // Debug.logWarning("[GenericEntity.set] \"" + name + "\" is not a field of " + entityName + ", but setting anyway...");
+            throw new IllegalArgumentException("[GenericEntity.set] \"" + field + "\" is not a field of " + entityName);
         }
-        if (value != null || setIfNull) {
-            if (value instanceof Boolean) {
-                // if this is a Boolean check to see if we should convert from an indicator or just leave as is
-                ModelFieldType type = null;
+        if (value == null && !setIfNull) {
+            // Don't modify the field, just return its existing value
+            return fields.get(field);
+        }
+        final Object valueToPut = getValueToPut(value, modelField.getType());
+        final Object previousValue = fields.put(field, valueToPut);
+        modified = true;
+        setChanged();
+        notifyObservers(field);
+        return previousValue;
+    }
 
-                try {
-                    type = getDelegator().getEntityFieldType(getModelEntity(), modelField.getType());
-                } catch (GenericEntityException e) {
-                    Debug.logWarning(e);
-                }
-                if (type == null) throw new IllegalArgumentException("Type " + modelField.getType() + " not found");
-
-                try {
-                    int fieldType = SqlJdbcUtil.getType(type.getJavaType());
-
-                    if (fieldType != 9) {
-                        value = (Boolean) value ? "Y" : "N";
-                    }
-                } catch (GenericNotImplementedException e) {
-                    throw new IllegalArgumentException(e.getMessage());
-                }
+    private Object getValueToPut(final Object value, final String fieldType) {
+        if (value instanceof Boolean) {
+            final String javaType = getModelFieldType(fieldType).getJavaType();
+            if (!SqlJdbcUtil.isBoolean(javaType)) {
+                return (Boolean) value ? "Y" : "N";
             }
-            Object old = fields.put(name, value);
-
-            modified = true;
-            this.setChanged();
-            this.notifyObservers(name);
-            return old;
-        } else {
-            return fields.get(name);
         }
+        return value;
+    }
+
+    private ModelFieldType getModelFieldType(final String fieldType) {
+        ModelFieldType type = null;
+        try {
+            type = getDelegator().getEntityFieldType(getModelEntity(), fieldType);
+        } catch (GenericEntityException e) {
+            Debug.logWarning(e);
+        }
+        if (type == null) {
+            throw new IllegalArgumentException("Type " + fieldType + " not found");
+        }
+        return type;
     }
 
     public void dangerousSetNoCheckButFast(ModelField modelField, Object value) {
@@ -288,7 +297,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return this.fields.get(modelField.getName());
     }
 
-    /** Sets the named field to the passed value, converting the value from a String to the corrent type using <code>Type.valueOf()</code>
+    /** Sets the named field to the passed value, converting the value from a String to the correct type using <code>Type.valueOf()</code>
      * @param name The field name to set
      * @param value The String value to convert and set
      */
@@ -297,14 +306,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
 
         if (field == null) set(name, value); // this will get an error in the set() method...
 
-        ModelFieldType type = null;
-
-        try {
-            type = getDelegator().getEntityFieldType(getModelEntity(), field.getType());
-        } catch (GenericEntityException e) {
-            Debug.logWarning(e);
-        }
-        if (type == null) throw new IllegalArgumentException("Type " + field.getType() + " not found");
+        ModelFieldType type = getModelFieldType(field.getType());
         String fieldType = type.getJavaType();
 
         try {
@@ -557,18 +559,18 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return aMap;
     }
 
-    /** Used by clients to update particular fields in the entity
-     * @param keyValuePairs java.util.Map
+    /**
+     * Updates the given fields of this entity.
+     *
+     * @param newFieldValues map of field names to new values; if null, this method does nothing
      */
-    public synchronized void setFields(Map<? extends String, ?> keyValuePairs) {
-        if (keyValuePairs == null) return;
-        Iterator<? extends Entry<? extends String, ?>> entries = keyValuePairs.entrySet().iterator();
-        Map.Entry<? extends String, ?> anEntry = null;
-
-        // this could be implement with Map.putAll, but we'll leave it like this for the extra features it has
-        while (entries.hasNext()) {
-            anEntry = entries.next();
-            this.set(anEntry.getKey(), anEntry.getValue(), true);
+    public synchronized void setFields(final Map<? extends String, ?> newFieldValues) {
+        if (newFieldValues == null) {
+            return;
+        }
+        // We could implement this with Map.putAll, but this way validates the given field names
+        for (final Entry<? extends String, ?> update : newFieldValues.entrySet()) {
+            set(update.getKey(), update.getValue(), true);
         }
     }
 

@@ -23,9 +23,21 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
-import org.ofbiz.core.entity.*;
+import org.ofbiz.core.entity.EntityConditionParam;
+import org.ofbiz.core.entity.GenericDAO;
+import org.ofbiz.core.entity.GenericDataSourceException;
+import org.ofbiz.core.entity.GenericEntity;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericModelException;
+import org.ofbiz.core.entity.GenericNotImplementedException;
+import org.ofbiz.core.entity.GenericValue;
 import org.ofbiz.core.entity.config.DatasourceInfo;
-import org.ofbiz.core.entity.model.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelFieldType;
+import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.entity.model.ModelKeyMap;
+import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 
@@ -35,7 +47,13 @@ import java.io.ObjectInputStream;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * GenericDAO Utility methods for general tasks
@@ -49,7 +67,26 @@ import java.util.*;
  * @since      2.0
  */
 public class SqlJdbcUtil {
+
     public static final String module = GenericDAO.class.getName();
+
+    private static final int BOOLEAN = 9;
+
+    /**
+     * Indicates whether the given field type represents a Boolean field. Equivalent to calling {@link #getType(String)}
+     * and comparing the result to the int value for a Boolean.
+     *
+     * @param fieldType the field type to check
+     * @return see above
+     */
+    public static boolean isBoolean(final String fieldType) {
+        try {
+            return getType(fieldType) == BOOLEAN;
+        }
+        catch (GenericNotImplementedException e) {
+            throw new UnsupportedOperationException(e);
+        }
+    }
 
     /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
     public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
@@ -59,7 +96,6 @@ public class SqlJdbcUtil {
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
 
             if ("ansi".equals(datasourceInfo.getJoinStyle())) {
-                String firstMemberAlias = null;
 
                 // FROM clause: in this case will be a bunch of joins that correspond with the view-links
 
@@ -88,9 +124,6 @@ public class SqlJdbcUtil {
 
                     ModelEntity linkEntity = modelViewEntity.getMemberModelEntity(viewLink.getEntityAlias());
                     ModelEntity relLinkEntity = modelViewEntity.getMemberModelEntity(viewLink.getRelEntityAlias());
-
-                    // ModelViewEntity.ModelMemberEntity linkMemberEntity = modelViewEntity.getMemberModelMemberEntity(viewLink.getEntityAlias());
-                    // ModelViewEntity.ModelMemberEntity relLinkMemberEntity = modelViewEntity.getMemberModelMemberEntity(viewLink.getRelEntityAlias());
 
                     if (i == 0) {
                         // this is the first referenced member alias, so keep track of it for future use...
@@ -315,7 +348,8 @@ public class SqlJdbcUtil {
             StringBuilder whereString = new StringBuilder("");
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
 
-            if ("ansi".equals(joinStyle)) {// nothing to do here, all done in the JOIN clauses
+            if ("ansi".equals(joinStyle)) {
+                // nothing to do here, all done in the JOIN clauses
             } else if ("theta-oracle".equals(joinStyle) || "theta-mssql".equals(joinStyle)) {
                 boolean isOracleStyle = "theta-oracle".equals(joinStyle);
                 boolean isMssqlStyle = "theta-mssql".equals(joinStyle);
@@ -488,10 +522,14 @@ public class SqlJdbcUtil {
      * @param sqlP
      * @param list
      * @param entity
+     * @param modelFieldTypeReader
      * @throws GenericEntityException
      */
-    public static void setValues(SQLProcessor sqlP, List<ModelField> list, GenericEntity entity, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
-        for (ModelField curField : list) {
+    public static void setValues(final SQLProcessor sqlP, final List<ModelField> list, final GenericEntity entity,
+            final ModelFieldTypeReader modelFieldTypeReader)
+        throws GenericEntityException
+    {
+        for (final ModelField curField : list) {
             setValue(sqlP, curField, entity, modelFieldTypeReader);
         }
     }
@@ -506,9 +544,11 @@ public class SqlJdbcUtil {
      * @param modelFieldTypeReader
      * @throws GenericEntityException
      */
-    public static void setValuesWhereClause(SQLProcessor sqlP, List<ModelField> list, GenericValue dummyValue, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
-
-        for (ModelField curField : list) {
+    public static void setValuesWhereClause(final SQLProcessor sqlP, final List<ModelField> list,
+            final GenericValue dummyValue, final ModelFieldTypeReader modelFieldTypeReader)
+        throws GenericEntityException
+    {
+        for (final ModelField curField : list) {
             // for where clause variables only setValue if not null...
             if (dummyValue.get(curField.getName()) != null) {
                 setValue(sqlP, curField, dummyValue, modelFieldTypeReader);
@@ -638,7 +678,7 @@ public class SqlJdbcUtil {
                     }
                     break;
 
-                case 9:
+                case BOOLEAN:
                     boolean booleanValue = rs.getBoolean(ind);
 
                     if (rs.wasNull()) {
@@ -723,7 +763,7 @@ public class SqlJdbcUtil {
                 sqlP.setValue((java.lang.Double) fieldValue);
                 break;
 
-            case 9:
+            case BOOLEAN:
                 sqlP.setValue((java.lang.Boolean) fieldValue);
                 break;
 
@@ -762,8 +802,8 @@ public class SqlJdbcUtil {
         fieldTypeMap.put("Float", 7);
         fieldTypeMap.put("java.lang.Double", 8);
         fieldTypeMap.put("Double", 8);
-        fieldTypeMap.put("java.lang.Boolean", 9);
-        fieldTypeMap.put("Boolean", 9);
+        fieldTypeMap.put("java.lang.Boolean", BOOLEAN);
+        fieldTypeMap.put("Boolean", BOOLEAN);
         fieldTypeMap.put("java.lang.Object", 10);
         fieldTypeMap.put("Object", 10);
         fieldTypeMap.put("java.sql.Blob", 11);
