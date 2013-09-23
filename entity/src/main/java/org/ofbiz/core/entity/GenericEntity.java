@@ -560,9 +560,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
     /**
-     * Updates the given fields of this entity.
+     * Updates the given fields of this entity with the values in the given map, including nulls.
      *
-     * @param newFieldValues map of field names to new values; if null, this method does nothing
+     * @param newFieldValues map of valid field names to new values; if null, this method does nothing
      */
     public synchronized void setFields(final Map<? extends String, ?> newFieldValues) {
         if (newFieldValues == null) {
