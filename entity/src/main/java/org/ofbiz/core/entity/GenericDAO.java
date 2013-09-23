@@ -946,7 +946,8 @@ public class GenericDAO {
      */
     public EntityListIterator selectListIteratorByCondition(ModelEntity modelEntity, EntityCondition whereEntityCondition,
         EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
-        throws GenericEntityException {
+        throws GenericEntityException
+    {
         if (modelEntity == null) {
             return null;
         }
@@ -1354,39 +1355,41 @@ public class GenericDAO {
         }
     }
 
-    private int deleteByAnd(ModelEntity modelEntity, Map<String, ?> fields, Connection connection) throws GenericEntityException {
-        if (modelEntity == null || fields == null) return 0;
+    private int deleteByAnd(final ModelEntity modelEntity, final Map<String, ?> fields, final Connection connection)
+            throws GenericEntityException
+    {
+        if (modelEntity == null || fields == null) {
+            return 0;
+        }
         if (modelEntity instanceof ModelViewEntity) {
-            throw new org.ofbiz.core.entity.GenericNotImplementedException("Operation deleteByAnd not supported yet for view entities");
+            throw new GenericNotImplementedException("Operation deleteByAnd not supported yet for view entities");
         }
 
-        List<ModelField> whereFields = new ArrayList<ModelField>();
-        if (fields != null && fields.size() > 0) {
+        final List<ModelField> whereFields = new ArrayList<ModelField>();
+        if (!fields.isEmpty()) {
             for (int fi = 0; fi < modelEntity.getFieldsSize(); fi++) {
-                ModelField curField = modelEntity.getField(fi);
-
+                final ModelField curField = modelEntity.getField(fi);
                 if (fields.containsKey(curField.getName())) {
                     whereFields.add(curField);
                 }
             }
         }
 
-        GenericValue dummyValue = new GenericValue(modelEntity, fields);
+        final GenericValue dummyValue = new GenericValue(modelEntity, fields);
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo);
-        if (fields != null && fields.size() > 0) {
+        if (!fields.isEmpty()) {
             sql += " WHERE " + SqlJdbcUtil.makeWhereStringFromFields(whereFields, dummyValue, "AND");
         }
 
-        SQLProcessor sqlP = new PassThruSQLProcessor(helperName,connection);
+        final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         try {
             sqlP.prepareStatement(sql);
-
-            if (fields != null && fields.size() > 0) {
+            if (!fields.isEmpty()) {
                 SqlJdbcUtil.setValuesWhereClause(sqlP, whereFields, dummyValue, modelFieldTypeReader);
             }
-
             return sqlP.executeUpdate();
-        } finally {
+        }
+        finally {
             sqlP.close();
         }
     }
