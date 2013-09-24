@@ -34,19 +34,44 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
-import org.ofbiz.core.entity.jdbc.*;
+import org.ofbiz.core.entity.jdbc.AutoCommitSQLProcessor;
+import org.ofbiz.core.entity.jdbc.DatabaseUtil;
+import org.ofbiz.core.entity.jdbc.ExplicitCommitSQLProcessor;
+import org.ofbiz.core.entity.jdbc.PassThruSQLProcessor;
+import org.ofbiz.core.entity.jdbc.ReadOnlySQLProcessor;
+import org.ofbiz.core.entity.jdbc.SQLProcessor;
+import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
-import org.ofbiz.core.entity.model.*;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.entity.model.ModelKeyMap;
+import org.ofbiz.core.entity.model.ModelRelation;
+import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
-import org.ofbiz.core.util.UtilValidate;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Vector;
 import javax.annotation.Nullable;
+
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
+import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
  * Generic Entity Data Access Object - Handles persisntence for any defined entity.
@@ -303,34 +328,25 @@ public class GenericDAO {
     }
 
     public int storeAll(List<? extends GenericEntity> entities) throws GenericEntityException {
-        if (entities == null || entities.size() <= 0) {
+        if (entities == null || entities.isEmpty()) {
             return 0;
         }
 
-        SQLProcessor sqlP = new ExplcitCommitSQLProcessor(helperName);
-
-        int totalStored = 0;
+        final SQLProcessor sqlP = new ExplicitCommitSQLProcessor(helperName);
 
         try {
-            Iterator<? extends GenericEntity> entityIter = entities.iterator();
-
-            while (entityIter != null && entityIter.hasNext()) {
-                GenericEntity curEntity = entityIter.next();
-
-                totalStored += singleStore(curEntity, sqlP.getConnection());
+            int totalStored = 0;
+            for (final GenericEntity entity : entities) {
+                totalStored += singleStore(entity, sqlP.getConnection());
             }
+            return totalStored;
         } catch (GenericDataSourceException e) {
             sqlP.rollback();
             throw new GenericDataSourceException("Exception occurred in storeAll", e);
         } finally {
             sqlP.close();
         }
-        return totalStored;
     }
-
-    /* ====================================================================== */
-
-    /* ====================================================================== */
 
     /**
      * Try to update the given ModelViewEntity by trying to insert/update on the entities of which the view is composed.
@@ -940,37 +956,69 @@ public class GenericDAO {
      *@param havingEntityCondition The EntityCondition object that specifies how to constrain this query after any groupings are done (if this is a view entity with group-by aliases)
      *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@param findOptions An instance of EntityFindOptions that specifies advanced query options. See the EntityFindOptions JavaDoc for more details.
+     *@param findOptions can be null to use the default options
      *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE 
      *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
-    public EntityListIterator selectListIteratorByCondition(ModelEntity modelEntity, EntityCondition whereEntityCondition,
-        EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
+    public EntityListIterator selectListIteratorByCondition(final ModelEntity modelEntity, EntityCondition whereEntityCondition,
+            final EntityCondition havingEntityCondition, final Collection<String> fieldsToSelect,
+            final List<String> orderBy, final EntityFindOptions findOptions)
         throws GenericEntityException
     {
         if (modelEntity == null) {
             return null;
         }
-
-        // if no find options passed, use default
-        if (findOptions == null) findOptions = new EntityFindOptions();
-
-        boolean verboseOn = Debug.verboseOn();
+        final EntityFindOptions nonNullFindOptions = findOptions == null ? new EntityFindOptions() : findOptions;
 
         //JRA-19317: Oracle does not allow lists with more than 1000 elements ORA-01795
         // if we are on Oracle we split such long lists into equivalent expression
         // e.g. pid in (1, 2, 3, ..., 1000, 1001, 1002, ...) will be split into (pid in (1, 2, 3, ..., 1000) or pid in (1001, 1002, ...))
         final DatabaseType databaseType = datasourceInfo.getDatabaseTypeFromJDBCConnection();
-        if (databaseType == DatabaseTypeFactory.ORACLE_8I || databaseType == DatabaseTypeFactory.ORACLE_10G) {
+        if (databaseType == ORACLE_8I || databaseType == ORACLE_10G) {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
-        if (verboseOn) {
-            // put this inside an if statement so that we don't have to generate the string when not used...
+        if (Debug.verboseOn()) {
             Debug.logVerbose("Doing selectListIteratorByCondition with whereEntityCondition: " + whereEntityCondition);
         }
 
-        // make two ArrayLists of fields, one for fields to select and the other for where clause fields (to find by)
+        final List<ModelField> selectFields = getSelectFields(modelEntity, fieldsToSelect);
+        final List<EntityConditionParam> whereEntityConditionParams = new LinkedList<EntityConditionParam>();
+        final List<EntityConditionParam> havingEntityConditionParams = new LinkedList<EntityConditionParam>();
+
+        final String sql = getSelectQuery(selectFields, nonNullFindOptions, modelEntity, orderBy, whereEntityCondition,
+                havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams);
+
+        final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
+
+        sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(), nonNullFindOptions.getResultSetType(),
+                nonNullFindOptions.getResultSetConcurrency());
+
+        bindParameterValues(sqlP, modelEntity, whereEntityConditionParams, "where");
+        bindParameterValues(sqlP, modelEntity, havingEntityConditionParams, "having");
+
+        setFetchSize(sqlP, nonNullFindOptions.getFetchSize());
+        sqlP.executeQuery();
+
+        return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+    }
+
+    private void bindParameterValues(final SQLProcessor sqlP, final ModelEntity modelEntity,
+            final Iterable<EntityConditionParam> params, final String clauseName)
+        throws GenericEntityException
+    {
+        if (Debug.verboseOn()) {
+            Debug.logVerbose("Setting the " + clauseName + "EntityConditionParams: " + params);
+        }
+        for (final EntityConditionParam param : params) {
+            SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(),
+                    modelFieldTypeReader);
+        }
+    }
+
+    private List<ModelField> getSelectFields(final ModelEntity modelEntity, final Collection<String> fieldsToSelect)
+            throws GenericModelException
+    {
         List<ModelField> selectFields = new ArrayList<ModelField>();
 
         if (fieldsToSelect != null && fieldsToSelect.size() > 0) {
@@ -991,17 +1039,26 @@ public class GenericDAO {
         } else {
             selectFields = modelEntity.getFieldsCopy();
         }
+        return selectFields;
+    }
 
-        GenericValue dummyValue = new GenericValue(modelEntity);
-        StringBuilder sqlBuilder = new StringBuilder("SELECT ");
+    @VisibleForTesting
+    String getSelectQuery(final List<ModelField> selectFields, final EntityFindOptions findOptions,
+            final ModelEntity modelEntity, final List<String> orderBy, final EntityCondition whereEntityCondition,
+            final EntityCondition havingEntityCondition, final List<EntityConditionParam> whereEntityConditionParams,
+            final List<EntityConditionParam> havingEntityConditionParams)
+        throws GenericEntityException
+    {
+        final StringBuilder sqlBuilder = new StringBuilder("SELECT ");
 
         if (findOptions.getDistinct()) {
             sqlBuilder.append("DISTINCT ");
         }
 
-        if (selectFields.size() > 0) {
+        if (selectFields != null && !selectFields.isEmpty()) {
             sqlBuilder.append(modelEntity.colNameString(selectFields, ", ", ""));
-        } else {
+        }
+        else {
             sqlBuilder.append("*");
         }
 
@@ -1009,15 +1066,13 @@ public class GenericDAO {
         sqlBuilder.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
 
         // WHERE clause
-        StringBuilder whereString = new StringBuilder();
+        final StringBuilder whereString = new StringBuilder();
         String entityCondWhereString = "";
-        List<EntityConditionParam> whereEntityConditionParams = new LinkedList<EntityConditionParam>();
-
         if (whereEntityCondition != null) {
             entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
         }
 
-        String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
+        final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
 
         if (viewClause.length() > 0) {
             if (entityCondWhereString.length() > 0) {
@@ -1038,10 +1093,9 @@ public class GenericDAO {
 
         // GROUP BY clause for view-entity
         if (modelEntity instanceof ModelViewEntity) {
-            ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
-            String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
-
-            if (UtilValidate.isNotEmpty(groupByString)) {
+            final ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
+            final String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
+            if (isNotEmpty(groupByString)) {
                 sqlBuilder.append(" GROUP BY ");
                 sqlBuilder.append(groupByString);
             }
@@ -1049,8 +1103,6 @@ public class GenericDAO {
 
         // HAVING clause
         String entityCondHavingString = "";
-        List<EntityConditionParam> havingEntityConditionParams = new LinkedList<EntityConditionParam>();
-
         if (havingEntityCondition != null) {
             entityCondHavingString = havingEntityCondition.makeWhereString(modelEntity, havingEntityConditionParams);
         }
@@ -1066,40 +1118,16 @@ public class GenericDAO {
             sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
         }
 
-        SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
-
-        sqlP.prepareStatement(sql, findOptions.getSpecifyTypeAndConcur(), findOptions.getResultSetType(), findOptions.getResultSetConcurrency());
-        if (verboseOn) {
-            // put this inside an if statement so that we don't have to generate the string when not used...
-            Debug.logVerbose("Setting the whereEntityConditionParams: " + whereEntityConditionParams);
-        }
-        // set all of the values from the Where EntityCondition
-
-        for (EntityConditionParam param : whereEntityConditionParams) {
-            SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(), modelFieldTypeReader);
-        }
-        if (verboseOn) {
-            // put this inside an if statement so that we don't have to generate the string when not used...
-            Debug.logVerbose("Setting the havingEntityConditionParams: " + havingEntityConditionParams);
-        }
-        // set all of the values from the Having EntityCondition
-
-        for (EntityConditionParam param : havingEntityConditionParams) {
-            SqlJdbcUtil.setValue(sqlP, param.getModelField(), modelEntity.getEntityName(), param.getFieldValue(), modelFieldTypeReader);
-        }
-
-        setFetchSize(sqlP, findOptions.getFetchSize());
-        sqlP.executeQuery();
-
-        return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+        return sql;
     }
 
-    static private EntityCondition rewriteConditionToSplitListsLargerThan(EntityCondition whereEntityCondition, final int maxListSize) {
+    static private EntityCondition rewriteConditionToSplitListsLargerThan(
+            final EntityCondition whereEntityCondition, final int maxListSize)
+    {
         if (conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(whereEntityCondition, maxListSize)) {
             return transformConditionSplittingInClauseListsToChunksNoLongerThanMaxSize(whereEntityCondition, maxListSize);
-        } else {
-            return whereEntityCondition;
         }
+        return whereEntityCondition;
     }
 
     @VisibleForTesting
@@ -1406,7 +1434,7 @@ public class GenericDAO {
             return 0;
         }
 
-        SQLProcessor sqlP = new ExplcitCommitSQLProcessor(helperName);
+        SQLProcessor sqlP = new ExplicitCommitSQLProcessor(helperName);
         try {
             Iterator<? extends GenericEntity> iter = dummyPKs.iterator();
 
