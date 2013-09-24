@@ -74,7 +74,7 @@ import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
- * Generic Entity Data Access Object - Handles persisntence for any defined entity.
+ * Generic Entity Data Access Object - Handles persistence for any defined entity.
  *
  * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
  * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
@@ -675,261 +675,6 @@ public class GenericDAO {
         }
     }
 
-    /* tentatively removing by clause methods, unless there are really big complaints... because it is a kludge
-    public List selectByClause(ModelEntity modelEntity, List entityClauses, Map fields, List orderBy) throws GenericEntityException {
-        if (modelEntity == null)
-            return null;
-        if (modelEntity instanceof ModelViewEntity) {
-            throw new org.ofbiz.core.entity.GenericNotImplementedException("Operation insert not supported yet for view entities");
-        }
-
-        boolean verboseOn = Debug.verboseOn();
-
-        if (verboseOn) Debug.logVerbose("[selectByClause] Start");
-        if (entityClauses == null)
-            return null;
-
-        List list = new LinkedList();
-        ModelEntity firstModelEntity = null;
-        ModelEntity secondModelEntity = null;
-
-        ModelField firstModelField = null;
-        ModelField secondModelField = null;
-
-        if (verboseOn) Debug.logVerbose("[selectByClause] Starting to build select statement.");
-        StringBuffer select = new StringBuffer(" SELECT DISTINCT ");
-        StringBuffer from = new StringBuffer(" FROM ");
-        StringBuffer where = new StringBuffer("");
-
-        if (entityClauses.size() > 0) where.append(" WHERE ");
-        StringBuffer order = new StringBuffer();
-
-        String test = "";
-
-        List whereTables = new ArrayList();
-
-        // Add the main table to the FROM clause in case there are no WHERE clause entries.
-        whereTables.add(modelEntity.getTableName(datasourceInfo));
-
-        if (verboseOn) Debug.logVerbose("[selectByClause] Starting to iterate through entity clauses.");
-        ModelReader entityModelReader = modelEntity.getModelReader();
-        boolean paren = false;
-
-        // Each iteration defines one relationship for the query.
-        for (int i = 0; i < entityClauses.size(); i++) {
-            if (verboseOn) Debug.logVerbose("[selectByClause] Processing entity clause " + String.valueOf(i));
-            EntityClause entityClause = (EntityClause) entityClauses.get(i);
-
-            if (verboseOn) Debug.logVerbose("[selectByClause] Entity clause: " + entityClause.toString());
-            EntityClause nextEntityClause = null;
-            // get the next interFieldOperation.  This is used to determine if
-            // we need to insert a parenthesis.
-            String nextInterFieldOperation = null;
-
-            if ((i + 1) < entityClauses.size()) {
-                nextEntityClause = (EntityClause) entityClauses.get(i + 1);
-            } else {
-                nextEntityClause = (EntityClause) entityClauses.get(i);
-            }
-
-            if (nextEntityClause != null) {
-                if (verboseOn) Debug.logVerbose("[selectByClause] Next entity clause: " + nextEntityClause.toString());
-                nextInterFieldOperation = nextEntityClause.getInterFieldOperation().getCode();
-            }
-            String interFieldOperation = entityClause.getInterFieldOperation().toString();
-            String intraFieldOperation = entityClause.getIntraFieldOperation().toString();
-
-            if (verboseOn) Debug.logVerbose("[selectByClause] Got operations");
-            firstModelEntity = entityClause.getFirstModelEntity();
-            if (!whereTables.contains(firstModelEntity.getTableName(datasourceInfo))) {
-                whereTables.add(firstModelEntity.getTableName(datasourceInfo));
-            }
-            if (verboseOn) Debug.logVerbose("[selectByClause] Got first model entity.");
-
-            if (entityClause.getSecondEntity().trim().length() > 0) {
-                secondModelEntity = entityClause.getSecondModelEntity();
-                if (verboseOn) Debug.logVerbose("[selectByClause] Got second model entity.");
-                if (!whereTables.contains(secondModelEntity.getTableName(datasourceInfo))) {
-                    whereTables.add(secondModelEntity.getTableName(datasourceInfo));
-                }
-                secondModelField = secondModelEntity.getField(entityClause.getSecondField());
-            }
-
-            firstModelField = firstModelEntity.getField(entityClause.getFirstField());
-
-            test = where.toString();
-            if (i > 0) {
-                where.append(' ');
-                where.append(interFieldOperation);
-                where.append(' ');
-            }
-            // if the next interFieldOperation is an OR, add a parenthesis.
-            if (nextInterFieldOperation != null && nextInterFieldOperation.trim().equals("OR") && !paren) {
-                where.append(" ( ");
-                paren = true;
-            }
-
-            if (verboseOn) Debug.logVerbose("[selectByClause] About to append entity clause info onto select statement.");
-            if (entityClause.getSecondEntity().trim().length() > 0) {
-                // Entity clause has a second entity and field instead of a constant value.
-                where.append(firstModelEntity.getTableName(datasourceInfo));
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended first table name: " +
-                        firstModelEntity.getTableName(datasourceInfo));
-                where.append(".");
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended \".\"");
-                if (firstModelField == null || firstModelField.getColName() == null) {
-                    if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - error 1");
-                    throw new GenericEntityException(entityClause.getFirstField() +
-                            " is not a field of " + entityClause.getFirstEntity());
-                }
-                where.append(firstModelField.getColName());
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended first column name: " +
-                        firstModelField.getColName());
-                where.append(" ");
-                where.append(intraFieldOperation);
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended intra field operation: " +
-                        intraFieldOperation);
-                where.append(" ");
-                where.append(secondModelEntity.getTableName(datasourceInfo));
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended second table name: " +
-                        secondModelEntity.getTableName(datasourceInfo));
-                where.append(".");
-                if (secondModelField == null || secondModelField.getColName() == null) {
-                    if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - error 2");
-                    throw new GenericEntityException(entityClause.getSecondField() +
-                            " is not a field of " + entityClause.getSecondEntity());
-                }
-                where.append(secondModelField.getColName());
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 1 - Appended second column name: " +
-                        secondModelField.getColName());
-            } else {
-                // Entity clause has a constant value instead of a second entity and field.
-                where.append(firstModelEntity.getTableName(datasourceInfo));
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 1 - Appended first table name: " +
-                        firstModelEntity.getTableName(datasourceInfo));
-                where.append(".");
-                if (firstModelField == null || firstModelField.getColName() == null) {
-                    if (verboseOn) Debug.logVerbose("[selectByClause] Method 1 - error 1");
-                    throw new GenericEntityException(entityClause.getFirstField() +
-                            " is not a field of " + entityClause.getFirstEntity());
-                }
-                where.append(firstModelField.getColName());
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 1 - Appended first column name: " +
-                        firstModelField.getColName());
-                where.append(" ");
-                where.append(intraFieldOperation);
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended intra field operation: " +
-                        intraFieldOperation);
-                if (intraFieldOperation.equals("IN")) {
-                    if (verboseOn) Debug.logVerbose("[selectByClause] Intrafield operation is IN");
-                    where.append(" (");
-                } else {
-                    if (verboseOn) Debug.logVerbose("[selectByClause] Intrafield operation is not IN");
-                    where.append(" '");
-                }
-                where.append(entityClause.getValue());
-                if (verboseOn) Debug.logVerbose("[selectByClause] Method 2 - Appended value: " + entityClause.getValue());
-                if (intraFieldOperation.equals("IN")) {
-                    where.append(")");
-                } else {
-                    where.append("' ");
-                }
-            }
-
-            if ((nextInterFieldOperation != null && !nextInterFieldOperation.trim().equals("OR") && paren) ||
-                (i == (entityClauses.size() - 1) && nextInterFieldOperation.trim().equals("OR") && paren)) {
-                where.append(" ) ");
-                paren = false;
-            }
-        }
-
-        List whereFields = new ArrayList();
-        List selectFields = new ArrayList();
-
-        // Add all fields from the main model entity to the selected fields list.
-        Set keys = null;
-
-        if (fields != null && fields.size() > 0) {
-            keys = fields.keySet();
-        }
-        for (int fi = 0; fi < modelEntity.getFieldsSize(); fi++) {
-            ModelField curField = modelEntity.getField(fi);
-
-            if (verboseOn) Debug.logVerbose("[selectByClause] Adding field " + curField.getName() + " to selectFields");
-            selectFields.add(curField);
-
-            // Add all filter fields to the where field list.
-            if (keys != null && keys.contains(curField.getName()))
-                whereFields.add(curField);
-        }
-
-        String tableNamePrefix = modelEntity.getTableName(datasourceInfo) + ".";
-
-        // Construct the SELECT clause.
-        select.append(tableNamePrefix);
-        select.append(modelEntity.colNameString(selectFields, ", " + tableNamePrefix, ""));
-
-        // Construct the FROM clause.
-        int ix = 0;
-
-        for (; ix < whereTables.size() - 1; ix++) {
-            from.append(whereTables.get(ix) + ", ");
-        }
-        from.append(whereTables.get(ix));
-
-        // Construct the WHERE clause.
-        if (fields != null && fields.size() > 0) {
-            // Add filter fields.
-            test = where.toString();
-            if (test.trim().length() > 0)
-                where.append(" AND ");
-            where.append(tableNamePrefix);
-            where.append(modelEntity.colNameString(whereFields, "=? AND " + tableNamePrefix, "=?"));
-        }
-
-        // Construct the ORDER BY clause.
-        order.append(SqlJdbcUtil.makeOrderByClause(modelEntity, orderBy));
-
-        String sql = "";
-
-        SQLProcessor sqlP = new SQLProcessor(helperName);
-
-        try {
-            sql = select.toString() + " " + from.toString() + " " + where.toString() + (order.toString().trim().length() > 0 ? order.toString() : "");
-            sqlP.prepareStatement(sql, true, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-            GenericValue dummyValue = new GenericValue(modelEntity, fields);
-
-            if (fields != null && fields.size() > 0) {
-                SqlJdbcUtil.setValuesWhereClause(sqlP, whereFields, dummyValue, modelFieldTypeReader);
-            }
-            sqlP.executeQuery();
-
-            while (sqlP.next()) {
-                GenericValue value = new GenericValue(dummyValue);
-
-                for (int j = 0; j < selectFields.size(); j++) {
-                    ModelField curField = (ModelField) selectFields.get(j);
-
-                    SqlJdbcUtil.getValue(sqlP.getResultSet(), j + 1, curField, value, modelFieldTypeReader);
-                }
-
-                value.modified = false;
-                value.copyOriginalDbValues();
-                list.add(value);
-            }
-        } finally {
-            sqlP.close();
-        }
-
-        return list;
-    }
-     */
-
-    /* ====================================================================== */
-
-    /* ====================================================================== */
-
     /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.
      *@param modelEntity The ModelEntity of the Entity as defined in the entity XML file
      *@param entityCondition The EntityCondition object that specifies how to constrain this query
@@ -939,7 +684,6 @@ public class GenericDAO {
      */
     public List<GenericValue> selectByCondition(ModelEntity modelEntity, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
         EntityListIterator entityListIterator = null;
-
         try {
             entityListIterator = selectListIteratorByCondition(modelEntity, entityCondition, null, fieldsToSelect, orderBy, null);
             return entityListIterator.getCompleteList();
@@ -1463,8 +1207,6 @@ public class GenericDAO {
             sqlP.close();
         }
     }
-
-    /* ====================================================================== */
 
     public void checkDb(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing) {
         DatabaseUtil dbUtil = new DatabaseUtil(this.helperName);
