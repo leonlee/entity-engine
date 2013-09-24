@@ -1118,6 +1118,11 @@ public class GenericDAO {
             sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
         }
 
+        // FOR UPDATE clause
+        if (findOptions.isForUpdate()) {
+            sql += " FOR UPDATE";
+        }
+
         return sql;
     }
 
