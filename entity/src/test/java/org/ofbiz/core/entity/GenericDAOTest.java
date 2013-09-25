@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
@@ -42,6 +43,7 @@ public class GenericDAOTest {
     private static final String TABLE_NAME = "Issue";
 
     @Mock private CountHelper mockCountHelper;
+    @Mock private DatabaseType mockDatabaseType;
     @Mock private DatasourceInfo mockDatasourceInfo;
     @Mock private LimitHelper mockLimitHelper;
     @Mock private ModelEntity mockModelEntity;
@@ -113,7 +115,8 @@ public class GenericDAOTest {
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
 
         // Invoke
-        final String sql = dao.getSelectQuery(null, mockFindOptions, mockModelEntity, null, null, null, null, null);
+        final String sql = dao.getSelectQuery(
+                null, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check
         assertEquals("SELECT * FROM " + TABLE_NAME, sql);
@@ -130,7 +133,7 @@ public class GenericDAOTest {
 
         // Invoke
         final String sql = dao.getSelectQuery(
-                selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null);
+                selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check
         assertEquals("SELECT FIRST_NAME, LAST_NAME FROM " + TABLE_NAME, sql);
@@ -147,7 +150,7 @@ public class GenericDAOTest {
 
         // Invoke
         final String sql = dao.getSelectQuery(
-                selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null);
+                selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check
         assertEquals("SELECT DISTINCT FIRST_NAME FROM " + TABLE_NAME, sql);
@@ -166,8 +169,8 @@ public class GenericDAOTest {
         when(mockWhereCondition.makeWhereString(mockModelEntity, whereConditionParams)).thenReturn("LAST_NAME IS NULL");
 
         // Invoke
-        final String sql = dao.getSelectQuery(
-                selectFields, mockFindOptions, mockModelEntity, null, mockWhereCondition, null, whereConditionParams, null);
+        final String sql = dao.getSelectQuery(selectFields, mockFindOptions, mockModelEntity, null, mockWhereCondition,
+                null, whereConditionParams, null, mockDatabaseType);
 
         // Check
         assertEquals("SELECT DISTINCT FIRST_NAME FROM " + TABLE_NAME + " WHERE LAST_NAME IS NULL", sql);
@@ -189,7 +192,7 @@ public class GenericDAOTest {
 
         // Invoke
         final String sql = dao.getSelectQuery(
-                null, mockFindOptions, mockModelViewEntity, null, null, null, null, null);
+                null, mockFindOptions, mockModelViewEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check (invalid SQL, but creating valid SQL requires lots of test setup and doesn't test the DAO)
         assertEquals("SELECT * FROM  GROUP BY LAST_NAME", sql);
@@ -205,7 +208,7 @@ public class GenericDAOTest {
 
         // Invoke
         final String sql = dao.getSelectQuery(null, mockFindOptions, mockModelEntity, null, null,
-                mockHavingEntityCondition, null, havingConditionParams);
+                mockHavingEntityCondition, null, havingConditionParams, mockDatabaseType);
 
         // Check (invalid SQL, but creating valid SQL requires lots of test setup and doesn't test the DAO)
         assertEquals("SELECT * FROM Issue HAVING BLAH", sql);
@@ -227,8 +230,8 @@ public class GenericDAOTest {
                 .thenReturn(sqlWithLimit);
 
         // Invoke
-        final String sql =
-                dao.getSelectQuery(selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null);
+        final String sql = dao.getSelectQuery(
+                selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check
         assertEquals(sqlWithLimit, sql);
@@ -239,12 +242,15 @@ public class GenericDAOTest {
         // Set up
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
         when(mockFindOptions.isForUpdate()).thenReturn(true);
+        final String sqlForUpdate = "SELECT ALL THE THINGS FOR UPDATE";
+        when(mockDatabaseType.selectForUpdate("SELECT * FROM Issue")).thenReturn(sqlForUpdate);
 
         // Invoke
-        final String sql = dao.getSelectQuery(null, mockFindOptions, mockModelEntity, null, null, null, null, null);
+        final String sql = dao.getSelectQuery(
+                null, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
 
         // Check
-        assertEquals("SELECT * FROM Issue FOR UPDATE", sql);
+        assertEquals(sqlForUpdate, sql);
     }
 
     @Test

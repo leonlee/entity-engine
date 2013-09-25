@@ -40,14 +40,33 @@ import java.util.*;
  */
 public class GenericHelperDAO implements GenericHelper {
 
+    /**
+     * The full name of this class.
+     */
     public static final String module = GenericHelperDAO.class.getName();
 
-    protected GenericDAO genericDAO;
-    protected String helperName;
+    protected final GenericDAO genericDAO;
+    protected final String helperName;
 
-    public GenericHelperDAO(String helperName) {
+    /**
+     * Constructor that obtains the delegate GenericDAO statically.
+     *
+     * @param helperName the name of the datasource helper
+     */
+    @SuppressWarnings("unused")
+    public GenericHelperDAO(final String helperName) {
+        this(helperName, GenericDAO.getGenericDAO(helperName));
+    }
+
+    /**
+     * Constructor that allows the delegate GenericDAO to be injected.
+     *
+     * @param helperName the name of the datasource helper
+     * @param genericDAO the DAO to use
+     */
+    public GenericHelperDAO(final String helperName, final GenericDAO genericDAO) {
         this.helperName = helperName;
-        genericDAO = GenericDAO.getGenericDAO(helperName);
+        this.genericDAO = genericDAO;
     }
 
     public String getHelperName() {
@@ -254,5 +273,13 @@ public class GenericHelperDAO implements GenericHelper {
     public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
             final EntityFindOptions findOptions)  throws GenericEntityException {
         return genericDAO.count(modelEntity, fieldName, entityCondition, findOptions);
+    }
+
+    @Override
+    public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
+            final List<String> orderBy, final Transformation transformation)
+        throws GenericEntityException
+    {
+        return genericDAO.transform(modelEntity, entityCondition, orderBy, transformation);
     }
 }

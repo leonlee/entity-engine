@@ -277,19 +277,4 @@ public interface DelegatorInterface {
     List<GenericValue> transform(
             String entityName, EntityCondition entityCondition, List<String> orderBy, Transformation transformation)
             throws GenericEntityException;
-
-    /**
-     * A transformation upon an entity.
-     *
-     * @since 1.0.41
-     */
-    interface Transformation {
-
-        /**
-         * Transforms the given entity in place.
-         *
-         * @param entity the entity to transform (never null)
-         */
-        void transform(GenericValue entity);
-    }
 }

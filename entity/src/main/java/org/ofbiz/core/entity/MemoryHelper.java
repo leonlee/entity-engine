@@ -45,6 +45,7 @@ import java.util.*;
  * @author <a href="mailto:plightbo@.com">Pat Lightbody</a>
  */
 public class MemoryHelper implements GenericHelper {
+
     private static Map<String, Map<GenericEntity, GenericValue>> cache = getNewCache();
 
     public static void clearCache() {
@@ -560,5 +561,13 @@ public class MemoryHelper implements GenericHelper {
         }
         List<GenericValue> genericValues = this.findByCondition(modelEntity, entityCondition, Lists.newArrayList(fieldName), null);
         return genericValues.size();
+    }
+
+    @Override
+    public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
+            final List<String> orderBy, final Transformation transformation)
+        throws GenericEntityException
+    {
+        throw new UnsupportedOperationException("Not implemented");
     }
 }

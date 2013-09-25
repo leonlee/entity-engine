@@ -7,7 +7,6 @@ import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.mock;
-import static org.ofbiz.core.entity.DelegatorInterface.Transformation;
 
 public class TestLockedDatabaseGenericDelegator
 {

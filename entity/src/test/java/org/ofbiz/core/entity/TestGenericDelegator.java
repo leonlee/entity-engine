@@ -27,7 +27,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.ofbiz.core.entity.DelegatorInterface.Transformation;
 import static org.ofbiz.core.entity.EntityOperator.EQUALS;
 import static org.ofbiz.core.entity.EntityOperator.LIKE;
 import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;

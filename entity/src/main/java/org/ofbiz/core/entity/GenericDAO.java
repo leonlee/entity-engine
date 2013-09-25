@@ -675,17 +675,44 @@ public class GenericDAO {
         }
     }
 
-    /** Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc for more details.
-     *@param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     *@param entityCondition The EntityCondition object that specifies how to constrain this query
-     *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
-     *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue objects representing the result
+    /**
+     * Finds GenericValues by the conditions specified in the EntityCondition object, see the EntityCondition javadoc
+     * for more details.
+     *
+     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param entityCondition The EntityCondition object that specifies how to constrain this query
+     * @param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
+     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or
+     * " DESC" for descending
+     * @return List of GenericValue objects representing the result
      */
-    public List<GenericValue> selectByCondition(ModelEntity modelEntity, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException {
+    public List<GenericValue> selectByCondition(final ModelEntity modelEntity, final EntityCondition entityCondition,
+            final Collection<String> fieldsToSelect, final List<String> orderBy)
+            throws GenericEntityException
+    {
+        return selectByCondition(modelEntity, entityCondition, fieldsToSelect, orderBy, null);
+    }
+
+    /**
+     * Finds GenericValues by the conditions specified in the EntityCondition object, see the EntityCondition javadoc
+     * for more details.
+     *
+     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param entityCondition The EntityCondition object that specifies how to constrain this query
+     * @param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
+     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or
+     * @param findOptions if null, the default options will be used
+     * " DESC" for descending
+     * @return List of GenericValue objects representing the result
+     */
+    public List<GenericValue> selectByCondition(final ModelEntity modelEntity, final EntityCondition entityCondition,
+            final Collection<String> fieldsToSelect, final List<String> orderBy, final EntityFindOptions findOptions)
+            throws GenericEntityException
+    {
         EntityListIterator entityListIterator = null;
         try {
-            entityListIterator = selectListIteratorByCondition(modelEntity, entityCondition, null, fieldsToSelect, orderBy, null);
+            entityListIterator = selectListIteratorByCondition(
+                    modelEntity, entityCondition, null, fieldsToSelect, orderBy, findOptions);
             return entityListIterator.getCompleteList();
         } finally {
             if (entityListIterator != null) {
@@ -731,7 +758,7 @@ public class GenericDAO {
         final List<EntityConditionParam> havingEntityConditionParams = new LinkedList<EntityConditionParam>();
 
         final String sql = getSelectQuery(selectFields, nonNullFindOptions, modelEntity, orderBy, whereEntityCondition,
-                havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams);
+                havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams, databaseType);
 
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
 
@@ -790,7 +817,7 @@ public class GenericDAO {
     String getSelectQuery(final List<ModelField> selectFields, final EntityFindOptions findOptions,
             final ModelEntity modelEntity, final List<String> orderBy, final EntityCondition whereEntityCondition,
             final EntityCondition havingEntityCondition, final List<EntityConditionParam> whereEntityConditionParams,
-            final List<EntityConditionParam> havingEntityConditionParams)
+            final List<EntityConditionParam> havingEntityConditionParams, final DatabaseType databaseType)
         throws GenericEntityException
     {
         final StringBuilder sqlBuilder = new StringBuilder("SELECT ");
@@ -864,7 +891,7 @@ public class GenericDAO {
 
         // FOR UPDATE clause
         if (findOptions.isForUpdate()) {
-            sql += " FOR UPDATE";
+            sql = databaseType.selectForUpdate(sql);
         }
 
         return sql;
@@ -1287,5 +1314,40 @@ public class GenericDAO {
             }
         }
         return count;
+    }
+
+    /**
+     * Applies the given transformation to any entities matching the given condition.
+     *
+     * @param modelEntity     the type of entity to transform (required)
+     * @param entityCondition the condition that selects the entities to transform (null means transform all)
+     * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
+     * @param transformation  the transformation to apply (required)
+     * @return the transformed entities in the order they were selected (never null)
+     * @since 1.0.41
+     */
+    public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
+            final List<String> orderBy, final Transformation transformation)
+            throws GenericEntityException
+    {
+        final EntityFindOptions findOptions = EntityFindOptions.findOptions().forUpdate();
+        final boolean beganTransaction = TransactionUtil.begin();
+        try {
+            final List<GenericValue> targetEntities =
+                    selectByCondition(modelEntity, entityCondition, null, orderBy, findOptions);
+            for (final GenericValue entity : targetEntities) {
+                transformation.transform(entity);
+                update(entity);
+            }
+            TransactionUtil.commit(beganTransaction);
+            return targetEntities;
+        }
+        catch (final Exception e) {
+            TransactionUtil.setRollbackOnly();
+            if (e instanceof GenericEntityException) {
+                throw (GenericEntityException) e;
+            }
+            throw new GenericEntityException("Transformation failed", e);
+        }
     }
 }

@@ -2438,12 +2438,13 @@ public class GenericDelegator implements DelegatorInterface {
             final List<String> orderBy, final Transformation transformation)
         throws GenericEntityException
     {
-        // TODO Use "select for update" to perform these transformations atomically
-        final List<GenericValue> entities = findByCondition(entityName, entityCondition, null, orderBy);
-        for (final GenericValue entity : entities) {
-            transformation.transform(entity);
-            store(entity);
+        final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
+        final GenericHelper entityHelper = getEntityHelper(entityName);
+        final List<GenericValue> transformedEntities =
+                entityHelper.transform(modelEntity, entityCondition, orderBy, transformation);
+        for (final GenericValue genericValue : transformedEntities) {
+            genericValue.setDelegator(this);
         }
-        return entities;
+        return transformedEntities;
     }
 }

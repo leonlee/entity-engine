@@ -227,4 +227,18 @@ public interface GenericHelper {
     int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
             final EntityFindOptions findOptions)
         throws GenericEntityException;
+
+    /**
+     * Applies the given transformation to any entities matching the given condition.
+     *
+     * @param modelEntity     the type of entity to transform (required)
+     * @param entityCondition the condition that selects the entities to transform (null means transform all)
+     * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
+     * @param transformation  the transformation to apply (required)
+     * @return the transformed entities in the order they were selected (never null)
+     * @since 1.0.41
+     */
+    List<GenericValue> transform(
+            ModelEntity modelEntity, EntityCondition entityCondition, List<String> orderBy, Transformation transformation)
+            throws GenericEntityException;
 }
