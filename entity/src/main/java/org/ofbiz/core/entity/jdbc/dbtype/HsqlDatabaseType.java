@@ -18,4 +18,10 @@ public class HsqlDatabaseType extends SimpleDatabaseType
     {
         return DROP_INDEX_SCHEMA_DOT_INDEX;
     }
+
+    @Override
+    public String selectForUpdate(final String sql) {
+        // HSQL doesn't support SELECT ... FOR UPDATE semantics
+        return sql;
+    }
 }

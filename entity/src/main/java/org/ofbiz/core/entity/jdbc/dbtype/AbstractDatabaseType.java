@@ -208,5 +208,13 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     {
         return schemaName != null && !schemaName.isEmpty() ? schemaName + "." : "";
     }
+
+    @Override
+    public String selectForUpdate(final String sql) {
+        if (sql == null || !sql.toLowerCase().startsWith("select ")) {
+            throw new IllegalArgumentException("Invalid select query '" + sql + "'");
+        }
+        return sql + " FOR UPDATE";
+    }
 }
 
