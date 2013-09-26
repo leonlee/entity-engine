@@ -36,6 +36,7 @@ public class MockResultSet implements ResultSet {
     public MockResultSet() {
     }
 
+    @SuppressWarnings("unused")
     public MockResultSet(final Statement statement) {
         this.statement = statement;
     }
@@ -819,5 +820,15 @@ public class MockResultSet implements ResultSet {
 
     public boolean isWrapperFor(final Class<?> aClass) throws SQLException {
         return false;
+    }
+
+    @Override
+    public <T> T getObject(final int columnIndex, final Class<T> type) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> T getObject(final String columnLabel, final Class<T> type) throws SQLException {
+        throw new UnsupportedOperationException();
     }
 }
