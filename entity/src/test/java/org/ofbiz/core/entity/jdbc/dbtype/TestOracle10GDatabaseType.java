@@ -5,13 +5,13 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestOracle10GDatabaseType {
-
-    private DatabaseType databaseType;
+public class TestOracle10GDatabaseType  extends AbstractDatabaseTypeTest
+{
+    protected DatabaseType databaseType;
 
     @Before
     public void setUp() {
-        databaseType = new Oracle10GDatabaseType();
+        databaseType = getDatabaseType("Oracle 9i and 10g");
     }
 
     @Test

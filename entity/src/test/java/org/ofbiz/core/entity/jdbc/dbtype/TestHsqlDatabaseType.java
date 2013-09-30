@@ -5,13 +5,14 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class TestHsqlDatabaseType
+public class TestHsqlDatabaseType extends AbstractDatabaseTypeTest
 {
-    private DatabaseType databaseType;
+
+    protected DatabaseType databaseType;
 
     @Before
     public void setUp() {
-        databaseType = new HsqlDatabaseType();
+        databaseType = getDatabaseType("HSQL");
     }
 
     @Test

@@ -1,8 +1,8 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 
 public class TestDatabaseType {
