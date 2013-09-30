@@ -17,7 +17,6 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executor;
 
 /**
  * A pure delegating {@link Connection} implementation
@@ -279,35 +278,5 @@ public class DelegatingConnection implements Connection
     public boolean isWrapperFor(Class<?> iface) throws SQLException
     {
         return delegate.isWrapperFor(iface);
-    }
-
-    @Override
-    public void abort(final Executor executor) throws SQLException
-    {
-        delegate.abort(executor);
-    }
-
-    @Override
-    public int getNetworkTimeout() throws SQLException
-    {
-        return delegate.getNetworkTimeout();
-    }
-
-    @Override
-    public void setNetworkTimeout(final Executor executor, final int milliseconds) throws SQLException
-    {
-        delegate.setNetworkTimeout(executor, milliseconds);
-    }
-
-    @Override
-    public String getSchema() throws SQLException
-    {
-        return delegate.getSchema();
-    }
-
-    @Override
-    public void setSchema(final String schema) throws SQLException
-    {
-        delegate.setSchema(schema);
     }
 }
