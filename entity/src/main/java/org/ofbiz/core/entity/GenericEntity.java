@@ -25,12 +25,10 @@
 package org.ofbiz.core.entity;
 
 
-import org.apache.commons.codec.binary.Base64;
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
-import org.ofbiz.core.entity.model.ModelFieldTypeReader;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilFormatOut;
 import org.ofbiz.core.util.UtilValidate;
@@ -38,9 +36,6 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.Collection;
@@ -681,7 +676,6 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
 
         if (prefix == null) prefix = "";
         ModelEntity modelEntity = this.getModelEntity();
-        ModelFieldTypeReader mtr = ModelFieldTypeReader.getModelFieldTypeReader(getDelegator().getEntityHelperName(modelEntity));
 
         for (int i = 0; i < indent; i++) writer.print(' ');
         writer.print('<');
@@ -696,28 +690,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         while (modelFields.hasNext()) {
             ModelField modelField = modelFields.next();
             String name = modelField.getName();
-            String value;
-
-            ModelFieldType mft = mtr.getModelFieldType(modelField.getType());
-            // For blobs encode as Base64
-            if (mft.getJavaType().equals("java.lang.Object"))
-            {
-                // need to serialise to Base64
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try
-                {
-                    new ObjectOutputStream(baos).writeObject(get(name));
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
-                value = Base64.encodeBase64String(baos.toByteArray());
-            }
-            else
-            {
-                value = this.getString(name);
-            }
+            String value = this.getString(name);
 
             if (value != null) {
                 if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
