@@ -610,23 +610,24 @@ public class SqlJdbcUtil {
 
                 case 10:
                     Object obj = null;
+  
                     Blob blobLocator = rs.getBlob(ind);
-                    if (blobLocator.length() > 0)
-                    {
-                        InputStream binaryInput = blobLocator.getBinaryStream();
-                        if (null != binaryInput) {
-                            try {
-                                ObjectInputStream in = new ObjectInputStream(binaryInput);
-                                obj = in.readObject();
-                                in.close();
-                            } catch (IOException ex) {
-                                throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
-                            } catch (ClassNotFoundException ex) {
-                                throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to an Java object: ", ex);
-                            }
+                    InputStream binaryInput = blobLocator.getBinaryStream();
+     
+                    if (null != binaryInput) {
+                        try {
+                            ObjectInputStream in = new ObjectInputStream(binaryInput);
+                            obj = in.readObject();
+                            in.close();
+                        } catch (IOException ex) {
+                            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
+                        } catch (ClassNotFoundException ex) {
+                            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to an Java object: ", ex);
                         }
-                        entity.dangerousSetNoCheckButFast(curField, obj);
                     }
+
+                    binaryInput = null;
+                    entity.dangerousSetNoCheckButFast(curField, obj);
                     break;
                 case 11:
                     entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
@@ -713,7 +714,7 @@ public class SqlJdbcUtil {
             Class<?> fieldClass = fieldValue.getClass();
             String fieldClassName = fieldClass.getName();
 
-            if (!fieldClassName.equals(mft.getJavaType()) && !fieldClassName.contains(mft.getJavaType()) && !"java.lang.Object".equals(mft.getJavaType())) {
+            if (!fieldClassName.equals(mft.getJavaType()) && !fieldClassName.contains(mft.getJavaType())) {
                 // this is only an info level message because under normal operation for most JDBC 
                 // drivers this will be okay, but if not then the JDBC driver will throw an exception
                 // and when lower debug levels are on this should help give more info on what happened
