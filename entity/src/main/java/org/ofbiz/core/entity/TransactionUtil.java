@@ -25,11 +25,18 @@ package org.ofbiz.core.entity;
 
 import org.ofbiz.core.util.Debug;
 
-import javax.sql.XAConnection;
-import javax.transaction.*;
-import javax.transaction.xa.XAResource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import javax.sql.XAConnection;
+import javax.transaction.HeuristicMixedException;
+import javax.transaction.HeuristicRollbackException;
+import javax.transaction.NotSupportedException;
+import javax.transaction.RollbackException;
+import javax.transaction.SystemException;
+import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+import javax.transaction.xa.XAResource;
 
 /**
  * <p>Transaction Utility to help with some common transaction tasks
@@ -238,45 +245,48 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-
     // -------------- Atlassian Added methods for Local Transactions -----------------------------------------
+
     /**
      * Starts a transaction if one does not exist already.
-     * @param helperName the OfBiz helperName that is regeistered in entityengine.xml. The helperName is used
-     * to retrieve the connection from the {@link com.atlassian.core.ofbiz.CoreFactory} object.
-     * @param transactionIsolationLevel the transaction isolation level to set on teh connection if the transaction is started
-     * see {@link Connection.TRANSACTION_NONE}, {@link Connection.TRANSACTION_READ_COMMITTED}, etc. Negative means do not set anything
-     * (the current default on the connection will be left)
+     *
+     * @param helperName the OfBiz helperName that is registered within
+     * <code>entityengine.xml</code>. The helperName is used to retrieve the
+     * connection from the com.atlassian.core.ofbiz.CoreFactory object.
+     * @param transactionIsolationLevel the transaction isolation level to set
+     * on the connection if the transaction is started, see
+     * {@link Connection#setTransactionIsolation(int)}. Negative means do not set anything.
+     * (the connection's default level will be used)
      * @return true if the transaction was started, false if one was active already
-     * @throws GenericTransactionException if something goes wrong. See the getNested() method of the exception
-     * for the underlying exception.
+     * @throws GenericTransactionException if something goes wrong. See the
+     * getNested() method of the exception for the underlying exception.
      */
-    public static boolean beginLocalTransaction(String helperName, int transactionIsolationLevel) throws GenericTransactionException
+    public static boolean beginLocalTransaction(final String helperName, final int transactionIsolationLevel)
+            throws GenericTransactionException
     {
         try
         {
-            if (!isTransactionActive())
-            {
-                Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction not started so starting transaction.", module);
-                Connection connection = ConnectionFactory.getConnection(helperName);
-                if (transactionIsolationLevel >= 0)
-                    connection.setTransactionIsolation(transactionIsolationLevel);
-                connection.setAutoCommit(false);
-                localTransaction.set(connection);
-                Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction started.", module);
-                return true;
-            }
-            else
+            if (isTransactionActive())
             {
                 Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction already started so not starting transaction.", module);
                 return false;
             }
+            Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction not started so starting transaction.", module);
+            final Connection connection = ConnectionFactory.getConnection(helperName);
+            if (transactionIsolationLevel >= 0)
+            {
+                connection.setTransactionIsolation(transactionIsolationLevel);
+            }
+            connection.setAutoCommit(false);
+            localTransaction.set(connection);
+            Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction started.", module);
+            return true;
         }
         catch (SQLException e)
         {
             throw new GenericTransactionException("Error occurred while starting transaction.", e);
         }
-        catch(GenericEntityException e)
+        catch (GenericEntityException e)
         {
             throw new GenericTransactionException("Error occurred while starting transaction.", e);
         }
