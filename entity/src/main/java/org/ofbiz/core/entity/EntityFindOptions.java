@@ -26,6 +26,8 @@ package org.ofbiz.core.entity;
 import java.io.Serializable;
 import java.sql.ResultSet;
 
+import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
+
 /**
  * Advanced options for finding entities.
  * Examples:
@@ -478,5 +480,15 @@ public class EntityFindOptions implements Serializable {
      */
     public boolean isForUpdate() {
         return forUpdate;
+    }
+
+    /**
+     * Returns the transaction isolation appropriate to this query.
+     *
+     * @return -1 if the connection's default level is to be used
+     * @see java.sql.Connection#setTransactionIsolation(int)
+     */
+    public int getTransactionIsolation() {
+        return forUpdate ? TRANSACTION_REPEATABLE_READ : -1;
     }
 }

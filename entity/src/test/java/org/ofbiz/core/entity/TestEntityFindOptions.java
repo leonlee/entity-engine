@@ -2,6 +2,7 @@ package org.ofbiz.core.entity;
 
 import org.junit.Test;
 
+import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.CONCUR_UPDATABLE;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -74,5 +75,24 @@ public class TestEntityFindOptions {
         // Check
         assertFalse(options.getSpecifyTypeAndConcur());
         assertFalse(options.isCustomResultSetTypeAndConcurrency());
+    }
+
+    @Test
+    public void shouldUseDefaultTransactionIsolationWhenNotForUpdate() {
+        // Set up
+        final EntityFindOptions options = EntityFindOptions.findOptions();
+        assertFalse(options.isForUpdate());
+
+        // Invoke and check
+        assertEquals(-1, options.getTransactionIsolation());
+    }
+
+    @Test
+    public void shouldUseRepeatableReadTransactionIsolationWhenForUpdate() {
+        // Set up
+        final EntityFindOptions options = EntityFindOptions.findOptions().forUpdate();
+
+        // Invoke and check
+        assertEquals(TRANSACTION_REPEATABLE_READ, options.getTransactionIsolation());
     }
 }
