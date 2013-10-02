@@ -37,6 +37,6 @@ public class TestMsSqlDatabaseType {
         final String sqlForUpdate = databaseType.selectForUpdate("SELECT Foo FROM Bar WHERE Baz = ? ORDER BY 1 DESC");
 
         // Check
-        assertEquals("SELECT Foo FROM Bar WITH (REPEATABLEREAD, UPDLOCK) WHERE Baz = ? ORDER BY 1 DESC", sqlForUpdate);
+        assertEquals("SELECT Foo FROM Bar WITH (UPDLOCK) WHERE Baz = ? ORDER BY 1 DESC", sqlForUpdate);
     }
 }

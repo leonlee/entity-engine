@@ -29,6 +29,6 @@ public class MsSqlDatabaseType extends SimpleDatabaseType
             return sql;
         }
         final String whereKeyword = sql.substring(whereIndex, whereIndex + WHERE_KEYWORD.length());
-        return sql.replace(whereKeyword, "WITH (REPEATABLEREAD, UPDLOCK) " + whereKeyword);
+        return sql.replace(whereKeyword, "WITH (UPDLOCK) " + whereKeyword);
     }
 }
