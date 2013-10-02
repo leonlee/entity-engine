@@ -763,7 +763,7 @@ public class GenericDAO {
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
 
         sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(), nonNullFindOptions.getResultSetType(),
-                nonNullFindOptions.getResultSetConcurrency());
+                nonNullFindOptions.getResultSetConcurrency(), nonNullFindOptions.getTransactionIsolation());
 
         bindParameterValues(sqlP, modelEntity, whereEntityConditionParams, "where");
         bindParameterValues(sqlP, modelEntity, havingEntityConditionParams, "having");
