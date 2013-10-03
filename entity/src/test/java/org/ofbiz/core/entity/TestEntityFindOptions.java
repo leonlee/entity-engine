@@ -2,7 +2,7 @@ package org.ofbiz.core.entity;
 
 import org.junit.Test;
 
-import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
+import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.CONCUR_UPDATABLE;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Unit test of EntityFindOptions.
  */
+@SuppressWarnings("deprecation")
 public class TestEntityFindOptions {
 
     @Test
@@ -93,6 +94,6 @@ public class TestEntityFindOptions {
         final EntityFindOptions options = EntityFindOptions.findOptions().forUpdate();
 
         // Invoke and check
-        assertEquals(TRANSACTION_REPEATABLE_READ, options.getTransactionIsolation());
+        assertEquals(TRANSACTION_SERIALIZABLE, options.getTransactionIsolation());
     }
 }
