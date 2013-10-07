@@ -762,8 +762,8 @@ public class GenericDAO {
 
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
 
-        sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(), nonNullFindOptions.getResultSetType(),
-                nonNullFindOptions.getResultSetConcurrency(), nonNullFindOptions.getTransactionIsolation());
+        sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(),
+                nonNullFindOptions.getResultSetType(), nonNullFindOptions.getResultSetConcurrency());
 
         bindParameterValues(sqlP, modelEntity, whereEntityConditionParams, "where");
         bindParameterValues(sqlP, modelEntity, havingEntityConditionParams, "having");
@@ -887,11 +887,6 @@ public class GenericDAO {
         String sql = sqlBuilder.toString();
         if (findOptions.getMaxResults() > 0) {
             sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
-        }
-
-        // FOR UPDATE clause
-        if (findOptions.isForUpdate()) {
-            sql = databaseType.selectForUpdate(sql);
         }
 
         return sql;
@@ -1317,20 +1312,28 @@ public class GenericDAO {
     }
 
     /**
-     * Applies the given transformation to any entities matching the given condition.
+     * Applies the given transformation to any entities matching the given
+     * condition, by performing a SELECT followed by an UPDATE. Does NOT do
+     * this using "SELECT ... FOR UPDATE" semantics (because of inconsistent
+     * and/or missing support for this across database types), and therefore
+     * does not guarantee that another transaction has not updated the relevant
+     * row(s) between the SELECT and the UPDATE.
      *
      * @param modelEntity     the type of entity to transform (required)
-     * @param entityCondition the condition that selects the entities to transform (null means transform all)
-     * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
+     * @param entityCondition the condition that selects the entities to
+     * transform (null means transform all)
+     * @param orderBy         the order in which the entities should be
+     * selected for updating (null means no ordering)
      * @param transformation  the transformation to apply (required)
-     * @return the transformed entities in the order they were selected (never null)
+     * @return the transformed entities in the order they were selected (never
+     * null)
      * @since 1.0.41
      */
     public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
             final List<String> orderBy, final Transformation transformation)
             throws GenericEntityException
     {
-        final EntityFindOptions findOptions = EntityFindOptions.findOptions().forUpdate();
+        final EntityFindOptions findOptions = EntityFindOptions.findOptions();
         final boolean beganTransaction = TransactionUtil.begin();
         try {
             final List<GenericValue> targetEntities =

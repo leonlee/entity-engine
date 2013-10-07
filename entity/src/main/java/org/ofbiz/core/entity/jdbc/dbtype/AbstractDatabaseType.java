@@ -58,14 +58,6 @@ public abstract class AbstractDatabaseType implements DatabaseType {
         return name;
     }
 
-    public String[] getProductNamePrefix() {
-        return productNamePrefix;
-    }
-
-    /**
-     * @param con
-     * @return The schema name of the database to be used for this database.
-     */
     public String getSchemaName(Connection con)
     {
         return null;
@@ -121,8 +113,9 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     {
         if (productName != null)
         {
-            for (int i = 0; i < productNamePrefixes.length; i++) {
-                if (productNamesMatch(productNamePrefixes[i], productName))
+            for (final String productNamePrefix : productNamePrefixes)
+            {
+                if (productNamesMatch(productNamePrefix, productName))
                 {
                     return true;
                 }
@@ -207,14 +200,6 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     private String appendDotIfNotEmpty(final String schemaName)
     {
         return schemaName != null && !schemaName.isEmpty() ? schemaName + "." : "";
-    }
-
-    @Override
-    public String selectForUpdate(final String sql) {
-        if (sql == null || !sql.toLowerCase().startsWith("select ")) {
-            throw new IllegalArgumentException("Invalid select query '" + sql + "'");
-        }
-        return sql + " FOR UPDATE";
     }
 }
 

@@ -499,31 +499,11 @@ public class SQLProcessor
      *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
-     *
      * @throws GenericEntityException if an SQLException occurs
      */
     public void prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
             final int resultSetConcurrency)
         throws GenericEntityException
-    {
-        prepareStatement(sql, specifyTypeAndConcur, resultSetType, resultSetConcurrency, -1);
-    }
-
-    /**
-     * Prepare a statement. In case no connection has been given, allocate a new one.
-     *
-     * @param sql                  The SQL statement to be executed
-     * @param specifyTypeAndConcur true if the result set Type and Concurrency has been specified
-     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
-     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param transactionIsolation see {@link Connection#setTransactionIsolation(int)}; ignored if negative
-     * @throws GenericEntityException if an SQLException occurs
-     */
-    public void prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
-            final int resultSetConcurrency, final int transactionIsolation)
-            throws GenericEntityException
     {
         if (Debug.verboseOn())
         {
@@ -537,10 +517,6 @@ public class SQLProcessor
 
         try
         {
-            if (transactionIsolation >= 0)
-            {
-                _connection.setTransactionIsolation(transactionIsolation);
-            }
             _sql = sql;
             _parameterValues = new ArrayList<String>();
             _ind = 1;

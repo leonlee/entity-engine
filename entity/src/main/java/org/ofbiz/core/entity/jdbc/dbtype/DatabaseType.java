@@ -16,6 +16,12 @@ public interface DatabaseType {
 
     String getFieldTypeName();
 
+    /**
+     * Returns the name of the connected schema.
+     *
+     * @param con the connection for which to return the schema
+     * @return null if a schema name is not available
+     */
     String getSchemaName(Connection con);
 
     int getConstraintNameClipLength();
@@ -39,13 +45,4 @@ public interface DatabaseType {
      *  @return the SQL text to drop the index.
      */
     String getDropIndexSQL(String schemaName, String tableName, String indexName);
-
-    /**
-     * Modifies the given SELECT statement to apply "FOR UPDATE" semantics.
-     * Does nothing if this type of database doesn't support that feature.
-     *
-     * @param sql the SQL to modify; should start with "SELECT " (case doesn't matter)
-     * @return the modified SQL, or the original SQL if SELECT ... FOR UPDATE isn't supported
-     */
-    String selectForUpdate(String sql);
 }

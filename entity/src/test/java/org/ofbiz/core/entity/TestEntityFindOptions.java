@@ -2,7 +2,6 @@ package org.ofbiz.core.entity;
 
 import org.junit.Test;
 
-import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.CONCUR_UPDATABLE;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -38,7 +37,7 @@ public class TestEntityFindOptions {
         final int offset = 100;
 
         // Invoke
-        options.distinct().fetchSize(fetchSize).forUpdate().maxResults(maxResults).scrollSensitive().updatable().setOffset(offset);
+        options.distinct().fetchSize(fetchSize).maxResults(maxResults).scrollSensitive().updatable().setOffset(offset);
         options.setSpecifyTypeAndConcur(false);
 
         // Check
@@ -49,7 +48,6 @@ public class TestEntityFindOptions {
         assertEquals(CONCUR_UPDATABLE, options.getResultSetConcurrency());
         assertEquals(TYPE_SCROLL_SENSITIVE, options.getResultSetType());
         assertFalse(options.getSpecifyTypeAndConcur());
-        assertTrue(options.isForUpdate());
     }
 
     private void assertDefaultOptions(final EntityFindOptions options) {
@@ -60,7 +58,6 @@ public class TestEntityFindOptions {
         assertEquals(CONCUR_READ_ONLY, options.getResultSetConcurrency());
         assertEquals(TYPE_FORWARD_ONLY, options.getResultSetType());
         assertTrue(options.getSpecifyTypeAndConcur());
-        assertFalse(options.isForUpdate());
     }
 
     @Test
@@ -76,24 +73,5 @@ public class TestEntityFindOptions {
         // Check
         assertFalse(options.getSpecifyTypeAndConcur());
         assertFalse(options.isCustomResultSetTypeAndConcurrency());
-    }
-
-    @Test
-    public void shouldUseDefaultTransactionIsolationWhenNotForUpdate() {
-        // Set up
-        final EntityFindOptions options = EntityFindOptions.findOptions();
-        assertFalse(options.isForUpdate());
-
-        // Invoke and check
-        assertEquals(-1, options.getTransactionIsolation());
-    }
-
-    @Test
-    public void shouldUseRepeatableReadTransactionIsolationWhenForUpdate() {
-        // Set up
-        final EntityFindOptions options = EntityFindOptions.findOptions().forUpdate();
-
-        // Invoke and check
-        assertEquals(TRANSACTION_SERIALIZABLE, options.getTransactionIsolation());
     }
 }

@@ -238,22 +238,6 @@ public class GenericDAOTest {
     }
 
     @Test
-    public void shouldBeAbleToSelectForUpdate() throws Exception {
-        // Set up
-        final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
-        when(mockFindOptions.isForUpdate()).thenReturn(true);
-        final String sqlForUpdate = "SELECT ALL THE THINGS FOR UPDATE";
-        when(mockDatabaseType.selectForUpdate("SELECT * FROM Issue")).thenReturn(sqlForUpdate);
-
-        // Invoke
-        final String sql = dao.getSelectQuery(
-                null, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);
-
-        // Check
-        assertEquals(sqlForUpdate, sql);
-    }
-
-    @Test
     public void storeAllShouldAcceptNullEntityList() throws Exception {
         assertEquals(0, dao.storeAll(null));
     }
