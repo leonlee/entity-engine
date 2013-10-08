@@ -69,6 +69,7 @@ import java.util.TreeSet;
 import java.util.Vector;
 import javax.annotation.Nullable;
 
+import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
@@ -265,8 +266,10 @@ public class GenericDAO {
             entity.set(ModelEntity.STAMP_FIELD, UtilDateTime.nowTimestamp());
         }
 
-        final String sql = "UPDATE " + modelEntity.getTableName(datasourceInfo) + " SET " + modelEntity.colNameString(fieldsToSave, "=?, ", "=?") + " WHERE " +
-            SqlJdbcUtil.makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
+        final String sql = String.format("UPDATE %s SET %s WHERE %s",
+                modelEntity.getTableName(datasourceInfo),
+                modelEntity.colNameString(fieldsToSave, "=?, ", "=?"),
+                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND"));
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
 
@@ -1094,7 +1097,7 @@ public class GenericDAO {
             throw new org.ofbiz.core.entity.GenericNotImplementedException("Operation delete not supported yet for view entities");
         }
 
-        String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + " WHERE " + SqlJdbcUtil.makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
+        String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + " WHERE " + makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
 
         SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
 
@@ -1175,7 +1178,7 @@ public class GenericDAO {
         final GenericValue dummyValue = new GenericValue(modelEntity, whereFieldValues);
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo);
         if (!whereFieldValues.isEmpty()) {
-            sql += " WHERE " + SqlJdbcUtil.makeWhereStringFromFields(whereFields, dummyValue, "AND");
+            sql += " WHERE " + makeWhereStringFromFields(whereFields, dummyValue, "AND");
         }
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
