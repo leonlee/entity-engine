@@ -196,24 +196,29 @@ public class GenericDAO {
         return customUpdate(entity, modelEntity, modelEntity.getNopksCopy());
     }
 
-    public int update(GenericEntity entity) throws GenericEntityException {
-        ModelEntity modelEntity = entity.getModelEntity();
-
+    /**
+     * Updates the given entity with the given non-PK values.
+     *
+     * @param entity the values to store (except the primary key fields, which
+     * are used to identify the row to be updated)
+     * @return the number of rows updated
+     * @throws GenericEntityException
+     */
+    public int update(final GenericEntity entity) throws GenericEntityException {
+        final ModelEntity modelEntity = entity.getModelEntity();
         if (modelEntity == null) {
-            throw new GenericModelException("Could not find ModelEntity record for entityName: " + entity.getEntityName());
+            throw new GenericModelException("Could not find ModelEntity for entityName: " + entity.getEntityName());
         }
 
         // we don't want to update ALL fields, just the nonpk fields that are in the passed GenericEntity
-        List<ModelField> partialFields = new ArrayList<ModelField>();
-        Collection<String> keys = entity.getAllKeys();
-
+        final List<ModelField> partialFields = new ArrayList<ModelField>();
+        final Collection<String> keys = entity.getAllKeys();
         for (int fi = 0; fi < modelEntity.getNopksSize(); fi++) {
-            ModelField curField = modelEntity.getNopk(fi);
-
-            if (keys.contains(curField.getName()))
+            final ModelField curField = modelEntity.getNopk(fi);
+            if (keys.contains(curField.getName())) {
                 partialFields.add(curField);
+            }
         }
-
         return customUpdate(entity, modelEntity, partialFields);
     }
 
@@ -230,7 +235,10 @@ public class GenericDAO {
         }
     }
 
-    private int singleUpdate(GenericEntity entity, ModelEntity modelEntity, List<ModelField> fieldsToSave, Connection connection) throws GenericEntityException {
+    private int singleUpdate(final GenericEntity entity, final ModelEntity modelEntity,
+            final List<ModelField> fieldsToSave, final Connection connection)
+        throws GenericEntityException
+    {
         if (modelEntity instanceof ModelViewEntity) {
             return singleUpdateView(entity, (ModelViewEntity) modelEntity, fieldsToSave, connection);
         }
@@ -243,14 +251,11 @@ public class GenericDAO {
         }
 
         if (modelEntity.lock()) {
-            GenericEntity entityCopy = new GenericEntity(entity);
-
+            final GenericEntity entityCopy = new GenericEntity(entity);
             select(entityCopy, connection);
-            Object stampField = entity.get(ModelEntity.STAMP_FIELD);
-
+            final Object stampField = entity.get(ModelEntity.STAMP_FIELD);
             if ((stampField != null) && (!stampField.equals(entityCopy.get(ModelEntity.STAMP_FIELD)))) {
-                String lockedTime = entityCopy.getTimestamp(ModelEntity.STAMP_FIELD).toString();
-
+                final String lockedTime = entityCopy.getTimestamp(ModelEntity.STAMP_FIELD).toString();
                 throw new EntityLockedException("You tried to update an old version of this data. Version locked: (" + lockedTime + ")");
             }
         }
@@ -260,10 +265,10 @@ public class GenericDAO {
             entity.set(ModelEntity.STAMP_FIELD, UtilDateTime.nowTimestamp());
         }
 
-        String sql = "UPDATE " + modelEntity.getTableName(datasourceInfo) + " SET " + modelEntity.colNameString(fieldsToSave, "=?, ", "=?") + " WHERE " +
+        final String sql = "UPDATE " + modelEntity.getTableName(datasourceInfo) + " SET " + modelEntity.colNameString(fieldsToSave, "=?, ", "=?") + " WHERE " +
             SqlJdbcUtil.makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
 
-        SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
+        final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
 
         int retVal = 0;
 
