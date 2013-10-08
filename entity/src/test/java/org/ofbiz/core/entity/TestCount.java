@@ -1,19 +1,9 @@
 package org.ofbiz.core.entity;
 
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.ofbiz.core.entity.model.ModelField;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests the new Count functionality
@@ -21,40 +11,51 @@ import static org.mockito.Mockito.when;
  * @since v1.0.35
  */
 public class TestCount {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
-    private final String countDistinctField = "SELECT COUNT(DISTINCT active) FROM cwd_user";
-    private final String countDistinctFieldWithCondition = "SELECT COUNT(DISTINCT active) FROM cwd_user WHERE user_name = 'fred'";
-    private final String countDistinctFieldIgnoredWithNoField = "SELECT COUNT(*) FROM cwd_user";
-    private final String countDistinctFieldIgnoredWithConditionAndNoField = "SELECT COUNT(*) FROM cwd_user WHERE user_name = 'fred'";
+    private static final String COUNT_DISTINCT_FIELD = "SELECT COUNT(DISTINCT active) FROM cwd_user";
+    private static final String COUNT_DISTINCT_FIELD_WITH_CONDITION = "SELECT COUNT(DISTINCT active) FROM cwd_user WHERE user_name = 'fred'";
+    private static final String COUNT_DISTINCT_FIELD_IGNORED_WITH_NO_FIELD = "SELECT COUNT(*) FROM cwd_user";
+    private static final String COUNT_DISTINCT_FIELD_IGNORED_WITH_CONDITION_AND_NO_FIELD = "SELECT COUNT(*) FROM cwd_user WHERE user_name = 'fred'";
 
-    private final String countField = "SELECT COUNT(active) FROM cwd_user";
-    private final String countFieldWithCondition = "SELECT COUNT(active) FROM cwd_user WHERE user_name = 'fred'";
+    private static final String COUNT_FIELD = "SELECT COUNT(active) FROM cwd_user";
+    private static final String COUNT_FIELD_WITH_CONDITION = "SELECT COUNT(active) FROM cwd_user WHERE user_name = 'fred'";
 
-    private final String countAll = "SELECT COUNT(*) FROM cwd_user";
-    private final String countAllWithCondition = "SELECT COUNT(*) FROM cwd_user WHERE user_name = 'fred'";
+    private static final String COUNT_ALL = "SELECT COUNT(*) FROM cwd_user";
+    private static final String COUNT_ALL_WITH_CONDITION = "SELECT COUNT(*) FROM cwd_user WHERE user_name = 'fred'";
 
-    
-    private final String tableName = "cwd_user";
-    private final String column = "active";
-    private final String whereClause = "user_name = 'fred'";
-    private final CountHelper helper = new CountHelper();
+    private static final String COLUMN = "active";
+    private static final String TABLE_NAME = "cwd_user";
+    private static final String WHERE_CLAUSE = "user_name = 'fred'";
 
+    // Fixture
+    private CountHelper helper;
+
+    @Before
+    public void setUp() {
+        this.helper = new CountHelper();
+    }
 
     @Test
     public void testDistinct() {
-        Assert.assertEquals("Distinct with field produces correct result", countDistinctField, helper.buildCountSelectStatement(tableName, column, null, true));
-        Assert.assertEquals("Distinct with no field produces correct result", countDistinctFieldIgnoredWithNoField, helper.buildCountSelectStatement(tableName, null, null, true));
-        Assert.assertEquals("Distinct with where clause produces correct result", countDistinctFieldWithCondition, helper.buildCountSelectStatement(tableName, column, whereClause, true));
-        Assert.assertEquals("Distinct with no field and a where clause produces correct result", countDistinctFieldIgnoredWithConditionAndNoField, helper.buildCountSelectStatement(tableName, null, whereClause, true));
+        assertEquals("Distinct with field produces correct result", COUNT_DISTINCT_FIELD,
+                helper.buildCountSelectStatement(TABLE_NAME, COLUMN, null, true));
+        assertEquals("Distinct with no field produces correct result", COUNT_DISTINCT_FIELD_IGNORED_WITH_NO_FIELD,
+                helper.buildCountSelectStatement(TABLE_NAME, null, null, true));
+        assertEquals("Distinct with where clause produces correct result", COUNT_DISTINCT_FIELD_WITH_CONDITION,
+                helper.buildCountSelectStatement(TABLE_NAME, COLUMN, WHERE_CLAUSE, true));
+        assertEquals("Distinct with no field and a where clause produces correct result", COUNT_DISTINCT_FIELD_IGNORED_WITH_CONDITION_AND_NO_FIELD,
+                helper.buildCountSelectStatement(TABLE_NAME, null, WHERE_CLAUSE, true));
     }
 
     @Test
     public void testCount() {
-        Assert.assertEquals("Count with field produces correct result", countField, helper.buildCountSelectStatement(tableName, column, null, false));
-        Assert.assertEquals("Count with no field produces correct result", countAll, helper.buildCountSelectStatement(tableName, null, null, false));
-        Assert.assertEquals("Count with where clause produces correct result", countFieldWithCondition, helper.buildCountSelectStatement(tableName, column, whereClause, false));
-        Assert.assertEquals("Count with no field and a where clause produces correct result", countAllWithCondition, helper.buildCountSelectStatement(tableName, null, whereClause, false));
+        assertEquals("Count with field produces correct result", COUNT_FIELD,
+                helper.buildCountSelectStatement(TABLE_NAME, COLUMN, null, false));
+        assertEquals("Count with no field produces correct result", COUNT_ALL,
+                helper.buildCountSelectStatement(TABLE_NAME, null, null, false));
+        assertEquals("Count with where clause produces correct result", COUNT_FIELD_WITH_CONDITION,
+                helper.buildCountSelectStatement(TABLE_NAME, COLUMN, WHERE_CLAUSE, false));
+        assertEquals("Count with no field and a where clause produces correct result", COUNT_ALL_WITH_CONDITION,
+                helper.buildCountSelectStatement(TABLE_NAME, null, WHERE_CLAUSE, false));
     }
 }
