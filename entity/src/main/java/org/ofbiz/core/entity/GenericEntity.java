@@ -194,14 +194,16 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
     /** Set the GenericDelegator instance that created this value object and that is repsonsible for it. */
-    public void setDelegator(GenericDelegator internalDelegator) {
-        if (internalDelegator == null) return;
+    public void setDelegator(final GenericDelegator internalDelegator) {
+        if (internalDelegator == null) {
+            return;
+        }
         this.delegatorName = internalDelegator.getDelegatorName();
         this.internalDelegator = internalDelegator;
     }
 
-    public Object get(String name) {
-        Object value = fields.get(name);
+    public Object get(final String name) {
+        final Object value = fields.get(name);
         // We test for a valid field name after trying to retrieve the value, because this method is called a trillion times
         // and even a small increase in performance for this method is really worthwhile.
         if (value == null && getModelEntity().getField(name) == null) {
