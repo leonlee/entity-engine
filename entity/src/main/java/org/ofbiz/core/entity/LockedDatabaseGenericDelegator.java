@@ -591,7 +591,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator
 
     @Override
     public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
-            final List<String> orderBy, final Transformation transformation)
+            final List<String> orderBy, final String lockField, final Transformation transformation)
     {
         throw new UnsupportedOperationException(MESSAGE);
     }

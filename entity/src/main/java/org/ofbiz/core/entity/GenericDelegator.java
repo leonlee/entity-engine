@@ -2435,13 +2435,13 @@ public class GenericDelegator implements DelegatorInterface {
 
     @Override
     public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
-            final List<String> orderBy, final Transformation transformation)
+            final List<String> orderBy, final String lockField, final Transformation transformation)
         throws GenericEntityException
     {
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper entityHelper = getEntityHelper(entityName);
         final List<GenericValue> transformedEntities =
-                entityHelper.transform(modelEntity, entityCondition, orderBy, transformation);
+                entityHelper.transform(modelEntity, entityCondition, orderBy, lockField, transformation);
         for (final GenericValue genericValue : transformedEntities) {
             genericValue.setDelegator(this);
         }

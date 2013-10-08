@@ -8,13 +8,20 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import javax.xml.parsers.ParserConfigurationException;
 
+import static java.lang.Thread.currentThread;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -24,6 +31,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,6 +58,7 @@ public class TestGenericDelegator
 
     // Be sure to list all entities in the "default" group here
     private static final String[] ENTITIES = { ISSUE_ENTITY, SEQUENCE_ENTITY, PROJECT_ENTITY };
+    private static final int PROJECT_ID_1 = 23;
 
     private GenericDelegator genericDelegator;
 
@@ -532,19 +541,11 @@ public class TestGenericDelegator
     public void transformShouldUpdateTheDatabaseAndReturnTheModifiedEntities() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        final Transformation transformation = new Transformation() {
-
-            @Override
-            public void transform(final GenericValue project)
-            {
-                final long issueCount = project.getLong(ISSUE_COUNT_FIELD);
-                project.set(ISSUE_COUNT_FIELD, issueCount + 1);
-            }
-        };
+        final Transformation transformation = new IncrementIssueCount();
 
         // Invoke
         final List<GenericValue> transformedProjects = genericDelegator.transform(
-                PROJECT_ENTITY, PROJECT_KEY_LIKE_B_PERCENT, singletonList("key ASC"), transformation);
+                PROJECT_ENTITY, PROJECT_KEY_LIKE_B_PERCENT, singletonList("key ASC"), ISSUE_COUNT_FIELD, transformation);
 
         // Check
         assertEquals(2, transformedProjects.size());
@@ -553,6 +554,136 @@ public class TestGenericDelegator
             assertEquals(transformedProject, genericDelegator.findByPrimaryKey(transformedProject.getPrimaryKey()));
         }
         assertProject(24, "BAR", 569, transformedProjects.get(0));
-        assertProject(23, "BAZ", 568, transformedProjects.get(1));
+        assertProject(PROJECT_ID_1, "BAZ", 568, transformedProjects.get(1));
+    }
+
+    @Test
+    public void transformationShouldBeReappliedIfLockColumnHasChangedBetweenSelectAndUpdate() throws Exception {
+        // Set up
+        genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
+        final int projectId = PROJECT_ID_1;
+        final int threads = 50;
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        final CountDownLatch endLatch = new CountDownLatch(threads);
+        final Executor executor = Executors.newFixedThreadPool(threads);
+        final Collection<IssueCountIncrementer> incrementers = new ArrayList<IssueCountIncrementer>();
+        for (int i = 0; i < threads; i++) {
+            final IssueCountIncrementer incrementer =
+                    new IssueCountIncrementer(startLatch, endLatch, genericDelegator, projectId);
+            executor.execute(incrementer);
+            incrementers.add(incrementer);
+        }
+
+        // Go!
+        startLatch.countDown();
+        endLatch.await();
+
+        // Check
+        final Set<Long> newIssueCounts = new HashSet<Long>();
+        for (final IssueCountIncrementer incrementer : incrementers) {
+            newIssueCounts.add(incrementer.getNewIssueCount());
+        }
+        assertEquals("Actual new issue counts = " + newIssueCounts, threads, newIssueCounts.size());
+        final long initialIssueCount = 567; // from test-entities.xml
+        for (int i = 0; i < threads; i++) {
+            final long expectedIssueCount = initialIssueCount + i + 1;
+            assertTrue("Missing issue count " + expectedIssueCount, newIssueCounts.contains(expectedIssueCount));
+        }
+    }
+
+    @Test
+    public void transformingNonExistentEntityShouldReturnEmptyList() throws Exception {
+        // Set up
+        genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
+        final EntityExpr invalidIdCondition = new EntityExpr(ID_FIELD, EQUALS, Long.MAX_VALUE);
+
+        // Invoke
+        final List<GenericValue> transformedEntities = genericDelegator.transform(
+                PROJECT_ENTITY, invalidIdCondition, null, ISSUE_COUNT_FIELD, new Transformation()
+        {
+            @Override
+            public void transform(final GenericValue entity)
+            {
+                // Doesn't matter what we do here
+            }
+        });
+
+        // Check
+        assertEquals(Collections.<GenericValue>emptyList(), transformedEntities);
+    }
+
+    /**
+     * A {@link Runnable} that increments the issue count for a given project.
+     */
+    private static class IssueCountIncrementer implements Runnable {
+
+        private final int projectId;
+        private final CountDownLatch endLatch;
+        private final CountDownLatch startLatch;
+        private final GenericDelegator delegator;
+        private final List<GenericValue> transformedEntities;
+        private GenericEntityException ex;
+
+        private IssueCountIncrementer(final CountDownLatch startLatch, final CountDownLatch endLatch,
+                final GenericDelegator delegator, final int projectId)
+        {
+            this.delegator = delegator;
+            this.endLatch = endLatch;
+            this.projectId = projectId;
+            this.startLatch = startLatch;
+            this.transformedEntities = new ArrayList<GenericValue>();
+        }
+
+        @Override
+        public void run() {
+            final EntityCondition selectCondition = new EntityExpr(ID_FIELD, EQUALS, projectId);
+            final Transformation transformation = new IncrementIssueCount();
+            waitForTheGoSignal();
+            incrementIssueCount(selectCondition, transformation);
+            signalCompletion();
+        }
+
+        private void waitForTheGoSignal() {
+            try {
+                startLatch.await();
+            }
+            catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private void incrementIssueCount(final EntityCondition selectCondition, final Transformation transformation) {
+            try {
+                transformedEntities.addAll(
+                        delegator.transform(PROJECT_ENTITY, selectCondition, null, ISSUE_COUNT_FIELD, transformation));
+            }
+            catch (final GenericEntityException ex) {
+                this.ex = ex;
+            }
+        }
+
+        private void signalCompletion() {
+            endLatch.countDown();
+        }
+
+        private long getNewIssueCount() throws GenericEntityException
+        {
+            final Thread currentThread = currentThread();
+            if (ex != null) {
+                throw new IllegalStateException("Error in thread " + currentThread, ex);
+            }
+            assertTrue(currentThread + ": actual entities = " + transformedEntities, transformedEntities.size() == 1);
+            final GenericValue transformedProject = transformedEntities.get(0);
+            return transformedProject.getLong(ISSUE_COUNT_FIELD);
+        }
+    }
+
+    private static class IncrementIssueCount implements Transformation {
+
+        @Override
+        public void transform(final GenericValue project) {
+            final long issueCount = project.getLong(ISSUE_COUNT_FIELD);
+            project.set(ISSUE_COUNT_FIELD, issueCount + 1);
+        }
     }
 }

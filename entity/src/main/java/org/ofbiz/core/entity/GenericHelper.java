@@ -234,11 +234,14 @@ public interface GenericHelper {
      * @param modelEntity     the type of entity to transform (required)
      * @param entityCondition the condition that selects the entities to transform (null means transform all)
      * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
+     * @param lockField       the entity field to use for optimistic locking; the value of this field will be read
+     * between the SELECT and the UPDATE to determine whether another process has updated one of the target records in
+     * the meantime; if so, the transformation will be reapplied and another UPDATE attempted
      * @param transformation  the transformation to apply (required)
      * @return the transformed entities in the order they were selected (never null)
      * @since 1.0.41
      */
-    List<GenericValue> transform(
-            ModelEntity modelEntity, EntityCondition entityCondition, List<String> orderBy, Transformation transformation)
-            throws GenericEntityException;
+    List<GenericValue> transform(ModelEntity modelEntity, EntityCondition entityCondition, List<String> orderBy,
+            String lockField, Transformation transformation)
+        throws GenericEntityException;
 }

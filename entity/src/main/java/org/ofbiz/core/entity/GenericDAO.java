@@ -32,6 +32,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.AutoCommitSQLProcessor;
@@ -91,9 +92,14 @@ public class GenericDAO {
     public static final String module = GenericDAO.class.getName();
     public static final int ORACLE_MAX_LIST_SIZE = 1000;
 
+    private static final Logger LOGGER = Logger.getLogger(GenericDAO.class);
+
+    // The maximum amount of time to back off when contending with another thread for an atomic update
+    private static final int MAX_BACK_OFF_MILLIS = 30;
+
     protected static Map<String, GenericDAO> genericDAOs = CopyOnWriteMap.newHashMap();
     protected String helperName;
-    protected ModelFieldTypeReader modelFieldTypeReader = null;
+    protected ModelFieldTypeReader modelFieldTypeReader;
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
@@ -117,6 +123,16 @@ public class GenericDAO {
             }
         }
         return newGenericDAO;
+    }
+
+    /**
+     * Returns a random number between zero and the given number, exclusive.
+     *
+     * @param maximum the maximum number to return (exclusive)
+     * @return see above
+     */
+    private static long zeroTo(final long maximum) {
+        return (long) (Math.random() * maximum);
     }
 
     public GenericDAO(String helperName) {
@@ -187,14 +203,14 @@ public class GenericDAO {
         }
     }
 
-    public int updateAll(GenericEntity entity) throws GenericEntityException {
+    public int updateAll(final GenericEntity entity) throws GenericEntityException {
         ModelEntity modelEntity = entity.getModelEntity();
 
         if (modelEntity == null) {
             throw new GenericModelException("Could not find ModelEntity record for entityName: " + entity.getEntityName());
         }
 
-        return customUpdate(entity, modelEntity, modelEntity.getNopksCopy());
+        return customUpdate(entity, modelEntity, modelEntity.getNopksCopy(), null);
     }
 
     /**
@@ -202,10 +218,28 @@ public class GenericDAO {
      *
      * @param entity the values to store (except the primary key fields, which
      * are used to identify the row to be updated)
-     * @return the number of rows updated
-     * @throws GenericEntityException
+     * @return the number of rows updated (always 1)
+     * @throws GenericEntityNotFoundException if the entity can't be found
+     * @throws GenericEntityException if some other problem occurred
      */
     public int update(final GenericEntity entity) throws GenericEntityException {
+        return update(entity, null);
+    }
+
+    /**
+     * Updates the given entity with the given non-PK values.
+     *
+     * @param entity the values to store (except the primary key fields, which
+     * are used to identify the row to be updated)
+     * @param nonPkCondition an optional non-PK condition upon the update
+     * @return the number of rows updated (always 1)
+     * @throws GenericEntityNotFoundException if the entity wasn't found by its PK or doesn't meet the non-PK condition,
+     * if any
+     * @throws GenericEntityException
+     */
+    public int update(final GenericEntity entity, final EntityConditionParam nonPkCondition)
+            throws GenericEntityException
+    {
         final ModelEntity modelEntity = entity.getModelEntity();
         if (modelEntity == null) {
             throw new GenericModelException("Could not find ModelEntity for entityName: " + entity.getEntityName());
@@ -220,14 +254,29 @@ public class GenericDAO {
                 partialFields.add(curField);
             }
         }
-        return customUpdate(entity, modelEntity, partialFields);
+        return customUpdate(entity, modelEntity, partialFields, nonPkCondition);
     }
 
-    private int customUpdate(GenericEntity entity, ModelEntity modelEntity, List<ModelField> fieldsToSave) throws GenericEntityException {
+    /**
+     * Updates the given entity.
+     *
+     * @param entity the entity to update (required)
+     * @param modelEntity the model for this entity (required)
+     * @param fieldsToSave the fields to update (required, can be empty)
+     * @param nonPkCondition any condition to place upon the update in addition
+     * to the entity's primary keys (can be null)
+     * @return the number of rows updated (always 1)
+     * @throws GenericEntityNotFoundException if the entity does not exist or doesn't meet the non-PK condition, if any
+     * @throws GenericEntityException
+     */
+    private int customUpdate(final GenericEntity entity, final ModelEntity modelEntity,
+            final List<ModelField> fieldsToSave, final EntityConditionParam nonPkCondition)
+        throws GenericEntityException
+    {
         SQLProcessor sqlP = new AutoCommitSQLProcessor(helperName);
 
         try {
-            return singleUpdate(entity, modelEntity, fieldsToSave, sqlP.getConnection());
+            return singleUpdate(entity, modelEntity, fieldsToSave, sqlP.getConnection(), nonPkCondition);
         } catch (GenericDataSourceException e) {
             sqlP.rollback();
             throw new GenericDataSourceException("Exception while updating the following entity: " + entity.toString(), e);
@@ -236,16 +285,29 @@ public class GenericDAO {
         }
     }
 
+    /**
+     * Updates a single entity.
+     *
+     * @param entity the entity to update (required)
+     * @param modelEntity the model for this entity (required)
+     * @param fieldsToSave the fields to update (required, can be empty)
+     * @param connection the connection to use (required)
+     * @param nonPkCondition any condition to place upon the update in addition
+     * to the entity's primary keys (can be null)
+     * @return the number of rows updated (always 1)
+     * @throws GenericEntityNotFoundException if no rows were updated
+     * @throws GenericEntityException if something else goes wrong
+     */
     private int singleUpdate(final GenericEntity entity, final ModelEntity modelEntity,
-            final List<ModelField> fieldsToSave, final Connection connection)
+            final List<ModelField> fieldsToSave, final Connection connection, final EntityConditionParam nonPkCondition)
         throws GenericEntityException
     {
         if (modelEntity instanceof ModelViewEntity) {
             return singleUpdateView(entity, (ModelViewEntity) modelEntity, fieldsToSave, connection);
         }
 
-        // no non-primaryKey fields, update doesn't make sense, so don't do it
-        if (fieldsToSave.size() <= 0) {
+        if (fieldsToSave.isEmpty()) {
+            // no non-primaryKey fields, update doesn't make sense, so don't do it
             if (Debug.verboseOn()) Debug.logVerbose("Trying to do an update on an entity with no non-PK fields, returning having done nothing; entity=" + entity);
             // returning one because it was effectively updated, ie the same thing, so don't trigger any errors elsewhere
             return 1;
@@ -266,10 +328,15 @@ public class GenericDAO {
             entity.set(ModelEntity.STAMP_FIELD, UtilDateTime.nowTimestamp());
         }
 
+        final List<ModelField> whereFields = modelEntity.getPksCopy();
+        if (nonPkCondition != null) {
+            whereFields.add(nonPkCondition.getModelField());
+        }
+
         final String sql = String.format("UPDATE %s SET %s WHERE %s",
                 modelEntity.getTableName(datasourceInfo),
                 modelEntity.colNameString(fieldsToSave, "=?, ", "=?"),
-                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND"));
+                makeWhereStringFromFields(whereFields, entity, "AND"));
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
 
@@ -279,6 +346,10 @@ public class GenericDAO {
             sqlP.prepareStatement(sql);
             SqlJdbcUtil.setValues(sqlP, fieldsToSave, entity, modelFieldTypeReader);
             SqlJdbcUtil.setPkValues(sqlP, modelEntity, entity, modelFieldTypeReader);
+            if (nonPkCondition != null) {
+                SqlJdbcUtil.setValue(sqlP, nonPkCondition.getModelField(), modelEntity.getEntityName(),
+                        nonPkCondition.getFieldValue(), modelFieldTypeReader);
+            }
             retVal = sqlP.executeUpdate();
             entity.modified = false;
             if (entity instanceof GenericValue) {
@@ -332,7 +403,7 @@ public class GenericDAO {
             }
         }
 
-        return singleUpdate(entity, modelEntity, partialFields, connection);
+        return singleUpdate(entity, modelEntity, partialFields, connection, null);
     }
 
     public int storeAll(List<? extends GenericEntity> entities) throws GenericEntityException {
@@ -492,7 +563,7 @@ public class GenericDAO {
                 retVal += singleInsert(meGenericValue, memberModelEntity, memberModelEntity.getFieldsCopy(), connection);
             } else {
                 if (meFieldsToSave.size() > 0) {
-                    retVal += singleUpdate(meGenericValue, memberModelEntity, meFieldsToSave, connection);
+                    retVal += singleUpdate(meGenericValue, memberModelEntity, meFieldsToSave, connection, null);
                 } else {
                     if (Debug.verboseOn()) Debug.logVerbose("[singleUpdateView]: No update on member entity " + memberModelEntity.getEntityName() + " needed");
                 }
@@ -1332,23 +1403,28 @@ public class GenericDAO {
      * transform (null means transform all)
      * @param orderBy         the order in which the entities should be
      * selected for updating (null means no ordering)
+     * @param lockFieldName      the entity field to use for optimistic locking;
+     * the value of this field will be read between the SELECT and the UPDATE
+     * to determine whether another process has updated one of the target
+     * records in the meantime; if so, the transformation will be reapplied and
+     * another UPDATE attempted
      * @param transformation  the transformation to apply (required)
      * @return the transformed entities in the order they were selected (never
      * null)
      * @since 1.0.41
      */
     public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
-            final List<String> orderBy, final Transformation transformation)
+            final List<String> orderBy, final String lockFieldName, final Transformation transformation)
             throws GenericEntityException
     {
         final EntityFindOptions findOptions = EntityFindOptions.findOptions();
+        final ModelField lockField = modelEntity.getField(lockFieldName);
         final boolean beganTransaction = TransactionUtil.begin();
         try {
             final List<GenericValue> targetEntities =
                     selectByCondition(modelEntity, entityCondition, null, orderBy, findOptions);
             for (final GenericValue entity : targetEntities) {
-                transformation.transform(entity);
-                update(entity);
+                transformOne(modelEntity, transformation, lockFieldName, lockField, entity);
             }
             TransactionUtil.commit(beganTransaction);
             return targetEntities;
@@ -1360,5 +1436,40 @@ public class GenericDAO {
             }
             throw new GenericEntityException("Transformation failed", e);
         }
+    }
+
+    private void transformOne(final ModelEntity modelEntity, final Transformation transformation,
+            final String lockFieldName, final ModelField lockField, final GenericValue entity)
+        throws GenericEntityException, InterruptedException
+    {
+        long totalBackOffMillis = 0;
+        while (true) {
+            final Object lockValue = entity.get(lockFieldName);
+            transformation.transform(entity);
+            try {
+                update(entity, new EntityConditionParam(lockField, lockValue));
+                if (totalBackOffMillis > 0 && LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(String.format("Total back-off time for %s.%s = %d",
+                            modelEntity.getEntityName(), lockFieldName, totalBackOffMillis));
+                }
+                return;
+            }
+            catch (final GenericEntityNotFoundException notFound) {
+                // We know this is because the nonPkCondition failed, because we only enter
+                // this method for entities that were found by the original select operation.
+                totalBackOffMillis += sleepForRandomAmountOfTime();
+                select(entity);
+            }
+        }
+    }
+
+    // While sleeping is bad, it greatly reduces contention between threads trying to update the same column
+    private long sleepForRandomAmountOfTime() throws InterruptedException {
+        final long backOffMillis = zeroTo(MAX_BACK_OFF_MILLIS);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Backing off for " + backOffMillis + "ms");
+        }
+        Thread.sleep(backOffMillis);
+        return backOffMillis;
     }
 }

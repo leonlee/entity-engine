@@ -565,7 +565,7 @@ public class MemoryHelper implements GenericHelper {
 
     @Override
     public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
-            final List<String> orderBy, final Transformation transformation)
+            final List<String> orderBy, final String lockField, final Transformation transformation)
         throws GenericEntityException
     {
         throw new UnsupportedOperationException("Not implemented");

@@ -277,9 +277,9 @@ public class GenericHelperDAO implements GenericHelper {
 
     @Override
     public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
-            final List<String> orderBy, final Transformation transformation)
+            final List<String> orderBy, final String lockField, final Transformation transformation)
         throws GenericEntityException
     {
-        return genericDAO.transform(modelEntity, entityCondition, orderBy, transformation);
+        return genericDAO.transform(modelEntity, entityCondition, orderBy, lockField, transformation);
     }
 }

@@ -35,11 +35,12 @@ public class TestGenericHelperDAO {
         final EntityCondition mockEntityCondition = mock(EntityCondition.class);
         final List<String> orderBy = Arrays.asList("foo", "bar");
         final Transformation mockTransformation = mock(Transformation.class);
+        final String lockField = "baz";
 
         // Invoke
-        dao.transform(mockModelEntity, mockEntityCondition, orderBy, mockTransformation);
+        dao.transform(mockModelEntity, mockEntityCondition, orderBy, lockField, mockTransformation);
 
         // Check
-        verify(mockGenericDao).transform(mockModelEntity, mockEntityCondition, orderBy, mockTransformation);
+        verify(mockGenericDao).transform(mockModelEntity, mockEntityCondition, orderBy, lockField, mockTransformation);
     }
 }

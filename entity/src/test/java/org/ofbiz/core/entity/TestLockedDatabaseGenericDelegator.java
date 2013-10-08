@@ -26,6 +26,6 @@ public class TestLockedDatabaseGenericDelegator
         final List<String> orderBy = emptyList();
 
         // Invoke
-        genericDelegator.transform("Anything", mockEntityCondition, orderBy, mockTransformation);
+        genericDelegator.transform("Anything", mockEntityCondition, orderBy, "AnyField", mockTransformation);
     }
 }
