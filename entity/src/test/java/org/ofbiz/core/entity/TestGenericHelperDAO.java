@@ -12,6 +12,9 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+/**
+ * Pure unit test of {@link GenericHelperDAO}.
+ */
 public class TestGenericHelperDAO {
 
     private static final String HELPER_NAME = "myHelper";

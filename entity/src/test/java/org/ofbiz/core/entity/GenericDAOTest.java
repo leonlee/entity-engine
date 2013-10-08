@@ -37,6 +37,9 @@ import static org.ofbiz.core.entity.EntityOperator.AND;
 import static org.ofbiz.core.entity.EntityOperator.IN;
 import static org.ofbiz.core.entity.EntityOperator.OR;
 
+/**
+ * Pure unit test of {@link GenericDAO}.
+ */
 public class GenericDAOTest {
 
     private static final String HELPER_NAME = "MyHelper";
