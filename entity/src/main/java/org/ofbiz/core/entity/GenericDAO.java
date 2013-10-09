@@ -1403,7 +1403,7 @@ public class GenericDAO {
      * transform (null means transform all)
      * @param orderBy         the order in which the entities should be
      * selected for updating (null means no ordering)
-     * @param lockFieldName      the entity field to use for optimistic locking;
+     * @param lockFieldName   the entity field to use for optimistic locking;
      * the value of this field will be read between the SELECT and the UPDATE
      * to determine whether another process has updated one of the target
      * records in the meantime; if so, the transformation will be reapplied and
@@ -1419,18 +1419,15 @@ public class GenericDAO {
     {
         final EntityFindOptions findOptions = EntityFindOptions.findOptions();
         final ModelField lockField = modelEntity.getField(lockFieldName);
-        final boolean beganTransaction = TransactionUtil.begin();
         try {
             final List<GenericValue> targetEntities =
                     selectByCondition(modelEntity, entityCondition, null, orderBy, findOptions);
             for (final GenericValue entity : targetEntities) {
                 transformOne(modelEntity, transformation, lockFieldName, lockField, entity);
             }
-            TransactionUtil.commit(beganTransaction);
             return targetEntities;
         }
         catch (final Exception e) {
-            TransactionUtil.setRollbackOnly();
             if (e instanceof GenericEntityException) {
                 throw (GenericEntityException) e;
             }
