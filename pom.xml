@@ -9,7 +9,7 @@
 
 	<groupId>com.atlassian.ofbiz</groupId>
 	<artifactId>entityengine-parent</artifactId>
-	<version>1.0.50-SNAPSHOT</version>
+	<version>1.1.0-m1</version>
 	<packaging>pom</packaging>
 
 	<name>Atlassian OFBiz Fork</name>
