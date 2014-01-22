@@ -26,13 +26,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.EntityOperator.EQUALS;
@@ -83,28 +77,17 @@ public class TestGenericDelegator
     }
 
     @Test
-    public void callingFactoryMethodWithIsLockedSetToTrueShouldReturnLockedDelegator() {
-        // Set up
-        GenericDelegator.lock();
-
-        // Invoke
-        final GenericDelegator genericDelegator = getGenericDelegator("ignored");
-
-        // Check
-        assertEquals(LockedDatabaseGenericDelegator.class, genericDelegator.getClass());
-    }
-
-    @Test
     public void shouldBeAbleToRemoveGenericDelegator() {
         // Set up
-        assertEquals(GenericDelegator.class, getGenericDelegator(DELEGATOR_NAME).getClass());
+        GenericDelegator initialGD = getGenericDelegator(DELEGATOR_NAME);
+        assertEquals(GenericDelegator.class, initialGD.getClass());
 
         // Invoke
         GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
 
         // Check that a different instance has been returned, not the cached one
-        GenericDelegator.lock();
-        assertEquals(LockedDatabaseGenericDelegator.class, getGenericDelegator(DELEGATOR_NAME).getClass());
+        GenericDelegator finalGD = getGenericDelegator(DELEGATOR_NAME);
+        assertNotSame(initialGD, finalGD);
     }
 
     @Test

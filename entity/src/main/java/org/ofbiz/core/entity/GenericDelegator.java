@@ -23,7 +23,6 @@
  */
 package org.ofbiz.core.entity;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -46,6 +45,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
@@ -58,11 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.xml.parsers.ParserConfigurationException;
 
-import static org.ofbiz.core.entity.EntityOperator.AND;
-import static org.ofbiz.core.entity.EntityOperator.LIKE;
-import static org.ofbiz.core.entity.EntityOperator.OR;
+import static org.ofbiz.core.entity.EntityOperator.*;
 import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
 
 /**
@@ -90,9 +87,6 @@ public class GenericDelegator implements DelegatorInterface {
         @Override
         public GenericDelegator load(final String delegatorName) throws GenericEntityException
         {
-            if (isLocked) {
-                return new LockedDatabaseGenericDelegator();
-            }
             return new GenericDelegator(delegatorName);
         }
     });
@@ -124,8 +118,7 @@ public class GenericDelegator implements DelegatorInterface {
         isLocked = true;
     }
 
-    @VisibleForTesting
-    static void unlock() {
+    public static void unlock() {
         isLocked = false;
     }
 
@@ -165,6 +158,39 @@ public class GenericDelegator implements DelegatorInterface {
         this.allCache = new UtilCache<String, List<GenericValue>>("entity.FindAll." + delegatorName, 0, 0, true);
         this.andCache = new UtilCache<GenericPK, List<GenericValue>>("entity.FindByAnd." + delegatorName, 0, 0, true);
 
+        if (!isLocked)
+        {
+            initialiseAndCheckDatabase();
+        }
+
+        // Do some tricks with manual class loading that resolves circular dependencies, like calling services
+        final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+
+        if (getDelegatorInfo().useDistributedCacheClear) {
+            // initialize the distributedCacheClear mechanism
+            String distributedCacheClearClassName = getDelegatorInfo().distributedCacheClearClassName;
+
+            try {
+                Class<?> dccClass = loader.loadClass(distributedCacheClearClassName);
+                this.distributedCacheClear = (DistributedCacheClear) dccClass.newInstance();
+                this.distributedCacheClear.setDelegator(this, getDelegatorInfo().distributedCacheClearUserLoginId);
+            } catch (ClassNotFoundException e) {
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " was not found, distributed cache clearing will be disabled");
+            } catch (InstantiationException e) {
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " could not be instantiated, distributed cache clearing will be disabled");
+            } catch (IllegalAccessException e) {
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " could not be accessed (illegal), distributed cache clearing will be disabled");
+            } catch (ClassCastException e) {
+                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
+                        " does not implement the DistributedCacheClear interface, distributed cache clearing will be disabled");
+            }
+        }
+    }
+
+    public void initialiseAndCheckDatabase() {
         // initialize helpers by group
         final Iterator<String> groups = UtilMisc.toIterator(getModelGroupReader().getGroupNames());
 
@@ -204,32 +230,6 @@ public class GenericDelegator implements DelegatorInterface {
                         Debug.logWarning(e.getMessage(), module);
                     }
                 }
-            }
-        }
-
-        // Do some tricks with manual class loading that resolves circular dependencies, like calling services
-        final ClassLoader loader = Thread.currentThread().getContextClassLoader();
-
-        if (getDelegatorInfo().useDistributedCacheClear) {
-            // initialize the distributedCacheClear mechanism
-            String distributedCacheClearClassName = getDelegatorInfo().distributedCacheClearClassName;
-
-            try {
-                Class<?> dccClass = loader.loadClass(distributedCacheClearClassName);
-                this.distributedCacheClear = (DistributedCacheClear) dccClass.newInstance();
-                this.distributedCacheClear.setDelegator(this, getDelegatorInfo().distributedCacheClearUserLoginId);
-            } catch (ClassNotFoundException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
-                        " was not found, distributed cache clearing will be disabled");
-            } catch (InstantiationException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
-                        " could not be instantiated, distributed cache clearing will be disabled");
-            } catch (IllegalAccessException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
-                        " could not be accessed (illegal), distributed cache clearing will be disabled");
-            } catch (ClassCastException e) {
-                Debug.logWarning(e, "DistributedCacheClear class with name " + distributedCacheClearClassName +
-                        " does not implement the DistributedCacheClear interface, distributed cache clearing will be disabled");
             }
         }
     }
