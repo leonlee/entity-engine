@@ -64,14 +64,14 @@ import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
 
 /**
  * Generic Data Source Delegator.
- *
+ * <p/>
  * TODO The thread safety in here (and everywhere in ofbiz) is crap, improper double checked locking,
  * modification of maps while other threads may be reading them, this class is not thread safe at all.
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a
- * @since      1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a
+ * @since 1.0
  */
 @SuppressWarnings("deprecation")
 public class GenericDelegator implements DelegatorInterface {
@@ -80,16 +80,16 @@ public class GenericDelegator implements DelegatorInterface {
 
     public static final String module = GenericDelegator.class.getName();
 
+    private static final String MESSAGE = "Database is locked";
+
     // A cache of delegator names to instances
     private static final Cache<String, GenericDelegator> delegatorCache =
-            CacheBuilder.newBuilder().build(new CacheLoader<String, GenericDelegator>()
-    {
-        @Override
-        public GenericDelegator load(final String delegatorName) throws GenericEntityException
-        {
-            return new GenericDelegator(delegatorName);
-        }
-    });
+            CacheBuilder.newBuilder().build(new CacheLoader<String, GenericDelegator>() {
+                @Override
+                public GenericDelegator load(final String delegatorName) throws GenericEntityException {
+                    return new GenericDelegator(delegatorName);
+                }
+            });
 
     private static boolean isLocked;
 
@@ -109,8 +109,7 @@ public class GenericDelegator implements DelegatorInterface {
      *
      * @param delegatorName the name of the server configuration that corresponds to this delegator
      */
-    public static synchronized void removeGenericDelegator(final String delegatorName)
-    {
+    public static synchronized void removeGenericDelegator(final String delegatorName) {
         delegatorCache.invalidate(delegatorName);
     }
 
@@ -137,10 +136,11 @@ public class GenericDelegator implements DelegatorInterface {
     // keeps a list of field key sets used in the by and cache, a Set (of Sets of fieldNames) for each entityName
     protected Map<String, Set<Set<String>>> andCacheFieldSets = new HashMap<String, Set<Set<String>>>();
 
-    /** 
+    /**
      * Contructor is protected to enforce creation through the factory method.
      */
-    protected GenericDelegator() {}
+    protected GenericDelegator() {
+    }
 
     /**
      * Contructor is protected to enforce creation through the factory method.
@@ -158,8 +158,7 @@ public class GenericDelegator implements DelegatorInterface {
         this.allCache = new UtilCache<String, List<GenericValue>>("entity.FindAll." + delegatorName, 0, 0, true);
         this.andCache = new UtilCache<GenericPK, List<GenericValue>>("entity.FindByAnd." + delegatorName, 0, 0, true);
 
-        if (!isLocked)
-        {
+        if (!isLocked) {
             initialiseAndCheckDatabase();
         }
 
@@ -236,14 +235,20 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Gets the name of the server configuration that corresponds to this delegator.
-     * 
+     *
      * @return server configuration name
      */
     public String getDelegatorName() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return this.delegatorName;
     }
 
     protected DelegatorInfo getDelegatorInfo() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (delegatorInfo == null) {
             delegatorInfo = EntityConfigUtil.getInstance().getDelegatorInfo(this.delegatorName);
         }
@@ -252,29 +257,38 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Gets the instance of ModelReader that corresponds to this delegator.
-     * 
+     *
      * @return ModelReader that corresponds to this delegator
      */
     public ModelReader getModelReader() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return this.modelReader;
     }
 
     /**
      * Gets the instance of ModelGroupReader that corresponds to this delegator.
-     * 
+     *
      * @return ModelGroupReader that corresponds to this delegator
      */
     public ModelGroupReader getModelGroupReader() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return this.modelGroupReader;
     }
 
     /**
      * Gets the instance of ModelEntity that corresponds to this delegator and the specified entityName.
-     * 
+     *
      * @param entityName The name of the entity to get
      * @return ModelEntity that corresponds to this delegator and the specified entityName
      */
     public ModelEntity getModelEntity(final String entityName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         try {
             return getModelReader().getModelEntity(entityName);
         } catch (GenericEntityException e) {
@@ -285,11 +299,14 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Gets the helper name that corresponds to this delegator and the specified entityName.
-     * 
+     *
      * @param entityName The name of the entity to get the helper for
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getEntityGroupName(final String entityName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getModelGroupReader().getEntityGroupName(entityName);
     }
 
@@ -300,6 +317,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List of ModelEntity instances
      */
     public List<ModelEntity> getModelEntitiesByGroup(final String groupName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
         final List<ModelEntity> entities = new LinkedList<ModelEntity>();
 
@@ -322,6 +342,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return Map of entityName String keys and ModelEntity instance values
      */
     public Map<String, ModelEntity> getModelEntityMapByGroup(final String groupName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
         Map<String, ModelEntity> entities = new HashMap<String, ModelEntity>();
 
@@ -360,27 +383,36 @@ public class GenericDelegator implements DelegatorInterface {
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getGroupHelperName(final String groupName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getDelegatorInfo().groupMap.get(groupName);
     }
 
     /**
      * Gets the helper name that corresponds to this delegator and the specified entityName.
-     * 
+     *
      * @param entityName The name of the entity to get the helper name for
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getEntityHelperName(final String entityName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final String groupName = getModelGroupReader().getEntityGroupName(entityName);
         return getGroupHelperName(groupName);
     }
 
     /**
      * Gets the helper name that corresponds to this delegator and the specified entity.
-     * 
+     *
      * @param entity the entity for which to get the helper (can be null)
      * @return String with the helper name that corresponds to this delegator and the specified entity
      */
     public String getEntityHelperName(final ModelEntity entity) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entity == null) {
             return null;
         }
@@ -389,11 +421,14 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Gets the helper that corresponds to this delegator and the specified entityName.
-     * 
+     *
      * @param entityName The name of the entity to get the helper for
      * @return GenericHelper that corresponds to this delegator and the specified entityName
      */
     public GenericHelper getEntityHelper(final String entityName) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final String helperName = getEntityHelperName(entityName);
         if (helperName != null && helperName.length() > 0) {
             return GenericHelperFactory.getHelper(helperName);
@@ -403,11 +438,14 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Gets the helper that corresponds to this delegator and the specified entity.
-     * 
+     *
      * @param entity The entity for which to get the helper (required)
      * @return GenericHelper that corresponds to this delegator and the specified entity
      */
     public GenericHelper getEntityHelper(final ModelEntity entity) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getEntityHelper(entity.getEntityName());
     }
 
@@ -415,10 +453,13 @@ public class GenericDelegator implements DelegatorInterface {
      * Gets a field type instance by name from the helper that corresponds to the specified entity.
      *
      * @param entity The entity
-     * @param type The name of the type
+     * @param type   The name of the type
      * @return ModelFieldType instance for the named type from the helper that corresponds to the specified entity
      */
     public ModelFieldType getEntityFieldType(final ModelEntity entity, final String type) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final String helperName = getEntityHelperName(entity);
         if (helperName == null || helperName.length() == 0) {
             return null;
@@ -439,6 +480,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return Collection of field type names from the helper that corresponds to the specified entity
      */
     public Collection<String> getEntityFieldTypeNames(final ModelEntity entity) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final String helperName = getEntityHelperName(entity);
         if (helperName == null || helperName.length() == 0) {
             return null;
@@ -456,10 +500,13 @@ public class GenericDelegator implements DelegatorInterface {
      * Creates a Entity in the form of a GenericValue without persisting it.
      *
      * @param entityName the type of entity to create (must exist in the model)
-     * @param fields the entity fields and their values (can be null)
+     * @param fields     the entity fields and their values (can be null)
      * @return the created value
      */
     public GenericValue makeValue(final String entityName, final Map<String, ?> fields) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity entity = getModelEntity(entityName);
         if (entity == null) {
             throw new IllegalArgumentException(
@@ -472,10 +519,13 @@ public class GenericDelegator implements DelegatorInterface {
      * Creates a Primary Key in the form of a GenericPK without persisting it.
      *
      * @param entityName the type of entity for which to create a PK (must exist in the model)
-     * @param fields the primary key fields and their values (can be null)
+     * @param fields     the primary key fields and their values (can be null)
      * @return the created PK
      */
     public GenericPK makePK(final String entityName, final Map<String, ?> fields) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity entity = getModelEntity(entityName);
 
         if (entity == null) {
@@ -491,10 +541,13 @@ public class GenericDelegator implements DelegatorInterface {
      * Creates a Entity in the form of a GenericValue and write it to the database.
      *
      * @param entityName the type of entity to create (if null, this method does nothing)
-     * @param fields the field values to use (if null, this method does nothing)
+     * @param fields     the field values to use (if null, this method does nothing)
      * @return the created instance
      */
     public GenericValue create(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entityName == null || fields == null) {
             return null;
         }
@@ -510,17 +563,23 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return create(value, true);
     }
 
     /**
      * Creates a Entity in the form of a GenericValue and write it to the datasource.
      *
-     * @param value The GenericValue from which to create a value in the datasource (required)
+     * @param value        The GenericValue from which to create a value in the datasource (required)
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(GenericValue value, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(value.getEntityName());
         value.setDelegator(this);
         value = helper.create(value);
@@ -543,17 +602,23 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericPK primaryKey) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return create(primaryKey, true);
     }
 
     /**
      * Creates a Entity in the form of a GenericValue and write it to the datasource.
      *
-     * @param primaryKey the PK from which to create a value in the datasource (required)
+     * @param primaryKey   the PK from which to create a value in the datasource (required)
      * @param doCacheClear whether to clear related cache entries for this primaryKey to be created
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKey == null) {
             throw new IllegalArgumentException("Cannot create from a null primaryKey");
         }
@@ -567,6 +632,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
 
         if (!primaryKey.isPrimaryKey()) {
@@ -592,6 +660,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKeyCache(final GenericPK primaryKey) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         GenericValue value = getFromPrimaryKeyCache(primaryKey);
         if (value == null) {
             value = findByPrimaryKey(primaryKey);
@@ -606,12 +677,14 @@ public class GenericDelegator implements DelegatorInterface {
      * Find a Generic Entity by its Primary Key.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKey(final String entityName, final Map<String, ?> fields)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByPrimaryKey(makePK(entityName, fields));
     }
 
@@ -619,12 +692,14 @@ public class GenericDelegator implements DelegatorInterface {
      * Find a CACHED Generic Entity by its Primary Key.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKeyCache(final String entityName, final Map<String, ?> fields)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByPrimaryKeyCache(makePK(entityName, fields));
     }
 
@@ -633,12 +708,14 @@ public class GenericDelegator implements DelegatorInterface {
      * requested by the passed keys (names).
      *
      * @param primaryKey The primary key to find by.
-     * @param keys The keys, or names, of the values to retrieve; only these values will be retrieved
+     * @param keys       The keys, or names, of the values to retrieve; only these values will be retrieved
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKeyPartial(final GenericPK primaryKey, final Set<String> keys)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
 
         if (!primaryKey.isPrimaryKey()) {
@@ -665,8 +742,10 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List of GenericValue objects corresponding to the passed primaryKey objects
      */
     public List<GenericValue> findAllByPrimaryKeys(final Collection<? extends GenericPK> primaryKeys)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKeys == null) {
             return null;
         }
@@ -706,8 +785,10 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List of GenericValue objects corresponding to the passed primaryKey objects
      */
     public List<GenericValue> findAllByPrimaryKeysCache(final Collection<? extends GenericPK> primaryKeys)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKeys == null) {
             return null;
         }
@@ -753,6 +834,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return all entities of the given type
      */
     public List<GenericValue> findAll(final String entityName) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByAnd(entityName, new HashMap<String, Object>(), null);
     }
 
@@ -760,11 +844,14 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds all Generic entities of the given type, optionally sorted.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param orderBy the entity fields by which to order the query; optionally
-     * add " ASC" for ascending or " DESC" for descending to each field name
+     * @param orderBy    the entity fields by which to order the query; optionally
+     *                   add " ASC" for ascending or " DESC" for descending to each field name
      * @return List containing all Generic entities
      */
     public List<GenericValue> findAll(final String entityName, final List<String> orderBy) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByAnd(entityName, new HashMap<String, Object>(), orderBy);
     }
 
@@ -775,6 +862,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List containing all Generic entities
      */
     public List<GenericValue> findAllCache(final String entityName) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findAllCache(entityName, null);
     }
 
@@ -783,13 +873,15 @@ public class GenericDelegator implements DelegatorInterface {
      * lookup, but only keys results on the entityName and fields.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param orderBy The fields of the named entity by which to order the
-     * query; optionally add " ASC" for ascending or " DESC" for descending
+     * @param orderBy    The fields of the named entity by which to order the
+     *                   query; optionally add " ASC" for ascending or " DESC" for descending
      * @return all Generic entities
      */
     public List<GenericValue> findAllCache(final String entityName, final List<String> orderBy)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         List<GenericValue> lst = getFromAllCache(entityName);
         if (lst == null) {
             lst = findAll(entityName, orderBy);
@@ -804,12 +896,14 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds Generic Entity records by all of the specified fields (ie: combined using AND).
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAnd(final String entityName, final Map<String, ?> fields)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByAnd(entityName, fields, null);
     }
 
@@ -817,12 +911,14 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds Generic Entity records by any of the specified fields (i.e. combined using OR).
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByOr(entityName, fields, null);
     }
 
@@ -831,15 +927,17 @@ public class GenericDelegator implements DelegatorInterface {
      * combined using AND).
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields the names and values of the fields by which to query (can be null)
-     * @param orderBy The fields of the named entity to order the query by;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
+     * @param fields     the names and values of the fields by which to query (can be null)
+     * @param orderBy    The fields of the named entity to order the query by;
+     *                   optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAnd(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         return findByAnd(modelEntity, fields, orderBy);
     }
@@ -848,15 +946,17 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds any entities matching the given criteria.
      *
      * @param modelEntity the type of entity to find (required)
-     * @param fields the names and values of the fields by which to query (can be null)
-     * @param orderBy the names of fields by which to sort the results (can be null)
+     * @param fields      the names and values of the fields by which to query (can be null)
+     * @param orderBy     the names of fields by which to sort the results (can be null)
      * @return any matching entities
      * @throws GenericEntityException
      */
     public List<GenericValue> findByAnd(
             final ModelEntity modelEntity, final Map<String, ?> fields, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(modelEntity);
 
         if (fields != null && !modelEntity.areFields(fields.keySet())) {
@@ -873,14 +973,16 @@ public class GenericDelegator implements DelegatorInterface {
      * combined using OR).
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
-     * @param orderBy The fields of the named entity to order the query by;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
+     * @param fields     The fields of the named entity to query by with their corresponging values
+     * @param orderBy    The fields of the named entity to order the query by;
+     *                   optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields, final List<String> orderBy)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper helper = getEntityHelper(entityName);
 
@@ -900,12 +1002,14 @@ public class GenericDelegator implements DelegatorInterface {
      * lookup, but only keys results on the entityName and fields.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAndCache(final String entityName, final Map<String, ?> fields)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByAndCache(entityName, fields, null);
     }
 
@@ -915,15 +1019,17 @@ public class GenericDelegator implements DelegatorInterface {
      * lookup, but only keys results on the entityName and fields.
      *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
-     * @param orderBy The fields of the named entity to order the query by;
-     * optionally add " ASC" for ascending or " DESC" for descending
+     * @param fields     The fields of the named entity to query by with their corresponging values
+     * @param orderBy    The fields of the named entity to order the query by;
+     *                   optionally add " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAndCache(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         List<GenericValue> lst = getFromAndCache(modelEntity, fields);
         if (lst == null) {
@@ -938,15 +1044,17 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Finds Generic Entity records by all of the specified expressions (ie: combined using AND).
      *
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param entityName  The Name of the Entity as defined in the entity XML file
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to
-     * compare to
+     *                    consisting of at least a field name, an EntityOperator, and a value to
+     *                    compare to
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAnd(final String entityName, final List<? extends EntityCondition> expressions)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, null);
     }
@@ -955,18 +1063,20 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds Generic Entity records by all of the specified expressions (i.e.
      * combined using AND).
      *
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param entityName  The Name of the Entity as defined in the entity XML file
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to
-     * compare to
-     * @param orderBy The fields of the named entity to order the query by;
-     * optionally add " ASC" for ascending or " DESC" for descending
+     *                    consisting of at least a field name, an EntityOperator, and a value to
+     *                    compare to
+     * @param orderBy     The fields of the named entity to order the query by;
+     *                    optionally add " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAnd(
             final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, orderBy);
     }
@@ -975,15 +1085,17 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds Generic Entity records by all of the specified expressions (i.e.
      * combined using OR).
      *
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param entityName  The Name of the Entity as defined in the entity XML file
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to
-     * compare to
+     *                    consisting of at least a field name, an EntityOperator, and a value to
+     *                    compare to
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByOr(final String entityName, final List<? extends EntityCondition> expressions)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final EntityConditionList ecl = new EntityConditionList(expressions, OR);
         return findByCondition(entityName, ecl, null, null);
     }
@@ -992,29 +1104,33 @@ public class GenericDelegator implements DelegatorInterface {
      * Finds Generic Entity records by all of the specified expressions (i.e.
      * combined using OR).
      *
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param entityName  The Name of the Entity as defined in the entity XML file
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to compare to
-     * @param orderBy The fields of the named entity to order the query by;
-     * optionally add " ASC" for ascending or " DESC" for descending
+     *                    consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param orderBy     The fields of the named entity to order the query by;
+     *                    optionally add " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByOr(
             final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
         final EntityConditionList ecl = new EntityConditionList(expressions, OR);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
     public List<GenericValue> findByLike(String entityName, Map<String, ?> fields) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findByLike(entityName, fields, null);
     }
 
     public List<GenericValue> findByLike(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final List<EntityExpr> likeExpressions = new LinkedList<EntityExpr>();
         if (fields != null) {
             for (Map.Entry<String, ?> entry : fields.entrySet()) {
@@ -1028,18 +1144,20 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Finds any GenericValues matching the given conditions.
      *
-     * @param entityName The Name of the Entity as defined in the entity model XML file
+     * @param entityName      The Name of the Entity as defined in the entity model XML file
      * @param entityCondition The EntityCondition object that specifies how to constrain this query
-     * @param fieldsToSelect The fields of the named entity to get from the
-     * database; if empty or null all fields will be retreived
-     * @param orderBy The fields of the named entity by which to order the
-     * query; optionally add " ASC" for ascending or " DESC" for descending
+     * @param fieldsToSelect  The fields of the named entity to get from the
+     *                        database; if empty or null all fields will be retreived
+     * @param orderBy         The fields of the named entity by which to order the
+     *                        query; optionally add " ASC" for ascending or " DESC" for descending
      * @return any matching values
      */
     public List<GenericValue> findByCondition(final String entityName, final EntityCondition entityCondition,
-            final Collection<String> fieldsToSelect, final List<String> orderBy)
-        throws GenericEntityException
-    {
+                                              final Collection<String> fieldsToSelect, final List<String> orderBy)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (entityCondition != null) {
             entityCondition.checkCondition(modelEntity);
@@ -1053,22 +1171,24 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Returns the count of the results that match all of the specified expressions (i.e. combined using AND).
      *
-     * @param entityName The Name of the Entity as defined in the entity model XML file
-     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param entityName  The Name of the Entity as defined in the entity model XML file
+     * @param fieldName   The field of the named entity to count, if null this is equivalent to count(*)
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to
-     * compare to
+     *                    consisting of at least a field name, an EntityOperator, and a value to
+     *                    compare to
      * @param findOptions An instance of EntityFindOptions that specifies
-     * advanced query options.  The only option that is used is distinct, in
-     * which case a select (distinct fieldname) is issued.<p>If you issue a
-     * distinct without a fieldName, it will be ignored because <code>select
-     * count (distinct *)</code> makes no sense
+     *                    advanced query options.  The only option that is used is distinct, in
+     *                    which case a select (distinct fieldname) is issued.<p>If you issue a
+     *                    distinct without a fieldName, it will be ignored because <code>select
+     *                    count (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
     public int countByAnd(final String entityName, final String fieldName,
-            final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
-        throws GenericEntityException
-    {
+                          final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, AND);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
@@ -1077,21 +1197,23 @@ public class GenericDelegator implements DelegatorInterface {
      * Returns the count of the results that match any of the specified
      * expressions (i.e. combined using OR).
      *
-     * @param entityName The Name of the Entity as defined in the entity model XML file
-     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param entityName  The Name of the Entity as defined in the entity model XML file
+     * @param fieldName   The field of the named entity to count, if null this is equivalent to count(*)
      * @param expressions The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to compare to
+     *                    consisting of at least a field name, an EntityOperator, and a value to compare to
      * @param findOptions An instance of EntityFindOptions that specifies
-     * advanced query options. The only option that is used is distinct, in
-     * which case a <code>select (distinct fieldname)</code> is issued.<p>If
-     * you issue a distinct without a fieldName, it will be ignored because
-     * <code>select count (distinct *)</code> makes no sense
+     *                    advanced query options. The only option that is used is distinct, in
+     *                    which case a <code>select (distinct fieldname)</code> is issued.<p>If
+     *                    you issue a distinct without a fieldName, it will be ignored because
+     *                    <code>select count (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
     public int countByOr(final String entityName, final String fieldName,
-            final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
-        throws GenericEntityException
-    {
+                         final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, OR);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
@@ -1099,26 +1221,27 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Returns the count of the results that match any of the specified expressions (ie: combined using OR).
      *
-     * @param entityName The Name of the Entity as defined in the entity model XML file
-     * @param fieldName  The field of the named entity to count, if null this is equivalent to count(*)
+     * @param entityName      The Name of the Entity as defined in the entity model XML file
+     * @param fieldName       The field of the named entity to count, if null this is equivalent to count(*)
      * @param entityCondition The EntityCondition object that specifies how to
-     * constrain this query The expressions to use for the lookup, each
-     * consisting of at least a field name, an EntityOperator, and a value to
-     * compare to
-     * @param findOptions An instance of EntityFindOptions that specifies
-     * advanced query options.  The only option that is used is distinct, in
-     * which case a select (distinct fieldname) is issued.<p>If you issue a
-     * distinct without a fieldName, it will be ignored as <code>select count
-     * (distinct *)</code> makes no sense
+     *                        constrain this query The expressions to use for the lookup, each
+     *                        consisting of at least a field name, an EntityOperator, and a value to
+     *                        compare to
+     * @param findOptions     An instance of EntityFindOptions that specifies
+     *                        advanced query options.  The only option that is used is distinct, in
+     *                        which case a select (distinct fieldname) is issued.<p>If you issue a
+     *                        distinct without a fieldName, it will be ignored as <code>select count
+     *                        (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
     public int countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
-            final EntityFindOptions findOptions)
-        throws GenericEntityException
-    {
+                                final EntityFindOptions findOptions)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
-        if (entityCondition != null)
-        {
+        if (entityCondition != null) {
             entityCondition.checkCondition(modelEntity);
         }
         GenericHelper helper = getEntityHelper(entityName);
@@ -1129,66 +1252,73 @@ public class GenericDelegator implements DelegatorInterface {
      * Returns the row count of the specified entity.
      *
      * @param entityName The Name of the Entity as defined in the entity model XML file
-     * @return  the number of rows in the table
+     * @return the number of rows in the table
      */
     public int countAll(final String entityName) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return countByCondition(entityName, null, null, null);
     }
 
     /**
      * Finds GenericValues by the given conditions.
-     * 
-     * @param entityName The Name of the Entity as defined in the entity model
-     * XML file
+     *
+     * @param entityName      The Name of the Entity as defined in the entity model
+     *                        XML file
      * @param entityCondition The EntityCondition object that specifies how to
-     * constrain this query before any groupings are done (if this is a view
-     * entity with group-by aliases)
-     * @param fieldsToSelect The fields of the named entity to get from the
-     * database; if empty or null all fields will be retreived
-     * @param orderBy The fields of the named entity to order the query by;
-     * optionally add " ASC" for ascending or " DESC" for descending
+     *                        constrain this query before any groupings are done (if this is a view
+     *                        entity with group-by aliases)
+     * @param fieldsToSelect  The fields of the named entity to get from the
+     *                        database; if empty or null all fields will be retreived
+     * @param orderBy         The fields of the named entity to order the query by;
+     *                        optionally add " ASC" for ascending or " DESC" for descending
      * @return EntityListIterator representing the result of the query: NOTE
-     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
-     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     *         THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     *         OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     public EntityListIterator findListIteratorByCondition(
             final String entityName, final EntityCondition entityCondition, final Collection<String> fieldsToSelect,
             final List<String> orderBy)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return findListIteratorByCondition(
                 entityName, entityCondition, null, fieldsToSelect, orderBy, null);
     }
 
     /**
      * Finds GenericValues by the given conditions.
-     * 
-     * @param entityName The ModelEntity of the Entity as defined in the entity
-     * XML file
-     * @param whereEntityCondition The EntityCondition object that specifies
-     * how to constrain this query before any groupings are done (if this is a
-     * view entity with group-by aliases)
+     *
+     * @param entityName            The ModelEntity of the Entity as defined in the entity
+     *                              XML file
+     * @param whereEntityCondition  The EntityCondition object that specifies
+     *                              how to constrain this query before any groupings are done (if this is a
+     *                              view entity with group-by aliases)
      * @param havingEntityCondition The EntityCondition object that specifies
-     * how to constrain this query after any groupings are done (if this is a
-     * view entity with group-by aliases)
-     * @param fieldsToSelect The fields of the named entity to get from the
-     * database; if empty or null all fields will be retreived
-     * @param orderBy The fields of the named entity to order the query by;
-     * optionally add " ASC" for ascending or " DESC" for descending
-     * @param findOptions An instance of EntityFindOptions that specifies
-     * advanced query options. See the EntityFindOptions JavaDoc for more
-     * details.
+     *                              how to constrain this query after any groupings are done (if this is a
+     *                              view entity with group-by aliases)
+     * @param fieldsToSelect        The fields of the named entity to get from the
+     *                              database; if empty or null all fields will be retreived
+     * @param orderBy               The fields of the named entity to order the query by;
+     *                              optionally add " ASC" for ascending or " DESC" for descending
+     * @param findOptions           An instance of EntityFindOptions that specifies
+     *                              advanced query options. See the EntityFindOptions JavaDoc for more
+     *                              details.
      * @return EntityListIterator representing the result of the query: NOTE
-     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
-     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     *         THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     *         OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      * @see EntityCondition
      */
     public EntityListIterator findListIteratorByCondition(
             final String entityName, final EntityCondition whereEntityCondition,
             final EntityCondition havingEntityCondition, final Collection<String> fieldsToSelect,
             final List<String> orderBy, final EntityFindOptions findOptions)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (whereEntityCondition != null) {
             whereEntityCondition.checkCondition(modelEntity);
@@ -1205,22 +1335,28 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Remove a Generic Entity corresponding to the primaryKey.
-     * 
-     * @param primaryKey  The primary key of the entity to remove.
+     *
+     * @param primaryKey The primary key of the entity to remove.
      * @return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeByPrimaryKey(primaryKey, true);
     }
 
     /**
      * Remove a Generic Entity corresponding to the primaryKey.
-     * 
-     * @param primaryKey  The primary key of the entity to remove.
+     *
+     * @param primaryKey   The primary key of the entity to remove.
      * @param doCacheClear boolean that specifies whether to clear cache entries for this primaryKey to be removed
      * @return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (doCacheClear) {
             // always clear cache before the operation
             clearCacheLine(primaryKey);
@@ -1231,22 +1367,28 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Remove a Generic Value from the database.
-     * 
+     *
      * @param value The GenericValue object of the entity to remove.
      * @return int representing number of rows affected by this operation
      */
     public int removeValue(final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeValue(value, true);
     }
 
     /**
      * Remove a Generic Value from the database.
-     * 
-     * @param value The GenericValue object of the entity to remove.
+     *
+     * @param value        The GenericValue object of the entity to remove.
      * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
      * @return int representing number of rows affected by this operation
      */
     public int removeValue(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(value.getEntityName());
         if (doCacheClear) {
             clearCacheLine(value);
@@ -1256,26 +1398,31 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND).
-     * 
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      * @return int representing number of rows affected by this operation
      */
     public int removeByAnd(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeByAnd(entityName, fields, true);
     }
 
     /**
      * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND).
-     * 
-     * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     *
+     * @param entityName   The Name of the Entity as defined in the entity XML file
+     * @param fields       The fields of the named entity to query by with their corresponging values
      * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
      * @return int representing number of rows affected by this operation
      */
     public int removeByAnd(final String entityName, final Map<String, ?> fields, final boolean doCacheClear)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericValue dummyValue = makeValue(entityName, fields);
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper helper = getEntityHelper(entityName);
@@ -1288,29 +1435,33 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Removes/deletes Generic Entity records found by matching the EntityCondition.
-     * 
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     *
+     * @param entityName     The Name of the Entity as defined in the entity XML file
      * @param whereCondition The EntityCondition object that specifies how to constrain this query
      * @return int representing number of rows affected by this operation
      */
     public int removeByCondition(final String entityName, final EntityCondition whereCondition)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeByCondition(entityName, whereCondition, true);
     }
 
     /**
      * Removes/deletes Generic Entity records found by matching the EntityCondition.
-     * 
-     * @param entityName The Name of the Entity as defined in the entity XML file
+     *
+     * @param entityName     The Name of the Entity as defined in the entity XML file
      * @param whereCondition The EntityCondition object that specifies how to constrain this query
-     * @param doCacheClear boolean that specifies whether to clear cache entries for this value to be removed
+     * @param doCacheClear   boolean that specifies whether to clear cache entries for this value to be removed
      * @return int representing number of rows affected by this operation
      */
     public int removeByCondition(
-                final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
-            throws GenericEntityException
-    {
+            final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericHelper helper = getEntityHelper(entityName);
 
@@ -1326,20 +1477,22 @@ public class GenericDelegator implements DelegatorInterface {
      * Get the named Related Entity for the GenericValue from the persistent
      * store across another Relation. Helps to get related Values in a
      * multi-to-multi relationship.
-     * 
+     *
      * @param relationNameOne String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file, for first relation
+     *                        combination of relation.title and relation.rel-entity-name as
+     *                        specified in the entity XML definition file, for first relation
      * @param relationNameTwo String containing the relation name for second relation
-     * @param value GenericValue instance containing the entity
-     * @param orderBy The fields of the named entity to order the query by; may be null;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
+     * @param value           GenericValue instance containing the entity
+     * @param orderBy         The fields of the named entity to order the query by; may be null;
+     *                        optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getMultiRelation(final GenericValue value, final String relationNameOne,
-                final String relationNameTwo, final List<String> orderBy)
-            throws GenericEntityException
-    {
+                                               final String relationNameTwo, final List<String> orderBy)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         // traverse the relationships
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation modelRelationOne = modelEntity.getRelation(relationNameOne);
@@ -1357,85 +1510,94 @@ public class GenericDelegator implements DelegatorInterface {
      * Get the named Related Entity for the GenericValue from the persistent
      * store across another Relation. Helps to get related Values in a
      * multi-to-multi relationship.
-     * 
+     *
      * @param relationNameOne String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file, for first relation
+     *                        combination of relation.title and relation.rel-entity-name as
+     *                        specified in the entity XML definition file, for first relation
      * @param relationNameTwo String containing the relation name for second relation
-     * @param value GenericValue instance containing the entity
+     * @param value           GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getMultiRelation(
-                final GenericValue value, final String relationNameOne, final String relationNameTwo)
-            throws GenericEntityException
-    {
+            final GenericValue value, final String relationNameOne, final String relationNameTwo)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getMultiRelation(value, relationNameOne, relationNameTwo, null);
     }
 
-    /** Get the named Related Entity for the GenericValue from the persistent store
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent store
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param value        GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelated(final String relationName, final GenericValue value)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getRelated(relationName, null, null, value);
     }
 
     /**
      * Get the named Related Entity for the GenericValue from the persistent store.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param byAndFields the fields that must equal in order to keep; may be null
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param byAndFields  the fields that must equal in order to keep; may be null
+     * @param value        GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelatedByAnd(
-                final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
-            throws GenericEntityException
-    {
+            final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return getRelated(relationName, byAndFields, null, value);
     }
 
     /**
      * Get the named Related Entity for the GenericValue from the persistent store.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param orderBy The fields of the named entity to order the query by; may be null;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param orderBy      The fields of the named entity to order the query by; may be null;
+     *                     optionally add a " ASC" for ascending or " DESC" for descending
+     * @param value        GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelatedOrderBy(
-                final String relationName, final List<String> orderBy, final GenericValue value)
-            throws GenericEntityException
-    {
+            final String relationName, final List<String> orderBy, final GenericValue value)
+            throws GenericEntityException {
         return getRelated(relationName, null, orderBy, value);
     }
 
     /**
      * Get the named Related Entity for the GenericValue from the persistent store.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param byAndFields the fields that must equal in order to keep; may be null
-     * @param orderBy The fields of the named entity to order the query by; may be null;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param byAndFields  the fields that must equal in order to keep; may be null
+     * @param orderBy      The fields of the named entity to order the query by; may be null;
+     *                     optionally add a " ASC" for ascending or " DESC" for descending
+     * @param value        GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelated(final String relationName, final Map<String, ?> byAndFields,
-                final List<String> orderBy, final GenericValue value)
-            throws GenericEntityException
-    {
+                                         final List<String> orderBy, final GenericValue value)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1458,18 +1620,20 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Get a dummy primary key for the named Related Entity for the GenericValue.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param byAndFields the fields that must equal in order to keep; may be null
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param byAndFields  the fields that must equal in order to keep; may be null
+     * @param value        GenericValue instance containing the entity
      * @return GenericPK containing a possibly incomplete PrimaryKey object representing the related entity or entities
      */
     public GenericPK getRelatedDummyPK(
             final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
-        throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1496,16 +1660,18 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Get the named Related Entity for the GenericValue from the persistent
      * store, checking first in the cache to see if the desired value is there.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param value        GenericValue instance containing the entity
      * @return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelatedCache(final String relationName, final GenericValue value)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1527,10 +1693,13 @@ public class GenericDelegator implements DelegatorInterface {
      * Get related entity where relation is of type one, uses findByPrimaryKey.
      *
      * @param relationName the name of the relation to get (required)
-     * @param value the value whose relation to get (required)
+     * @param value        the value whose relation to get (required)
      * @throws IllegalArgumentException if the list found has more than one item
      */
     public GenericValue getRelatedOne(final String relationName, final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelRelation relation = value.getModelEntity().getRelation(relationName);
 
         if (relation == null) {
@@ -1554,14 +1723,16 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Get related entity where relation is of type one, uses findByPrimaryKey,
      * checking first in the cache to see if the desired value is there.
-     * 
+     *
      * @param relationName the name of the relation to get (required)
-     * @param value the value whose relation to get (required)
+     * @param value        the value whose relation to get (required)
      * @throws IllegalArgumentException if the list found has more than one item
      */
     public GenericValue getRelatedOneCache(final String relationName, final GenericValue value)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1585,31 +1756,33 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Remove the named Related Entity for the GenericValue from the persistent store.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     *      combination of relation.title and relation.rel-entity-name as
-     *      specified in the entity XML definition file
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param value        GenericValue instance containing the entity
      * @return int representing number of rows affected by this operation
      */
     public int removeRelated(final String relationName, final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeRelated(relationName, value, true);
     }
 
     /**
      * Remove the named Related Entity for the GenericValue from the persistent store.
-     * 
+     *
      * @param relationName String containing the relation name which is the
-     * combination of relation.title and relation.rel-entity-name as specified
-     * in the entity XML definition file
-     * @param value GenericValue instance containing the entity
+     *                     combination of relation.title and relation.rel-entity-name as specified
+     *                     in the entity XML definition file
+     * @param value        GenericValue instance containing the entity
      * @param doCacheClear boolean that specifies whether to clear cache
-     * entries for this value to be removed
+     *                     entries for this value to be removed
      * @return int representing number of rows affected by this operation
      */
     public int removeRelated(final String relationName, final GenericValue value, final boolean doCacheClear)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1633,16 +1806,22 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity to refresh
      */
     public void refresh(final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         refresh(value, true);
     }
 
     /**
      * Refresh the Entity for the GenericValue from the persistent store.
-     * 
-     * @param value GenericValue instance containing the entity to refresh
+     *
+     * @param value        GenericValue instance containing the entity to refresh
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      */
     public void refresh(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (doCacheClear) {
             // always clear cache before the operation
             clearCacheLine(value);
@@ -1660,22 +1839,28 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Store the Entity from the GenericValue to the persistent store.
-     * 
+     *
      * @param value GenericValue instance containing the entity
      * @return int representing number of rows affected by this operation
      */
     public int store(final GenericValue value) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return store(value, true);
     }
 
     /**
      * Store the Entity from the GenericValue to the persistent store.
-     * 
-     * @param value GenericValue instance containing the entity
+     *
+     * @param value        GenericValue instance containing the entity
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      * @return int representing number of rows affected by this operation
      */
     public int store(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final GenericHelper helper = getEntityHelper(value.getEntityName());
 
         if (doCacheClear) {
@@ -1699,11 +1884,14 @@ public class GenericDelegator implements DelegatorInterface {
      * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
      * if the data source supports transactions. This is just like to othersToStore feature
      * of the GenericEntity on a create or store.
-     * 
+     *
      * @param values List of GenericValue instances containing the entities to store
      * @return int representing number of rows affected by this operation
      */
     public int storeAll(final List<? extends GenericValue> values) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return storeAll(values, true);
     }
 
@@ -1715,14 +1903,16 @@ public class GenericDelegator implements DelegatorInterface {
      * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
      * if the data source supports transactions. This is just like to othersToStore feature
      * of the GenericEntity on a create or store.
-     * 
-     * @param values List of GenericValue instances containing the entities to store
+     *
+     * @param values       List of GenericValue instances containing the entities to store
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      * @return int representing number of rows affected by this operation
      */
     public int storeAll(final List<? extends GenericValue> values, final boolean doCacheClear)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (values == null) {
             return 0;
         }
@@ -1800,11 +1990,14 @@ public class GenericDelegator implements DelegatorInterface {
      * if will behave like the removeByAnd method.
      * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
      * if the data source supports transactions.
-     * 
+     *
      * @param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
      * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return removeAll(dummyPKs, true);
     }
 
@@ -1817,12 +2010,15 @@ public class GenericDelegator implements DelegatorInterface {
      * if will behave like the removeByAnd method.
      * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
      * if the data source supports transactions.
-     *  
-     * @param dummyPKs Collection of GenericEntity instances containing the entities or by and fields to remove
+     *
+     * @param dummyPKs     Collection of GenericEntity instances containing the entities or by and fields to remove
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (dummyPKs == null) {
             return 0;
         }
@@ -1883,10 +2079,16 @@ public class GenericDelegator implements DelegatorInterface {
      * For performance reasons this should not be called very often.
      */
     public void clearAllCaches() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         clearAllCaches(true);
     }
 
     public void clearAllCaches(boolean distribute) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (allCache != null) allCache.clear();
         if (andCache != null) andCache.clear();
         if (andCacheFieldSets != null) andCacheFieldSets.clear();
@@ -1899,11 +2101,14 @@ public class GenericDelegator implements DelegatorInterface {
 
     /**
      * Remove a CACHED Generic Entity (List) from the cache, either a PK, ByAnd, or All
-     * 
+     *
      * @param entityName The Name of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields     The fields of the named entity to query by with their corresponging values
      */
     public void clearCacheLine(String entityName, Map<String, ?> fields) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         // if no fields passed, do the all cache quickly and return
         if (fields == null && allCache != null) {
             allCache.remove(entityName);
@@ -1928,14 +2133,20 @@ public class GenericDelegator implements DelegatorInterface {
      * the cache line will be removed from the primaryKeyCache; if it
      * is NOT a complete primary key it will remove the cache line from the andCache.
      * If the fields map is empty, then the allCache for the entity will be cleared.
-     * 
+     *
      * @param dummyPK The dummy primary key to clear by.
      */
     public void clearCacheLineFlexible(final GenericEntity dummyPK) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         clearCacheLineFlexible(dummyPK, true);
     }
 
     public void clearCacheLineFlexible(final GenericEntity dummyPK, final boolean distribute) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (dummyPK != null) {
             //if never cached, then don't bother clearing
             if (dummyPK.getModelEntity().getNeverCache()) return;
@@ -1966,16 +2177,24 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
-    /** Remove a CACHED Generic Entity from the cache by its primary key, does NOT
+    /**
+     * Remove a CACHED Generic Entity from the cache by its primary key, does NOT
      * check to see if the passed GenericPK is a complete primary key.
      * Also tries to clear the corresponding all cache entry.
-     *@param primaryKey The primary key to clear by.
+     *
+     * @param primaryKey The primary key to clear by.
      */
     public void clearCacheLine(final GenericPK primaryKey) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         clearCacheLine(primaryKey, true);
     }
 
     public void clearCacheLine(final GenericPK primaryKey, final boolean distribute) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKey == null) {
             return;
         }
@@ -2004,14 +2223,20 @@ public class GenericDelegator implements DelegatorInterface {
      * Automatically tries to remove entries from the all cache, the by primary
      * key cache, and the "by and" cache. This is the ONLY method that tries to
      * clear automatically from the by and cache.
-     * 
+     *
      * @param value The primary key to clear by.
      */
     public void clearCacheLine(final GenericValue value) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         clearCacheLine(value, true);
     }
 
     public void clearCacheLine(final GenericValue value, final boolean distribute) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         /*
             TODO: make this a bit more intelligent by passing in the operation
             being done (create, update, remove) so we don't clear the cache
@@ -2106,6 +2331,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return null if the field name is null or simply unknown
      */
     public Set<Set<String>> getFieldNameSetsCopy(final String entityName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final Set<Set<String>> fieldNameSets = andCacheFieldSets.get(entityName);
 
         if (fieldNameSets == null) {
@@ -2121,6 +2349,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void clearAllCacheLinesByDummyPK(final Collection<? extends GenericEntity> dummyPKs) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (dummyPKs == null) {
             return;
         }
@@ -2130,6 +2361,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void clearAllCacheLinesByValue(final Collection<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (values == null) return;
 
         for (final GenericValue value : values) {
@@ -2138,6 +2372,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public GenericValue getFromPrimaryKeyCache(final GenericPK primaryKey) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKey == null) {
             return null;
         }
@@ -2145,6 +2382,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAllCache(final String entityName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entityName == null) {
             return null;
         }
@@ -2152,6 +2392,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAndCache(final String entityName, final Map<String, ?> fields) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entityName == null || fields == null) {
             return null;
         }
@@ -2161,6 +2404,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAndCache(final ModelEntity entity, final Map<String, ?> fields) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entity == null || fields == null) {
             return null;
         }
@@ -2169,6 +2415,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInPrimaryKeyCache(final GenericPK primaryKey, final GenericValue value) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (primaryKey == null || value == null) {
             return;
         }
@@ -2183,6 +2432,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putAllInPrimaryKeyCache(final List<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (values == null) {
             return;
         }
@@ -2192,6 +2444,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAllCache(final String entityName, final List<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entityName == null || values == null) {
             return;
         }
@@ -2200,6 +2455,9 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAllCache(final ModelEntity entity, final List<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entity == null || values == null) {
             return;
         }
@@ -2220,8 +2478,10 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAndCache(
-            final String entityName, final Map<String, ?> fields, final List<? extends GenericValue> values)
-    {
+            final String entityName, final Map<String, ?> fields, final List<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entityName == null || fields == null || values == null) {
             return;
         }
@@ -2230,8 +2490,10 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAndCache(
-            final ModelEntity entity, final Map<String, ?> fields, final List<? extends GenericValue> values)
-    {
+            final ModelEntity entity, final Map<String, ?> fields, final List<? extends GenericValue> values) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (entity == null || fields == null || values == null) {
             return;
         }
@@ -2281,8 +2543,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     @SuppressWarnings("unused")
     public List<GenericValue> readXmlDocument(final URL url)
-            throws SAXException, ParserConfigurationException, IOException
-    {
+            throws SAXException, ParserConfigurationException, IOException {
         if (url == null) {
             return null;
         }
@@ -2296,6 +2557,9 @@ public class GenericDelegator implements DelegatorInterface {
      * @return null if a null document was given, otherwise the parsed entities
      */
     public List<GenericValue> makeValues(final Document document) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (document == null) {
             return null;
         }
@@ -2330,11 +2594,17 @@ public class GenericDelegator implements DelegatorInterface {
 
     @SuppressWarnings("unused")
     public GenericPK makePK(final Element element) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         GenericValue value = makeValue(element);
         return value.getPrimaryKey();
     }
 
     public GenericValue makeValue(final Element element) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (element == null) {
             return null;
         }
@@ -2363,8 +2633,7 @@ public class GenericDelegator implements DelegatorInterface {
         return value;
     }
 
-    private String getEntityName(final Element element)
-    {
+    private String getEntityName(final Element element) {
         final String tagName = element.getTagName();
         // if a dash or colon is in the tag name, grab what is after it
         if (tagName.indexOf('-') > 0) {
@@ -2379,11 +2648,14 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Get the next guaranteed unique seq id from the sequence with the given sequence name;
      * if the named sequence doesn't exist, it will be created.
-     * 
+     *
      * @param seqName The name of the sequence to get the next seq id from
      * @return Long with the next seq id for the given sequence name
      */
     public Long getNextSeqId(String seqName) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         if (sequencer == null) {
             synchronized (this) {
                 if (sequencer == null) {
@@ -2400,15 +2672,23 @@ public class GenericDelegator implements DelegatorInterface {
     /**
      * Allows you to pass a SequenceUtil class (possibly one that overrides the getNextSeqId method);
      * if null is passed will effectively refresh the sequencer.
-     * 
+     *
      * @param sequencer the sequencer to set
      */
     public void setSequencer(final SequenceUtil sequencer) {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         this.sequencer = sequencer;
     }
 
-    /** Refreshes the ID sequencer clearing all cached bank values. */
+    /**
+     * Refreshes the ID sequencer clearing all cached bank values.
+     */
     public void refreshSequencer() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         this.sequencer = null;
     }
 
@@ -2422,22 +2702,33 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public UtilCache<GenericEntity, GenericValue> getPrimaryKeyCache() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return primaryKeyCache;
     }
 
     public UtilCache<GenericPK, List<GenericValue>> getAndCache() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return andCache;
     }
 
     public UtilCache<String, List<GenericValue>> getAllCache() {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         return allCache;
     }
 
     @Override
     public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
-            final List<String> orderBy, final String lockField, final Transformation transformation)
-        throws GenericEntityException
-    {
+                                        final List<String> orderBy, final String lockField, final Transformation transformation)
+            throws GenericEntityException {
+        if (isLocked) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper entityHelper = getEntityHelper(entityName);
         final List<GenericValue> transformedEntities =
