@@ -246,9 +246,6 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     protected DelegatorInfo getDelegatorInfo() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
         if (delegatorInfo == null) {
             delegatorInfo = EntityConfigUtil.getInstance().getDelegatorInfo(this.delegatorName);
         }
