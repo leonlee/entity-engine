@@ -41,6 +41,7 @@ import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -609,24 +610,37 @@ public class SqlJdbcUtil {
                     break;
 
                 case 10:
+                    InputStream binaryInput = null;
                     Object obj = null;
-                    Blob blobLocator = rs.getBlob(ind);
-                    if (blobLocator != null && blobLocator.length() > 0)
+                    if (mft.getSqlType().equals("BYTEA"))
                     {
-                        InputStream binaryInput = blobLocator.getBinaryStream();
-                        if (null != binaryInput) {
-                            try {
-                                ObjectInputStream in = new ObjectInputStream(binaryInput);
-                                obj = in.readObject();
-                                in.close();
-                            } catch (IOException ex) {
-                                throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
-                            } catch (ClassNotFoundException ex) {
-                                throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
-                            }
+                        byte[] bytes = rs.getBytes(ind);
+                        if (bytes != null && bytes.length > 0)
+                        {
+                            binaryInput = new ByteArrayInputStream(bytes);
                         }
-                        entity.dangerousSetNoCheckButFast(curField, obj);
                     }
+                    else
+                    {
+                        Blob blobLocator = rs.getBlob(ind);
+                        if (blobLocator != null && blobLocator.length() > 0)
+                        {
+                            binaryInput = blobLocator.getBinaryStream();
+                        }
+                    }
+                    if (null != binaryInput)
+                    {
+                        try {
+                            ObjectInputStream in = new ObjectInputStream(binaryInput);
+                            obj = in.readObject();
+                            in.close();
+                        } catch (IOException ex) {
+                            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
+                        } catch (ClassNotFoundException ex) {
+                            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
+                        }
+                    }
+                    entity.dangerousSetNoCheckButFast(curField, obj);
                     break;
                 case 11:
                     entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
@@ -767,7 +781,14 @@ public class SqlJdbcUtil {
                 break;
 
             case 10:
-                sqlP.setBinaryStream(fieldValue);
+                if (mft.getSqlType().equals("BYTEA"))
+                {
+                    sqlP.setByteArrayData(fieldValue);
+                }
+                else
+                {
+                    sqlP.setBinaryStream(fieldValue);
+                }
                 break;
                 
             case 11:
