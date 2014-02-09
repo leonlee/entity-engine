@@ -1070,7 +1070,7 @@ public class SQLProcessor
 
     /**
      * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
-     * to a BLOB.
+     * to a BLOB that is stored as an OID SQL type.
      *
      * @param field the field value in play
      *
@@ -1101,6 +1101,46 @@ public class SQLProcessor
         else
         {
             _ps.setNull(_ind, Types.JAVA_OBJECT);
+        }
+        recordParameter("BLOB");
+
+        _ind++;
+    }
+
+    /**
+     * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
+     * to a BLOB that is stored as a Byte Array SQL type.
+     *
+     * This method is specifically added to support Postgresql BYTEA datatypes.
+     *
+     * @param field the field value in play
+     *
+     * @throws SQLException if somethings goes wrong
+     */
+    public void setByteArrayData(Object field) throws SQLException
+    {
+        if (field != null)
+        {
+            try
+            {
+                ByteArrayOutputStream os = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(os);
+                oos.writeObject(field);
+                oos.close();
+
+                byte[] buf = os.toByteArray();
+                os.close();
+                ByteArrayInputStream is = new ByteArrayInputStream(buf);
+                _ps.setBytes(_ind, buf);
+            }
+            catch (IOException ex)
+            {
+                throw new SQLException(ex.getMessage());
+            }
+        }
+        else
+        {
+            _ps.setNull(_ind, Types.LONGVARBINARY);
         }
         recordParameter("BLOB");
 
