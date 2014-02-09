@@ -612,7 +612,8 @@ public class SqlJdbcUtil {
                 case 10:
                     InputStream binaryInput = null;
                     Object obj = null;
-                    if (mft.getSqlType().equals("BYTEA"))
+                    // add support for Postgresql BYTEA datatypes.
+                    if ("BYTEA".equals(mft.getSqlType()))
                     {
                         byte[] bytes = rs.getBytes(ind);
                         if (bytes != null && bytes.length > 0)
@@ -781,7 +782,7 @@ public class SqlJdbcUtil {
                 break;
 
             case 10:
-                if (mft.getSqlType().equals("BYTEA"))
+                if ("BYTEA".equals(mft.getSqlType()))
                 {
                     sqlP.setByteArrayData(fieldValue);
                 }

@@ -1109,7 +1109,9 @@ public class SQLProcessor
 
     /**
      * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
-     * to a BLOB tht is stored as a Byte Array SQL type.
+     * to a BLOB that is stored as a Byte Array SQL type.
+     *
+     * This method is specifically added to support Postgresql BYTEA datatypes.
      *
      * @param field the field value in play
      *
