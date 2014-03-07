@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.ofbiz.core.entity.EntityOperator.*;
 import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
@@ -91,7 +92,7 @@ public class GenericDelegator implements DelegatorInterface {
                 }
             });
 
-    private static boolean isLocked;
+    private static AtomicBoolean isLocked = new AtomicBoolean(false);
 
     /**
      * Factory method for a GenericDelegator with the given name.
@@ -114,11 +115,15 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public static void lock() {
-        isLocked = true;
+        isLocked.set(true);
     }
 
     public static void unlock() {
-        isLocked = false;
+        isLocked.set(false);
+    }
+
+    public static boolean isLocked() {
+        return isLocked.get();
     }
 
     // ----------------------------- Non-statics ------------------------------
@@ -158,7 +163,7 @@ public class GenericDelegator implements DelegatorInterface {
         this.allCache = new UtilCache<String, List<GenericValue>>("entity.FindAll." + delegatorName, 0, 0, true);
         this.andCache = new UtilCache<GenericPK, List<GenericValue>>("entity.FindByAnd." + delegatorName, 0, 0, true);
 
-        if (!isLocked) {
+        if (!isLocked()) {
             initialiseAndCheckDatabase();
         }
 
@@ -189,7 +194,12 @@ public class GenericDelegator implements DelegatorInterface {
         }
     }
 
+    /**
+     * If you got an instance of GenericDelegator while the whole thing was locked, you need to make sure you call this
+     * once it becomes unlocked before you do anything.
+     */
     public void initialiseAndCheckDatabase() {
+        checkIfLocked();
         // initialize helpers by group
         final Iterator<String> groups = UtilMisc.toIterator(getModelGroupReader().getGroupNames());
 
@@ -239,9 +249,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return server configuration name
      */
     public String getDelegatorName() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return this.delegatorName;
     }
 
@@ -258,9 +266,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return ModelReader that corresponds to this delegator
      */
     public ModelReader getModelReader() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return this.modelReader;
     }
 
@@ -270,9 +276,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return ModelGroupReader that corresponds to this delegator
      */
     public ModelGroupReader getModelGroupReader() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return this.modelGroupReader;
     }
 
@@ -283,9 +287,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return ModelEntity that corresponds to this delegator and the specified entityName
      */
     public ModelEntity getModelEntity(final String entityName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         try {
             return getModelReader().getModelEntity(entityName);
         } catch (GenericEntityException e) {
@@ -301,9 +303,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getEntityGroupName(final String entityName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getModelGroupReader().getEntityGroupName(entityName);
     }
 
@@ -314,9 +314,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List of ModelEntity instances
      */
     public List<ModelEntity> getModelEntitiesByGroup(final String groupName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
         final List<ModelEntity> entities = new LinkedList<ModelEntity>();
 
@@ -339,9 +337,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return Map of entityName String keys and ModelEntity instance values
      */
     public Map<String, ModelEntity> getModelEntityMapByGroup(final String groupName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         Iterator<String> enames = UtilMisc.toIterator(getModelGroupReader().getEntityNamesByGroup(groupName));
         Map<String, ModelEntity> entities = new HashMap<String, ModelEntity>();
 
@@ -380,9 +376,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getGroupHelperName(final String groupName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getDelegatorInfo().groupMap.get(groupName);
     }
 
@@ -393,9 +387,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return String with the helper name that corresponds to this delegator and the specified entityName
      */
     public String getEntityHelperName(final String entityName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final String groupName = getModelGroupReader().getEntityGroupName(entityName);
         return getGroupHelperName(groupName);
     }
@@ -407,9 +399,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return String with the helper name that corresponds to this delegator and the specified entity
      */
     public String getEntityHelperName(final ModelEntity entity) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entity == null) {
             return null;
         }
@@ -423,9 +413,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericHelper that corresponds to this delegator and the specified entityName
      */
     public GenericHelper getEntityHelper(final String entityName) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final String helperName = getEntityHelperName(entityName);
         if (helperName != null && helperName.length() > 0) {
             return GenericHelperFactory.getHelper(helperName);
@@ -440,9 +428,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericHelper that corresponds to this delegator and the specified entity
      */
     public GenericHelper getEntityHelper(final ModelEntity entity) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getEntityHelper(entity.getEntityName());
     }
 
@@ -454,9 +440,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return ModelFieldType instance for the named type from the helper that corresponds to the specified entity
      */
     public ModelFieldType getEntityFieldType(final ModelEntity entity, final String type) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final String helperName = getEntityHelperName(entity);
         if (helperName == null || helperName.length() == 0) {
             return null;
@@ -477,9 +461,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return Collection of field type names from the helper that corresponds to the specified entity
      */
     public Collection<String> getEntityFieldTypeNames(final ModelEntity entity) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final String helperName = getEntityHelperName(entity);
         if (helperName == null || helperName.length() == 0) {
             return null;
@@ -501,9 +483,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return the created value
      */
     public GenericValue makeValue(final String entityName, final Map<String, ?> fields) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity entity = getModelEntity(entityName);
         if (entity == null) {
             throw new IllegalArgumentException(
@@ -520,9 +500,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return the created PK
      */
     public GenericPK makePK(final String entityName, final Map<String, ?> fields) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity entity = getModelEntity(entityName);
 
         if (entity == null) {
@@ -542,9 +520,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return the created instance
      */
     public GenericValue create(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entityName == null || fields == null) {
             return null;
         }
@@ -560,9 +536,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return create(value, true);
     }
 
@@ -574,9 +548,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(GenericValue value, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(value.getEntityName());
         value.setDelegator(this);
         value = helper.create(value);
@@ -599,9 +571,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericPK primaryKey) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return create(primaryKey, true);
     }
 
@@ -613,9 +583,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return GenericValue instance containing the new instance
      */
     public GenericValue create(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKey == null) {
             throw new IllegalArgumentException("Cannot create from a null primaryKey");
         }
@@ -629,9 +597,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
 
         if (!primaryKey.isPrimaryKey()) {
@@ -657,9 +623,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return The GenericValue corresponding to the primaryKey
      */
     public GenericValue findByPrimaryKeyCache(final GenericPK primaryKey) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         GenericValue value = getFromPrimaryKeyCache(primaryKey);
         if (value == null) {
             value = findByPrimaryKey(primaryKey);
@@ -679,9 +643,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public GenericValue findByPrimaryKey(final String entityName, final Map<String, ?> fields)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByPrimaryKey(makePK(entityName, fields));
     }
 
@@ -694,9 +656,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public GenericValue findByPrimaryKeyCache(final String entityName, final Map<String, ?> fields)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByPrimaryKeyCache(makePK(entityName, fields));
     }
 
@@ -710,9 +670,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public GenericValue findByPrimaryKeyPartial(final GenericPK primaryKey, final Set<String> keys)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(primaryKey.getEntityName());
 
         if (!primaryKey.isPrimaryKey()) {
@@ -740,9 +698,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findAllByPrimaryKeys(final Collection<? extends GenericPK> primaryKeys)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKeys == null) {
             return null;
         }
@@ -783,9 +739,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findAllByPrimaryKeysCache(final Collection<? extends GenericPK> primaryKeys)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKeys == null) {
             return null;
         }
@@ -831,9 +785,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return all entities of the given type
      */
     public List<GenericValue> findAll(final String entityName) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByAnd(entityName, new HashMap<String, Object>(), null);
     }
 
@@ -846,9 +798,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List containing all Generic entities
      */
     public List<GenericValue> findAll(final String entityName, final List<String> orderBy) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByAnd(entityName, new HashMap<String, Object>(), orderBy);
     }
 
@@ -859,9 +809,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return List containing all Generic entities
      */
     public List<GenericValue> findAllCache(final String entityName) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findAllCache(entityName, null);
     }
 
@@ -876,9 +824,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findAllCache(final String entityName, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         List<GenericValue> lst = getFromAllCache(entityName);
         if (lst == null) {
             lst = findAll(entityName, orderBy);
@@ -898,9 +844,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByAnd(final String entityName, final Map<String, ?> fields)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByAnd(entityName, fields, null);
     }
 
@@ -913,9 +857,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByOr(entityName, fields, null);
     }
 
@@ -932,9 +874,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByAnd(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         return findByAnd(modelEntity, fields, orderBy);
     }
@@ -951,9 +891,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByAnd(
             final ModelEntity modelEntity, final Map<String, ?> fields, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(modelEntity);
 
         if (fields != null && !modelEntity.areFields(fields.keySet())) {
@@ -977,9 +915,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByOr(final String entityName, final Map<String, ?> fields, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper helper = getEntityHelper(entityName);
 
@@ -1004,9 +940,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByAndCache(final String entityName, final Map<String, ?> fields)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByAndCache(entityName, fields, null);
     }
 
@@ -1024,9 +958,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByAndCache(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         List<GenericValue> lst = getFromAndCache(modelEntity, fields);
         if (lst == null) {
@@ -1049,9 +981,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByAnd(final String entityName, final List<? extends EntityCondition> expressions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, null);
     }
@@ -1071,9 +1001,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByAnd(
             final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final EntityConditionList ecl = new EntityConditionList(expressions, AND);
         return findByCondition(entityName, ecl, null, orderBy);
     }
@@ -1090,9 +1018,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> findByOr(final String entityName, final List<? extends EntityCondition> expressions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final EntityConditionList ecl = new EntityConditionList(expressions, OR);
         return findByCondition(entityName, ecl, null, null);
     }
@@ -1116,18 +1042,14 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> findByLike(String entityName, Map<String, ?> fields) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findByLike(entityName, fields, null);
     }
 
     public List<GenericValue> findByLike(
             final String entityName, final Map<String, ?> fields, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final List<EntityExpr> likeExpressions = new LinkedList<EntityExpr>();
         if (fields != null) {
             for (Map.Entry<String, ?> entry : fields.entrySet()) {
@@ -1152,9 +1074,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByCondition(final String entityName, final EntityCondition entityCondition,
                                               final Collection<String> fieldsToSelect, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (entityCondition != null) {
             entityCondition.checkCondition(modelEntity);
@@ -1183,9 +1103,7 @@ public class GenericDelegator implements DelegatorInterface {
     public int countByAnd(final String entityName, final String fieldName,
                           final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, AND);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
@@ -1208,9 +1126,7 @@ public class GenericDelegator implements DelegatorInterface {
     public int countByOr(final String entityName, final String fieldName,
                          final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, OR);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
@@ -1234,9 +1150,7 @@ public class GenericDelegator implements DelegatorInterface {
     public int countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
                                 final EntityFindOptions findOptions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (entityCondition != null) {
             entityCondition.checkCondition(modelEntity);
@@ -1252,9 +1166,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return the number of rows in the table
      */
     public int countAll(final String entityName) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return countByCondition(entityName, null, null, null);
     }
 
@@ -1278,9 +1190,7 @@ public class GenericDelegator implements DelegatorInterface {
             final String entityName, final EntityCondition entityCondition, final Collection<String> fieldsToSelect,
             final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return findListIteratorByCondition(
                 entityName, entityCondition, null, fieldsToSelect, orderBy, null);
     }
@@ -1313,9 +1223,7 @@ public class GenericDelegator implements DelegatorInterface {
             final EntityCondition havingEntityCondition, final Collection<String> fieldsToSelect,
             final List<String> orderBy, final EntityFindOptions findOptions)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         if (whereEntityCondition != null) {
             whereEntityCondition.checkCondition(modelEntity);
@@ -1337,9 +1245,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(final GenericPK primaryKey) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeByPrimaryKey(primaryKey, true);
     }
 
@@ -1351,9 +1257,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeByPrimaryKey(final GenericPK primaryKey, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (doCacheClear) {
             // always clear cache before the operation
             clearCacheLine(primaryKey);
@@ -1369,9 +1273,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeValue(final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeValue(value, true);
     }
 
@@ -1383,9 +1285,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeValue(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(value.getEntityName());
         if (doCacheClear) {
             clearCacheLine(value);
@@ -1401,9 +1301,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeByAnd(final String entityName, final Map<String, ?> fields) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeByAnd(entityName, fields, true);
     }
 
@@ -1417,9 +1315,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public int removeByAnd(final String entityName, final Map<String, ?> fields, final boolean doCacheClear)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericValue dummyValue = makeValue(entityName, fields);
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper helper = getEntityHelper(entityName);
@@ -1439,9 +1335,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public int removeByCondition(final String entityName, final EntityCondition whereCondition)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeByCondition(entityName, whereCondition, true);
     }
 
@@ -1456,9 +1350,7 @@ public class GenericDelegator implements DelegatorInterface {
     public int removeByCondition(
             final String entityName, final EntityCondition whereCondition, final boolean doCacheClear)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         GenericHelper helper = getEntityHelper(entityName);
 
@@ -1487,9 +1379,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> getMultiRelation(final GenericValue value, final String relationNameOne,
                                                final String relationNameTwo, final List<String> orderBy)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         // traverse the relationships
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation modelRelationOne = modelEntity.getRelation(relationNameOne);
@@ -1518,9 +1408,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> getMultiRelation(
             final GenericValue value, final String relationNameOne, final String relationNameTwo)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getMultiRelation(value, relationNameOne, relationNameTwo, null);
     }
 
@@ -1535,9 +1423,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> getRelated(final String relationName, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getRelated(relationName, null, null, value);
     }
 
@@ -1554,9 +1440,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> getRelatedByAnd(
             final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return getRelated(relationName, byAndFields, null, value);
     }
 
@@ -1592,9 +1476,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> getRelated(final String relationName, final Map<String, ?> byAndFields,
                                          final List<String> orderBy, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1628,9 +1510,7 @@ public class GenericDelegator implements DelegatorInterface {
     public GenericPK getRelatedDummyPK(
             final String relationName, final Map<String, ?> byAndFields, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1666,9 +1546,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public List<GenericValue> getRelatedCache(final String relationName, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1694,9 +1572,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @throws IllegalArgumentException if the list found has more than one item
      */
     public GenericValue getRelatedOne(final String relationName, final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelRelation relation = value.getModelEntity().getRelation(relationName);
 
         if (relation == null) {
@@ -1727,9 +1603,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public GenericValue getRelatedOneCache(final String relationName, final GenericValue value)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         ModelEntity modelEntity = value.getModelEntity();
         ModelRelation relation = modelEntity.getRelation(relationName);
 
@@ -1761,9 +1635,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeRelated(final String relationName, final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeRelated(relationName, value, true);
     }
 
@@ -1803,9 +1675,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value GenericValue instance containing the entity to refresh
      */
     public void refresh(final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         refresh(value, true);
     }
 
@@ -1816,9 +1686,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @param doCacheClear whether to automatically clear cache entries related to this operation
      */
     public void refresh(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (doCacheClear) {
             // always clear cache before the operation
             clearCacheLine(value);
@@ -1841,9 +1709,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int store(final GenericValue value) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return store(value, true);
     }
 
@@ -1855,9 +1721,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int store(final GenericValue value, final boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final GenericHelper helper = getEntityHelper(value.getEntityName());
 
         if (doCacheClear) {
@@ -1886,9 +1750,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int storeAll(final List<? extends GenericValue> values) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return storeAll(values, true);
     }
 
@@ -1907,9 +1769,7 @@ public class GenericDelegator implements DelegatorInterface {
      */
     public int storeAll(final List<? extends GenericValue> values, final boolean doCacheClear)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (values == null) {
             return 0;
         }
@@ -1992,9 +1852,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return removeAll(dummyPKs, true);
     }
 
@@ -2013,9 +1871,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return int representing number of rows affected by this operation
      */
     public int removeAll(List<? extends GenericEntity> dummyPKs, boolean doCacheClear) throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (dummyPKs == null) {
             return 0;
         }
@@ -2076,16 +1932,12 @@ public class GenericDelegator implements DelegatorInterface {
      * For performance reasons this should not be called very often.
      */
     public void clearAllCaches() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         clearAllCaches(true);
     }
 
     public void clearAllCaches(boolean distribute) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (allCache != null) allCache.clear();
         if (andCache != null) andCache.clear();
         if (andCacheFieldSets != null) andCacheFieldSets.clear();
@@ -2103,9 +1955,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @param fields     The fields of the named entity to query by with their corresponging values
      */
     public void clearCacheLine(String entityName, Map<String, ?> fields) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         // if no fields passed, do the all cache quickly and return
         if (fields == null && allCache != null) {
             allCache.remove(entityName);
@@ -2134,16 +1984,12 @@ public class GenericDelegator implements DelegatorInterface {
      * @param dummyPK The dummy primary key to clear by.
      */
     public void clearCacheLineFlexible(final GenericEntity dummyPK) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         clearCacheLineFlexible(dummyPK, true);
     }
 
     public void clearCacheLineFlexible(final GenericEntity dummyPK, final boolean distribute) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (dummyPK != null) {
             //if never cached, then don't bother clearing
             if (dummyPK.getModelEntity().getNeverCache()) return;
@@ -2182,16 +2028,12 @@ public class GenericDelegator implements DelegatorInterface {
      * @param primaryKey The primary key to clear by.
      */
     public void clearCacheLine(final GenericPK primaryKey) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         clearCacheLine(primaryKey, true);
     }
 
     public void clearCacheLine(final GenericPK primaryKey, final boolean distribute) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKey == null) {
             return;
         }
@@ -2224,16 +2066,12 @@ public class GenericDelegator implements DelegatorInterface {
      * @param value The primary key to clear by.
      */
     public void clearCacheLine(final GenericValue value) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         clearCacheLine(value, true);
     }
 
     public void clearCacheLine(final GenericValue value, final boolean distribute) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         /*
             TODO: make this a bit more intelligent by passing in the operation
             being done (create, update, remove) so we don't clear the cache
@@ -2328,9 +2166,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return null if the field name is null or simply unknown
      */
     public Set<Set<String>> getFieldNameSetsCopy(final String entityName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final Set<Set<String>> fieldNameSets = andCacheFieldSets.get(entityName);
 
         if (fieldNameSets == null) {
@@ -2346,9 +2182,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void clearAllCacheLinesByDummyPK(final Collection<? extends GenericEntity> dummyPKs) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (dummyPKs == null) {
             return;
         }
@@ -2358,9 +2192,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void clearAllCacheLinesByValue(final Collection<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (values == null) return;
 
         for (final GenericValue value : values) {
@@ -2369,9 +2201,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public GenericValue getFromPrimaryKeyCache(final GenericPK primaryKey) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKey == null) {
             return null;
         }
@@ -2379,9 +2209,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAllCache(final String entityName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entityName == null) {
             return null;
         }
@@ -2389,9 +2217,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAndCache(final String entityName, final Map<String, ?> fields) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entityName == null || fields == null) {
             return null;
         }
@@ -2401,9 +2227,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public List<GenericValue> getFromAndCache(final ModelEntity entity, final Map<String, ?> fields) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entity == null || fields == null) {
             return null;
         }
@@ -2412,9 +2236,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInPrimaryKeyCache(final GenericPK primaryKey, final GenericValue value) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (primaryKey == null || value == null) {
             return;
         }
@@ -2429,9 +2251,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putAllInPrimaryKeyCache(final List<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (values == null) {
             return;
         }
@@ -2441,9 +2261,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAllCache(final String entityName, final List<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entityName == null || values == null) {
             return;
         }
@@ -2452,9 +2270,7 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public void putInAllCache(final ModelEntity entity, final List<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entity == null || values == null) {
             return;
         }
@@ -2476,9 +2292,7 @@ public class GenericDelegator implements DelegatorInterface {
 
     public void putInAndCache(
             final String entityName, final Map<String, ?> fields, final List<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entityName == null || fields == null || values == null) {
             return;
         }
@@ -2488,9 +2302,7 @@ public class GenericDelegator implements DelegatorInterface {
 
     public void putInAndCache(
             final ModelEntity entity, final Map<String, ?> fields, final List<? extends GenericValue> values) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (entity == null || fields == null || values == null) {
             return;
         }
@@ -2554,9 +2366,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return null if a null document was given, otherwise the parsed entities
      */
     public List<GenericValue> makeValues(final Document document) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (document == null) {
             return null;
         }
@@ -2591,17 +2401,13 @@ public class GenericDelegator implements DelegatorInterface {
 
     @SuppressWarnings("unused")
     public GenericPK makePK(final Element element) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         GenericValue value = makeValue(element);
         return value.getPrimaryKey();
     }
 
     public GenericValue makeValue(final Element element) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (element == null) {
             return null;
         }
@@ -2650,9 +2456,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @return Long with the next seq id for the given sequence name
      */
     public Long getNextSeqId(String seqName) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         if (sequencer == null) {
             synchronized (this) {
                 if (sequencer == null) {
@@ -2673,9 +2477,7 @@ public class GenericDelegator implements DelegatorInterface {
      * @param sequencer the sequencer to set
      */
     public void setSequencer(final SequenceUtil sequencer) {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         this.sequencer = sequencer;
     }
 
@@ -2683,9 +2485,7 @@ public class GenericDelegator implements DelegatorInterface {
      * Refreshes the ID sequencer clearing all cached bank values.
      */
     public void refreshSequencer() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         this.sequencer = null;
     }
 
@@ -2699,23 +2499,17 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     public UtilCache<GenericEntity, GenericValue> getPrimaryKeyCache() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return primaryKeyCache;
     }
 
     public UtilCache<GenericPK, List<GenericValue>> getAndCache() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return andCache;
     }
 
     public UtilCache<String, List<GenericValue>> getAllCache() {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         return allCache;
     }
 
@@ -2723,9 +2517,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
                                         final List<String> orderBy, final String lockField, final Transformation transformation)
             throws GenericEntityException {
-        if (isLocked) {
-            throw new UnsupportedOperationException(MESSAGE);
-        }
+        checkIfLocked();
         final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
         final GenericHelper entityHelper = getEntityHelper(entityName);
         final List<GenericValue> transformedEntities =
@@ -2735,4 +2527,12 @@ public class GenericDelegator implements DelegatorInterface {
         }
         return transformedEntities;
     }
+
+    private static void checkIfLocked()
+    {
+        if (isLocked()) {
+            throw new UnsupportedOperationException(MESSAGE);
+        }
+    }
+
 }
