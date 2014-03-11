@@ -78,7 +78,12 @@ public class DatabaseUtil
      */
     private static final Multimap<String, String> allowedFieldTypePromotions = ImmutableMultimap.<String, String>builder()
             .put("VARCHAR", "NVARCHAR")
-            .put("VARCHAR2", "NVARCHAR2").build();
+            .put("VARCHAR", "TEXT")
+            .put("VARCHAR", "LONGTEXT")
+            .put("VARCHAR2", "NVARCHAR2")
+            .put("VARCHAR2", "CLOB")
+            .put("NVARCHAR", "NTEXT")
+            .build();
 
     protected String helperName;
     protected ModelFieldTypeReader modelFieldTypeReader;
