@@ -81,7 +81,6 @@ public class DatabaseUtil
             .put("VARCHAR", "TEXT")
             .put("VARCHAR", "LONGTEXT")
             .put("VARCHAR2", "NVARCHAR2")
-            .put("VARCHAR2", "CLOB")
             .put("NVARCHAR", "NTEXT")
             .build();
 
