@@ -24,6 +24,7 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import com.google.common.base.Joiner;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.commons.dbcp.ManagedBasicDataSourceFactory;
@@ -33,7 +34,6 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
-import org.ofbiz.core.util.StringUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,16 +84,16 @@ public class DBCPConnectionFactory {
 
                 // Sets the connection properties. At least 'user' and 'password' should be set.
                 Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
-                if (jdbcDatasource.getUsername() != null) { info.setProperty("user", jdbcDatasource.getUsername()); }
-                if (jdbcDatasource.getPassword() != null) { info.setProperty("password", jdbcDatasource.getPassword()); }
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
                 dataSource = createDataSource();
                 dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
                 dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
                 dataSource.setUrl(jdbcDatasource.getUri());
+                dataSource.setUsername(jdbcDatasource.getUsername());
+                dataSource.setPassword(jdbcDatasource.getPassword());
                 dataSource.setConnectionProperties(toString(info));
-                
+
                 if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
                 {
                     dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
@@ -201,7 +201,7 @@ public class DBCPConnectionFactory {
             props.add(key + "=" + properties.getProperty(key));
         }
 
-        return StringUtil.join(props, ";");
+        return Joiner.on(';').skipNulls().join(props);
     }
 
     private static Properties loadDbcpProperties()
