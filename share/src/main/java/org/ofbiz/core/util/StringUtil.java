@@ -72,6 +72,7 @@ public class StringUtil {
      * @param list a list of strings to join
      * @param delim the delimiter character(s) to use. (null value will join with no delimiter)
      * @return a String of all values in the list seperated by the delimiter
+     * @deprecated Use {@code com.google.common.base.Joiner} instead
      */
     public static String join(List<String> list, String delim) {
         if (list == null || list.size() < 1)
