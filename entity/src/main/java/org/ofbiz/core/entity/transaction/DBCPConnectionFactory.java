@@ -34,6 +34,7 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
+import org.weakref.jmx.MBeanExporter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -261,13 +262,40 @@ public class DBCPConnectionFactory {
             try
             {
                 dataSource.close();
+                unregisterMBeanIfPresent();
             }
             catch (Exception e)
             {
                 Debug.logError(e, "Error closing connection pool in DBCP");
             }
+
+
             dsCache.remove(helperName);
         }
         trackerCache.remove(helperName);
+    }
+
+    private static void unregisterMBeanIfPresent()
+    {
+        //
+        // Ideally the Apache DBCP ManagedBasicDataSourceFactory would clean up the registered JMX bean when the data source was closed
+        // however it doesnt.  So we use its facilities to do what it should for it.
+        //
+        Properties dbcpProperties = loadDbcpProperties();
+        //
+        // this is the semantics that the ManagedBasicDataSourceFactory used to create a Mbean in the first place
+        //
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            String mBeanName = dbcpProperties.getProperty(ManagedBasicDataSourceFactory.PROP_MBEANNAME);
+            try
+            {
+                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
+            }
+            catch (Exception e)
+            {
+                log.error("Exception un-registering MBean data source " + mBeanName, e);
+            }
+        }
     }
 }

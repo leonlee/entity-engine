@@ -4,14 +4,18 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.jdbc.SQLInterceptorSupport;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.reflect.Proxy.newProxyInstance;
+
 /**
- * A class to track information about {@link Connection}s that come from connection pool.  It also will
- * invoke {@link SQLConnectionInterceptor}s with information about the Connection as it is used.
+ * A class to track information about {@link Connection}s that come from connection pool.  It also will invoke {@link
+ * SQLConnectionInterceptor}s with information about the Connection as it is used.
  */
 public class ConnectionTracker
 {
@@ -41,13 +45,13 @@ public class ConnectionTracker
     /**
      * Called to track the connection as it is pulled from the underlying connection pool.
      *
-     * @param helperName         the OfBiz helper name
-     * @param getConnectionCall  a callable that returns a connection
+     * @param helperName the OfBiz helper name
+     * @param getConnectionCall a callable that returns a connection
      * @return the connection that was returned by the callable
      */
     public Connection trackConnection(final String helperName, final Callable<java.sql.Connection> getConnectionCall)
     {
-    try
+        try
         {
             long then = System.nanoTime();
             Connection connection = getConnectionCall.call();
@@ -73,27 +77,57 @@ public class ConnectionTracker
         sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
 
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
-        return new ConnectionWithSQLInterceptorImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
+        //
+        return delegatingConnection(connection, connectionPoolInfo, sqlConnectionInterceptor);
     }
 
-    private class ConnectionWithSQLInterceptorImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor
+    private Connection delegatingConnection(final Connection connection, final ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
     {
-        private final SQLConnectionInterceptor sqlConnectionInterceptor;
-        private final ConnectionPoolInfo connectionPoolInfo;
+        // We use a dynamic proxy rather that direct delegating inheritance because that way we can compile
+        // on JDK 7 and above.  New methods are added to Connection in JDK 7 and hence we have a version compilation
+        // challenge.  This is a more scalable way to respond to that challenge.
+        //
+        return (Connection) newProxyInstance(getClass().getClassLoader(), new Class<?>[] {
+                Connection.class, ConnectionWithSQLInterceptor.class
+        }, new DelegatingConnectionHandler(connection, connectionPoolInfo, sqlConnectionInterceptor));
+    }
 
-        public ConnectionWithSQLInterceptorImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
+    private class DelegatingConnectionHandler implements InvocationHandler
+    {
+        private final Connection delegate;
+        private final ConnectionPoolInfo connectionPoolInfo;
+        private final SQLConnectionInterceptor sqlConnectionInterceptor;
+
+        public DelegatingConnectionHandler(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
         {
-            super(delegate);
-            this.sqlConnectionInterceptor = sqlConnectionInterceptor;
+            this.delegate = delegate;
             this.connectionPoolInfo = connectionPoolInfo;
+            this.sqlConnectionInterceptor = sqlConnectionInterceptor;
         }
 
         @Override
-        public void close() throws SQLException
+        public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable
         {
-            super.close();
+            if (method.getName().equals("close"))
+            {
+                return close();
+            }
+            else if (method.getName().equals("getNonNullSQLInterceptor"))
+            {
+                return getNonNullSQLInterceptor();
+            }
+            else
+            {
+                return method.invoke(delegate, args);
+            }
+        }
+
+        public Object close() throws SQLException
+        {
+            delegate.close();
             final int count = borrowedCount.decrementAndGet();
-            sqlConnectionInterceptor.onConnectionReplaced(getDelegate(), new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
+            sqlConnectionInterceptor.onConnectionReplaced(delegate, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
+            return null;
         }
 
         public SQLInterceptor getNonNullSQLInterceptor()
