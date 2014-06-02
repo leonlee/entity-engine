@@ -4,14 +4,10 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.jdbc.SQLInterceptorSupport;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.lang.reflect.Proxy.newProxyInstance;
 
 /**
  * A class to track information about {@link Connection}s that come from connection pool.  It also will invoke {@link
@@ -75,59 +71,30 @@ public class ConnectionTracker
 
         final SQLConnectionInterceptor sqlConnectionInterceptor = SQLInterceptorSupport.getNonNullSQLConnectionInterceptor(helperName);
         sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
-
+        //
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
         //
-        return delegatingConnection(connection, connectionPoolInfo, sqlConnectionInterceptor);
+        return new DelegatingConnectionImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
     }
 
-    private Connection delegatingConnection(final Connection connection, final ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
+    private class DelegatingConnectionImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor
     {
-        // We use a dynamic proxy rather that direct delegating inheritance because that way we can compile
-        // on JDK 7 and above.  New methods are added to Connection in JDK 7 and hence we have a version compilation
-        // challenge.  This is a more scalable way to respond to that challenge.
-        //
-        return (Connection) newProxyInstance(getClass().getClassLoader(), new Class<?>[] {
-                Connection.class, ConnectionWithSQLInterceptor.class
-        }, new DelegatingConnectionHandler(connection, connectionPoolInfo, sqlConnectionInterceptor));
-    }
-
-    private class DelegatingConnectionHandler implements InvocationHandler
-    {
-        private final Connection delegate;
         private final ConnectionPoolInfo connectionPoolInfo;
         private final SQLConnectionInterceptor sqlConnectionInterceptor;
 
-        public DelegatingConnectionHandler(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
+        public DelegatingConnectionImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
         {
-            this.delegate = delegate;
+            super(delegate);
             this.connectionPoolInfo = connectionPoolInfo;
             this.sqlConnectionInterceptor = sqlConnectionInterceptor;
         }
 
         @Override
-        public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable
+        public void close() throws SQLException
         {
-            if (method.getName().equals("close"))
-            {
-                return close();
-            }
-            else if (method.getName().equals("getNonNullSQLInterceptor"))
-            {
-                return getNonNullSQLInterceptor();
-            }
-            else
-            {
-                return method.invoke(delegate, args);
-            }
-        }
-
-        public Object close() throws SQLException
-        {
-            delegate.close();
+            super.close();
             final int count = borrowedCount.decrementAndGet();
-            sqlConnectionInterceptor.onConnectionReplaced(delegate, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
-            return null;
+            sqlConnectionInterceptor.onConnectionReplaced(this, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
         }
 
         public SQLInterceptor getNonNullSQLInterceptor()
