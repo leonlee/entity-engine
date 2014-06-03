@@ -31,11 +31,6 @@ public class DelegatingConnection implements Connection
         this.delegate = delegate;
     }
 
-    protected Connection getDelegate()
-    {
-        return delegate;
-    }
-
     public Statement createStatement() throws SQLException
     {
         return delegate.createStatement();
@@ -136,7 +131,8 @@ public class DelegatingConnection implements Connection
         return delegate.createStatement(resultSetType, resultSetConcurrency);
     }
 
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
+            throws SQLException
     {
         return delegate.prepareStatement(sql, resultSetType, resultSetConcurrency);
     }
@@ -186,17 +182,20 @@ public class DelegatingConnection implements Connection
         delegate.releaseSavepoint(savepoint);
     }
 
-    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            throws SQLException
     {
         return delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            throws SQLException
     {
         return delegate.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            throws SQLException
     {
         return delegate.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
@@ -282,39 +281,30 @@ public class DelegatingConnection implements Connection
     }
 
     //
-    // JDK 1.7 methods.  Since we are currently designed to compile and run on 1.6 or better
-    // we don't implement these methods.  When we have 1.7 only support
-    // we can put them in place
+    // JDK 1.7 methods.
     //
-    private final String ONE_SIX = "Not implemented - we only expect to run on 1.6 level Connection methods calls";
-
     public void setSchema(final String schema) throws SQLException
     {
-        throw new UnsupportedOperationException(ONE_SIX);
-        //delegate.setSchema(schema);
+        delegate.setSchema(schema);
     }
 
     public String getSchema() throws SQLException
     {
-        throw new UnsupportedOperationException(ONE_SIX);
-        //return delegate.getSchema();
+        return delegate.getSchema();
     }
 
     public void abort(final Executor executor) throws SQLException
     {
-        throw new UnsupportedOperationException(ONE_SIX);
-        // delegate.abort(executor);
+        delegate.abort(executor);
     }
 
     public void setNetworkTimeout(final Executor executor, final int milliseconds) throws SQLException
     {
-        throw new UnsupportedOperationException(ONE_SIX);
-        //delegate.setNetworkTimeout(executor,milliseconds);
+        delegate.setNetworkTimeout(executor, milliseconds);
     }
 
     public int getNetworkTimeout() throws SQLException
     {
-        throw new UnsupportedOperationException(ONE_SIX);
-        //return delegate.getNetworkTimeout();
+        return delegate.getNetworkTimeout();
     }
 }
