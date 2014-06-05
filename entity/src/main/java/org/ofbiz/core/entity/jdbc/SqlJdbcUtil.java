@@ -782,7 +782,7 @@ public class SqlJdbcUtil {
                 break;
 
             case 10:
-                if ("BYTEA".equals(mft.getSqlType()))
+                if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType()))
                 {
                     sqlP.setByteArrayData(fieldValue);
                 }
