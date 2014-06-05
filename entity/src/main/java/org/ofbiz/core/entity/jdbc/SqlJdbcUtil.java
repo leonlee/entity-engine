@@ -612,8 +612,8 @@ public class SqlJdbcUtil {
                 case 10:
                     InputStream binaryInput = null;
                     Object obj = null;
-                    // add support for Postgresql BYTEA datatypes.
-                    if ("BYTEA".equals(mft.getSqlType()))
+                    // add support for Postgresql BYTEA datatypes and SQL Server IMAGE
+                    if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType()))
                     {
                         byte[] bytes = rs.getBytes(ind);
                         if (bytes != null && bytes.length > 0)
