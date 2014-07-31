@@ -673,7 +673,7 @@ public class MockResultSet implements ResultSet {
     }
 
     public int getHoldability() throws SQLException {
-        return 0;
+        return ResultSet.CLOSE_CURSORS_AT_COMMIT;
     }
 
     public boolean isClosed() throws SQLException {
@@ -820,5 +820,18 @@ public class MockResultSet implements ResultSet {
 
     public boolean isWrapperFor(final Class<?> aClass) throws SQLException {
         return false;
+    }
+
+    //
+    // 1.7 new methods - getting ready for the future ... or is that the past
+
+    public <T> T getObject(final int columnIndex, final Class<T> type) throws SQLException
+    {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    public <T> T getObject(final String columnLabel, final Class<T> type) throws SQLException
+    {
+        throw new UnsupportedOperationException("Not implemented");
     }
 }

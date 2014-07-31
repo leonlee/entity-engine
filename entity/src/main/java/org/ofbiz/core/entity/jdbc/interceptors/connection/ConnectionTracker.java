@@ -10,8 +10,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A class to track information about {@link Connection}s that come from connection pool.  It also will
- * invoke {@link SQLConnectionInterceptor}s with information about the Connection as it is used.
+ * A class to track information about {@link Connection}s that come from connection pool.  It also will invoke {@link
+ * SQLConnectionInterceptor}s with information about the Connection as it is used.
  */
 public class ConnectionTracker
 {
@@ -41,13 +41,13 @@ public class ConnectionTracker
     /**
      * Called to track the connection as it is pulled from the underlying connection pool.
      *
-     * @param helperName         the OfBiz helper name
-     * @param getConnectionCall  a callable that returns a connection
+     * @param helperName the OfBiz helper name
+     * @param getConnectionCall a callable that returns a connection
      * @return the connection that was returned by the callable
      */
     public Connection trackConnection(final String helperName, final Callable<java.sql.Connection> getConnectionCall)
     {
-    try
+        try
         {
             long then = System.nanoTime();
             Connection connection = getConnectionCall.call();
@@ -71,21 +71,22 @@ public class ConnectionTracker
 
         final SQLConnectionInterceptor sqlConnectionInterceptor = SQLInterceptorSupport.getNonNullSQLConnectionInterceptor(helperName);
         sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
-
+        //
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
-        return new ConnectionWithSQLInterceptorImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
+        //
+        return new DelegatingConnectionImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
     }
 
-    private class ConnectionWithSQLInterceptorImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor
+    private class DelegatingConnectionImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor
     {
-        private final SQLConnectionInterceptor sqlConnectionInterceptor;
         private final ConnectionPoolInfo connectionPoolInfo;
+        private final SQLConnectionInterceptor sqlConnectionInterceptor;
 
-        public ConnectionWithSQLInterceptorImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
+        public DelegatingConnectionImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
         {
             super(delegate);
-            this.sqlConnectionInterceptor = sqlConnectionInterceptor;
             this.connectionPoolInfo = connectionPoolInfo;
+            this.sqlConnectionInterceptor = sqlConnectionInterceptor;
         }
 
         @Override
@@ -93,7 +94,7 @@ public class ConnectionTracker
         {
             super.close();
             final int count = borrowedCount.decrementAndGet();
-            sqlConnectionInterceptor.onConnectionReplaced(getDelegate(), new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
+            sqlConnectionInterceptor.onConnectionReplaced(this, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
         }
 
         public SQLInterceptor getNonNullSQLInterceptor()

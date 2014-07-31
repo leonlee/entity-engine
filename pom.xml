@@ -36,7 +36,7 @@
   </scm>
 
     <properties>
-        <jdkLevel>1.6</jdkLevel>
+        <jdkLevel>1.7</jdkLevel>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -60,19 +60,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
                 <configuration>
+                    <target>1.6</target>
                     <fork>true</fork>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <configuration>
-                    <rules>
-                        <requireJavaVersion>
-                            <version>[1.6,1.7)</version>
-                        </requireJavaVersion>
-                    </rules>
                 </configuration>
             </plugin>
         </plugins>
