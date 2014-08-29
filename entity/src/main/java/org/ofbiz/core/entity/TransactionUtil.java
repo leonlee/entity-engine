@@ -50,7 +50,7 @@ public class TransactionUtil implements javax.transaction.Status {
     // Debug module name
     public static final String module = TransactionUtil.class.getName();
 
-    public static final ThreadLocal<Connection> localTransaction = new ThreadLocal<Connection>();
+    public static final ThreadLocal<LocalTransaction> localTransaction = new ThreadLocal<LocalTransaction>();
 
     /** Begins a transaction in the current thread IF transactions are available; only
      * tries if the current transaction status is ACTIVE, if not active it returns false.
@@ -278,7 +278,7 @@ public class TransactionUtil implements javax.transaction.Status {
                 connection.setTransactionIsolation(transactionIsolationLevel);
             }
             connection.setAutoCommit(false);
-            localTransaction.set(connection);
+            localTransaction.set(new LocalTransaction(connection));
             Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction started.", module);
             return true;
         }
@@ -297,7 +297,8 @@ public class TransactionUtil implements javax.transaction.Status {
      */
     public static Connection getLocalTransactionConnection()
     {
-        return localTransaction.get();
+        LocalTransaction transaction = localTransaction.get();
+        return transaction == null ? null : transaction.getConnection();
     }
 
     /**
@@ -333,20 +334,29 @@ public class TransactionUtil implements javax.transaction.Status {
 
         if (isTransactionActive())
         {
-            try
+            LocalTransaction transaction = localTransaction.get();
+            if (transaction.isRollbackRequired())
             {
-                Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started and active so committing transaction.", module);
-                getLocalTransactionConnection().commit();
-                Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction committed.", module);
+                Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started but rollback required is set.", module);
+                rollbackLocalTransaction(true);
+            }
+            else
+            {
+                try
+                {
+                    Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started and active so committing transaction.", module);
+                    getLocalTransactionConnection().commit();
+                    Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction committed.", module);
 
-            }
-            catch (SQLException e)
-            {
-                throw new GenericTransactionException("Error occurred while committing transaction.", e);
-            }
-            finally
-            {
-                closeAndClearThreadLocalConnection();
+                }
+                catch (SQLException e)
+                {
+                    throw new GenericTransactionException("Error occurred while committing transaction.", e);
+                }
+                finally
+                {
+                    closeAndClearThreadLocalConnection();
+                }
             }
         }
         else
@@ -371,32 +381,45 @@ public class TransactionUtil implements javax.transaction.Status {
      */
     public static void rollbackLocalTransaction(boolean beganTransaction) throws GenericTransactionException
     {
-        if (!beganTransaction)
-        {
-            Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not started so not rolling back.", module);
-            return;
-        }
-
         if (isTransactionActive())
         {
-            try
+            if (!beganTransaction)
             {
-                Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction started and active so rolling back.", module);
-                getLocalTransactionConnection().rollback();
-                Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction rolled back.", module);
+                Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not started, setting rollback required.", module);
+                localTransaction.get().setRollbackRequired();
             }
-            catch (SQLException e)
+            else
             {
-                throw new GenericTransactionException("Error occurred while rolling back transaction.", e);
-            }
-            finally
-            {
-                closeAndClearThreadLocalConnection();
+                try
+                {
+                    Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction started and active so rolling back.", module);
+                    getLocalTransactionConnection().rollback();
+                    Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction rolled back.", module);
+                }
+                catch (SQLException e)
+                {
+                    throw new GenericTransactionException("Error occurred while rolling back transaction.", e);
+                }
+                finally
+                {
+                    closeAndClearThreadLocalConnection();
+                }
             }
         }
         else
         {
             Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not active so not rolling back.", module);
+        }
+    }
+
+    /**
+     * Makes a rollback the only possible outcome of the transaction in the current thread IF transactions are available.
+     */
+    public static void rollbackRequiredLocalTransaction(boolean beganTransaction) throws GenericTransactionException
+    {
+        if (isTransactionActive())
+        {
+            localTransaction.get().setRollbackRequired();
         }
     }
 
@@ -432,7 +455,33 @@ public class TransactionUtil implements javax.transaction.Status {
      */
     public static void clearTransactionThreadLocal()
     {
-        localTransaction.set(null);
+        localTransaction.remove();
         Debug.logInfo("Thread local cleared.", module);
+    }
+
+    private static class LocalTransaction
+    {
+        private final Connection connection;
+        private boolean rollbackRequired;
+
+        private LocalTransaction(final Connection connection)
+        {
+            this.connection = connection;
+        }
+
+        public Connection getConnection()
+        {
+            return connection;
+        }
+
+        public boolean isRollbackRequired()
+        {
+            return rollbackRequired;
+        }
+
+        public void setRollbackRequired()
+        {
+            this.rollbackRequired = true;
+        }
     }
 }
