@@ -339,6 +339,7 @@ public class TransactionUtil implements javax.transaction.Status {
             {
                 Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started but rollback required is set.", module);
                 rollbackLocalTransaction(true);
+                throw new GenericTransactionException("Commit failed, rollback previously requested by nested transaction.");
             }
             else
             {
