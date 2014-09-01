@@ -384,12 +384,7 @@ public class TransactionUtil implements javax.transaction.Status {
     {
         if (isTransactionActive())
         {
-            if (!beganTransaction)
-            {
-                Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not started, setting rollback required.", module);
-                localTransaction.get().setRollbackRequired();
-            }
-            else
+            if (beganTransaction)
             {
                 try
                 {
@@ -405,6 +400,11 @@ public class TransactionUtil implements javax.transaction.Status {
                 {
                     closeAndClearThreadLocalConnection();
                 }
+            }
+            else
+            {
+                Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not started, setting rollback required.", module);
+                localTransaction.get().setRollbackRequired();
             }
         }
         else

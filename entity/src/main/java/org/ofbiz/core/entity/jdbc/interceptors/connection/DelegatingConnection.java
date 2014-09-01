@@ -285,26 +285,26 @@ public class DelegatingConnection implements Connection
     //
     public void setSchema(final String schema) throws SQLException
     {
-        delegate.setSchema(schema);
+        throw new UnsupportedOperationException();
     }
 
     public String getSchema() throws SQLException
     {
-        return delegate.getSchema();
+        throw new UnsupportedOperationException();
     }
 
     public void abort(final Executor executor) throws SQLException
     {
-        delegate.abort(executor);
+        throw new UnsupportedOperationException();
     }
 
     public void setNetworkTimeout(final Executor executor, final int milliseconds) throws SQLException
     {
-        delegate.setNetworkTimeout(executor, milliseconds);
+        throw new UnsupportedOperationException();
     }
 
     public int getNetworkTimeout() throws SQLException
     {
-        return delegate.getNetworkTimeout();
+        throw new UnsupportedOperationException();
     }
 }
