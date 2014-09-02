@@ -463,7 +463,7 @@ public class TransactionUtil implements javax.transaction.Status {
     private static class LocalTransaction
     {
         private final Connection connection;
-        private boolean rollbackRequired;
+        private volatile boolean rollbackRequired;
 
         private LocalTransaction(final Connection connection)
         {
