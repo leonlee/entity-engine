@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.SQLProcessor;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
@@ -31,7 +32,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.EntityOperator.AND;
 import static org.ofbiz.core.entity.EntityOperator.IN;
@@ -248,5 +255,45 @@ public class GenericDAOTest {
     @Test
     public void storeAllShouldAcceptEmptyEntityList() throws Exception {
         assertEquals(0, dao.storeAll(Collections.<GenericEntity>emptyList()));
+    }
+    
+    @Test
+    public void createEntityListIteratorMustCloseSQLProcessorIfGenericEntityExceptionIsThrown() throws Exception
+    {
+        SQLProcessor sqlProcessor = mock(SQLProcessor.class);
+        doThrow(new GenericEntityException()).when(sqlProcessor).prepareStatement(anyString(), anyBoolean(), anyInt(), anyInt());
+
+        createEntityListIteratorExpectingException(sqlProcessor);
+
+        verify(sqlProcessor).close();
+    }
+
+    @Test
+    public void createEntityListIteratorMustCloseSQLProcessorIfRuntimeExceptionIsThrown() throws Exception
+    {
+        SQLProcessor sqlProcessor = mock(SQLProcessor.class);
+        doThrow(new RuntimeException()).when(sqlProcessor).prepareStatement(anyString(), anyBoolean(), anyInt(), anyInt());
+
+        createEntityListIteratorExpectingException(sqlProcessor);
+
+        verify(sqlProcessor).close();
+    }
+
+    private void createEntityListIteratorExpectingException(final SQLProcessor sqlProcessor) throws Exception
+    {
+        String anySql = "any sql";
+        List<ModelField> anySelectFields = Collections.emptyList();
+        List<EntityConditionParam> anyWhereConditions = Collections.emptyList();
+        List<EntityConditionParam> anyHavingConditions = Collections.emptyList();
+
+        try
+        {
+            dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions);
+            fail("An exception was expected to be thrown");
+        }
+        catch (Exception e)
+        {
+            // do nothing, we were expecting the exception
+        }
     }
 }

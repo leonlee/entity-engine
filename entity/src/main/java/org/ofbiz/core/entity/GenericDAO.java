@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
@@ -807,7 +808,7 @@ public class GenericDAO {
      *@param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will be retreived
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
      *@param findOptions can be null to use the default options
-     *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE 
+     *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE
      *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     public EntityListIterator selectListIteratorByCondition(final ModelEntity modelEntity, EntityCondition whereEntityCondition,
@@ -841,16 +842,39 @@ public class GenericDAO {
 
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
 
-        sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(),
-                nonNullFindOptions.getResultSetType(), nonNullFindOptions.getResultSetConcurrency());
+        return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams);
+    }
 
-        bindParameterValues(sqlP, modelEntity, whereEntityConditionParams, "where");
-        bindParameterValues(sqlP, modelEntity, havingEntityConditionParams, "having");
+    @VisibleForTesting
+    EntityListIterator createEntityListIterator(final SQLProcessor sqlP, final String sql,
+            final EntityFindOptions nonNullFindOptions, final ModelEntity modelEntity,
+            final List<ModelField> selectFields, final List<EntityConditionParam> whereEntityConditionParams,
+            final List<EntityConditionParam> havingEntityConditionParams)
+            throws GenericEntityException
+    {
+        try
+        {
+            sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(),
+                    nonNullFindOptions.getResultSetType(), nonNullFindOptions.getResultSetConcurrency());
 
-        setFetchSize(sqlP, nonNullFindOptions.getFetchSize());
-        sqlP.executeQuery();
+            bindParameterValues(sqlP, modelEntity, whereEntityConditionParams, "where");
+            bindParameterValues(sqlP, modelEntity, havingEntityConditionParams, "having");
 
-        return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+            setFetchSize(sqlP, nonNullFindOptions.getFetchSize());
+            sqlP.executeQuery();
+
+            return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+        }
+        catch (GenericEntityException e)
+        {
+            sqlP.close();
+            throw e;
+        }
+        catch (RuntimeException e)
+        {
+            sqlP.close();
+            throw e;
+        }
     }
 
     private void bindParameterValues(final SQLProcessor sqlP, final ModelEntity modelEntity,
