@@ -808,7 +808,7 @@ public class GenericDAO {
      *@param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or " DESC" for descending
      *@param findOptions can be null to use the default options
      *@return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE
-     *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BEACUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     *      DONE WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     public EntityListIterator selectListIteratorByCondition(final ModelEntity modelEntity, EntityCondition whereEntityCondition,
             final EntityCondition havingEntityCondition, final Collection<String> fieldsToSelect,
@@ -864,6 +864,9 @@ public class GenericDAO {
 
             return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
         }
+        // The returned EntityListIterator must contain an SQLProcessor with an open connection to the database.
+        // That's why the SQLProcessor only gets closed when an exception is thrown and the EntityListIterator
+        // can't be correctly created, instead of closing it on a finally block.
         catch (GenericEntityException e)
         {
             sqlP.close();
