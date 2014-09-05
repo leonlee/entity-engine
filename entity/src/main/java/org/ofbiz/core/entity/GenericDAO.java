@@ -853,6 +853,7 @@ public class GenericDAO {
     {
         try
         {
+            // A data base connection is open when the call to prepareStatement is done (SQLProcessor's constructor does not open the connection)
             sqlP.prepareStatement(sql, nonNullFindOptions.isCustomResultSetTypeAndConcurrency(),
                     nonNullFindOptions.getResultSetType(), nonNullFindOptions.getResultSetConcurrency());
 
