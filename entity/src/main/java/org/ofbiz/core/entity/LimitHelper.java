@@ -40,8 +40,8 @@ public class LimitHelper
         }
         if (maxResults > 0)
         {
-            // mysql and postgres append LIMIT, which is shorthand for return this many rows, so substitute with maxResults.
-            if (databaseTypeName.equals("mysql") || databaseTypeName.startsWith("postgres"))
+            // most databases append LIMIT, which is shorthand for return this many rows, so substitute with maxResults.
+            if (databaseTypeName.equals("mysql") || databaseTypeName.startsWith("postgres") || databaseTypeName.startsWith("h2"))
             {
                 sqlBuilder.append(sql);
                 sqlBuilder.append(" LIMIT ");
