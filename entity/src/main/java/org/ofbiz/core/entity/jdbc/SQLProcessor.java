@@ -23,15 +23,6 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
-import org.ofbiz.core.entity.ConnectionFactory;
-import org.ofbiz.core.entity.GenericDataSourceException;
-import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.GenericTransactionException;
-import org.ofbiz.core.entity.TransactionUtil;
-import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
-import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
-import org.ofbiz.core.util.Debug;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,6 +38,15 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericDataSourceException;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericTransactionException;
+import org.ofbiz.core.entity.TransactionUtil;
+import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
+import org.ofbiz.core.util.Debug;
 
 /**
  * SQLProcessor - provides utility functions to ease database access
@@ -995,7 +995,7 @@ public class SQLProcessor
         }
         else
         {
-            _ps.setNull(_ind, Types.NULL); // really should be Types.BOOLEAN, but that wasn't introduced until Java 1.4... what to do?
+            _ps.setNull(_ind, Types.NULL);
         }
         recordParameter(field);
 
@@ -1039,7 +1039,7 @@ public class SQLProcessor
         }
         else
         {
-            _ps.setNull(_ind, Types.JAVA_OBJECT);
+            _ps.setNull(_ind, Types.BLOB);
         }
         recordParameter("BLOB");
 
@@ -1061,7 +1061,7 @@ public class SQLProcessor
         }
         else
         {
-            _ps.setNull(_ind, Types.JAVA_OBJECT);
+            _ps.setNull(_ind, Types.CLOB);
         }
         recordParameter("CLOB");
 
@@ -1100,7 +1100,7 @@ public class SQLProcessor
         }
         else
         {
-            _ps.setNull(_ind, Types.JAVA_OBJECT);
+            _ps.setNull(_ind, Types.BLOB);
         }
         recordParameter("BLOB");
 
@@ -1111,7 +1111,7 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
      * to a BLOB that is stored as a Byte Array SQL type.
      *
-     * This method is specifically added to support Postgresql BYTEA datatypes.
+     * This method is specifically added to support PostgreSQL BYTEA and SQLServer IMAGE datatypes.
      *
      * @param field the field value in play
      *
@@ -1127,11 +1127,7 @@ public class SQLProcessor
                 ObjectOutputStream oos = new ObjectOutputStream(os);
                 oos.writeObject(field);
                 oos.close();
-
-                byte[] buf = os.toByteArray();
-                os.close();
-                ByteArrayInputStream is = new ByteArrayInputStream(buf);
-                _ps.setBytes(_ind, buf);
+                _ps.setBytes(_ind, os.toByteArray());
             }
             catch (IOException ex)
             {
@@ -1163,6 +1159,9 @@ public class SQLProcessor
     @Override
     public String toString()
     {
-        return new StringBuilder().append("commitMode:").append(_commitMode).append(" | conn:").append(String.valueOf(_connection)).append(" | SQL : '").append(_sql).append("'").toString();
+        return new StringBuilder(256).append("commitMode:").append(_commitMode)
+                .append(" | conn:").append(_connection)
+                .append(" | SQL : '").append(_sql)
+                .append('\'').toString();
     }
 }
