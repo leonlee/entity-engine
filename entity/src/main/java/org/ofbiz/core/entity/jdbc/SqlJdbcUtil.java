@@ -782,7 +782,7 @@ public class SqlJdbcUtil {
                 break;
 
             case 10:
-                if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType()))
+                if (isByteArrayType(mft))
                 {
                     sqlP.setByteArrayData(fieldValue);
                 }
@@ -793,7 +793,14 @@ public class SqlJdbcUtil {
                 break;
                 
             case 11:
-                sqlP.setValue((java.sql.Blob) fieldValue);
+                if (fieldValue == null && isByteArrayType(mft))
+                {
+                    sqlP.setByteArrayData(null);
+                }
+                else
+                {
+                    sqlP.setValue((Blob)fieldValue);
+                }
                 break;
             
             case 12:
@@ -803,6 +810,11 @@ public class SqlJdbcUtil {
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while setting value: ", sqle);
         }
+    }
+
+    private static boolean isByteArrayType(ModelFieldType mft)
+    {
+        return "BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType());
     }
 
     protected static HashMap<String, Integer> fieldTypeMap = new HashMap<String, Integer>();
