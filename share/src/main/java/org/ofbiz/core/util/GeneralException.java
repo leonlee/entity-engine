@@ -24,10 +24,8 @@
 
 package org.ofbiz.core.util;
 
-
 import java.io.PrintStream;
 import java.io.PrintWriter;
-
 
 /**
  * Base OFBiz Exception, provides nested exceptions, etc
@@ -36,10 +34,8 @@ import java.io.PrintWriter;
  *@created    November 5, 2001
  *@version    1.0
  */
-public class GeneralException extends Exception {
-
-    Throwable nested = null;
-
+public class GeneralException extends Exception
+{
     /**
      * Creates new <code>GeneralException</code> without detail message.
      */
@@ -60,21 +56,19 @@ public class GeneralException extends Exception {
      * @param msg the detail message.
      */
     public GeneralException(String msg, Throwable nested) {
-        super(msg);
-        this.nested = nested;
+        super(msg, nested);
     }
 
     /**
      * Constructs an <code>GeneralException</code> with the specified detail message and nested Exception.
-     * @param msg the detail message.
      */
     public GeneralException(Throwable nested) {
-        super();
-        this.nested = nested;
+        super(nested);
     }
 
     /** Returns the detail message, including the message from the nested exception if there is one. */
     public String getMessage() {
+        final Throwable nested = getCause();
         if (nested != null)
             return super.getMessage() + " (" + nested.getMessage() + ")";
         else
@@ -82,33 +76,42 @@ public class GeneralException extends Exception {
     }
 
     /** Returns the detail message, NOT including the message from the nested exception. */
-    public String getNonNestedMessage() {
+    public String getNonNestedMessage()
+    {
         return super.getMessage();
     }
 
-    /** Returns the nested exception if there is one, null if there is not. */
-    public Throwable getNested() {
+    /**
+     * Returns the nested exception if there is one, or {@code this} if there is not.
+     * <p>
+     * Note: In earlier versions, this class incorrectly documented that it returned {@code null} when there
+     * was no nested exception.  This was a lie; it has always returned {@code this} for that case.  Note also
+     * that this behaviour is not consistent with that of {@link GeneralRuntimeException}.
+     * </p>
+     */
+    public Throwable getNested()
+    {
+        final Throwable nested = getCause();
         if (nested == null)
             return this;
         return nested;
     }
 
+    // The following pointless stubs are retained only to preserve binary compatibility.
+
     /** Prints the composite message to System.err. */
     public void printStackTrace() {
         super.printStackTrace();
-        if (nested != null) nested.printStackTrace();
     }
 
     /** Prints the composite message and the embedded stack trace to the specified stream ps. */
     public void printStackTrace(PrintStream ps) {
         super.printStackTrace(ps);
-        if (nested != null) nested.printStackTrace(ps);
     }
 
     /** Prints the composite message and the embedded stack trace to the specified print writer pw. */
     public void printStackTrace(PrintWriter pw) {
         super.printStackTrace(pw);
-        if (nested != null) nested.printStackTrace(pw);
     }
 }
 
