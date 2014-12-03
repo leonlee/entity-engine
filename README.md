@@ -8,5 +8,5 @@ This project requires Maven 3.
 
 ## CI
 
-[JBAC](https://jira-bamboo.internal.atlassian.com/browse/OFBIZ-ENTITY)
+[JBAC](https://jira-bamboo.internal.atlassian.com/browse/OFBEE-ENTITY)
 
