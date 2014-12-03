@@ -1,6 +1,12 @@
 package org.ofbiz.core.entity;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.ofbiz.core.entity.model.ModelEntity;
@@ -26,6 +32,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -136,10 +145,7 @@ public class TestGenericDelegator
         final List<ModelEntity> entities = genericDelegator.getModelEntitiesByGroup(ENTITY_GROUP_NAME);
 
         // Check
-        assertEquals(3, entities.size());
-        for (int i = 0; i < ENTITIES.length; i++) {
-            assertModelEntity(ENTITIES[i], entities.get(i));
-        }
+        assertThat(entities, containsInAnyOrder(modelEntities(ENTITIES)));
     }
 
     @Test
@@ -148,10 +154,11 @@ public class TestGenericDelegator
         final Map<String, ModelEntity> entities = genericDelegator.getModelEntityMapByGroup(ENTITY_GROUP_NAME);
 
         // Check
-        assertEquals(3, entities.size());
-        for (final String entityName : ENTITIES) {
-            assertModelEntity(entityName, entities.get(entityName));
+        for (final String entityName : ENTITIES)
+        {
+            assertThat(entities, hasEntry(is(entityName), modelEntity(entityName)));
         }
+        assertEquals(3, entities.size());
     }
 
     @Test
@@ -175,7 +182,7 @@ public class TestGenericDelegator
 
     @Test
     public void getEntityHelperNameShouldReturnNullForNullModelEntity() {
-        assertNull(genericDelegator.getEntityHelperName((ModelEntity) null));
+        assertNull(genericDelegator.getEntityHelperName((ModelEntity)null));
     }
 
     @Test
@@ -246,7 +253,7 @@ public class TestGenericDelegator
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotBeAbleToCreateWithNullPrimaryKey() throws Exception {
-        genericDelegator.create((GenericPK) null, false);
+        genericDelegator.create((GenericPK)null, false);
     }
 
     @Test
@@ -402,7 +409,7 @@ public class TestGenericDelegator
 
     @Test
     public void gettingFromAndCacheWithNullEntityNameShouldReturnNull() {
-        assertNull(genericDelegator.getFromAndCache((String) null, singletonMap(ID_FIELD, 789L)));
+        assertNull(genericDelegator.getFromAndCache((String)null, singletonMap(ID_FIELD, 789L)));
     }
 
     @Test
@@ -593,6 +600,40 @@ public class TestGenericDelegator
 
         // Check
         assertEquals(Collections.<GenericValue>emptyList(), transformedEntities);
+    }
+
+    private static List<Matcher<? super ModelEntity>> modelEntities(final String... expectedNames)
+    {
+        final ImmutableList.Builder<Matcher<? super ModelEntity>> list = ImmutableList.builder();
+        for (String expectedName : expectedNames)
+        {
+            list.add(modelEntity(expectedName));
+        }
+        return list.build();
+    }
+
+    private static Matcher<ModelEntity> modelEntity(final String expectedName)
+    {
+        return new TypeSafeMatcher<ModelEntity>()
+        {
+            @Override
+            protected boolean matchesSafely(ModelEntity modelEntity)
+            {
+                return expectedName.equals(modelEntity.getEntityName());
+            }
+
+            @Override
+            public void describeTo(Description description)
+            {
+                description.appendText("ModelEntity").appendValue(expectedName);
+            }
+
+            @Override
+            protected void describeMismatchSafely(ModelEntity item, Description mismatchDescription)
+            {
+                mismatchDescription.appendText("ModelEntity").appendValue(item.getEntityName());
+            }
+        };
     }
 
     /**
