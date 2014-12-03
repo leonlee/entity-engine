@@ -1,15 +1,12 @@
-Introduction
-****
+## Introduction
 
 This project is Atlassian's fork of the Entity Engine module of the Apache OfBiz project.
 
-Building
-****
+## Building
 
 This project requires Maven 3.
 
-CI
-****
+## CI
 
 [JBAC](https://jira-bamboo.internal.atlassian.com/browse/OFBIZ-ENTITY)
 
