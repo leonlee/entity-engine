@@ -26,6 +26,7 @@ package org.ofbiz.core.entity;
 
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
@@ -714,7 +715,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
                 {
                     throw new RuntimeException(e);
                 }
-                value = Base64.encodeBase64String(baos.toByteArray());
+                value = StringUtils.newStringUtf8(Base64.encodeBase64(baos.toByteArray(), true));
+                cdataMap.put(name, value);
+                continue;
             }
             else
             {
