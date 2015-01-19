@@ -323,4 +323,17 @@ public class GenericDAOTest {
         EntityWhereString rhs = (EntityWhereString)rewrittenExpr.getRhs();
         assertEquals("select item from #temp1", rhs.sqlString);
     }
+
+    /**
+     * Temp table rewrite should not occur with too few parameters.
+     */
+    @Test
+    public void testNoRewriteWithNotEnoughParameters()
+    {
+        List<Integer> ids = Collections.nCopies(2000, 1);
+        GenericDAO.WhereRewrite rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
+                new EntityExpr("test", IN, ids));
+
+        assertFalse("Rewrite should not be required.", rewrite.isRequired());
+    }
 }
