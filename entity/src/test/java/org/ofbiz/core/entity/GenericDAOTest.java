@@ -18,6 +18,7 @@ import org.ofbiz.core.entity.model.ModelFieldTypeReader;
 import org.ofbiz.core.entity.model.ModelViewEntity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,9 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -295,5 +298,29 @@ public class GenericDAOTest {
         {
             // do nothing, we were expecting the exception
         }
+    }
+
+    @Test
+    public void testRewriteWithTemporaryTables()
+    {
+        List<Integer> ids = Collections.nCopies(2001, 1);
+        GenericDAO.WhereRewrite rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
+                                            new EntityExpr("test", IN, ids));
+
+        assertTrue("Rewrite should be required.", rewrite.isRequired());
+        Collection<GenericDAO.InReplacement> replacements = rewrite.getInReplacements();
+        assertThat(replacements, hasSize(1));
+        GenericDAO.InReplacement replacement = replacements.iterator().next();
+        assertEquals("Wrong replacements.", ids, replacement.getItems());
+        assertEquals("Wrong temp table name.", "temp1", replacement.getTemporaryTableName());
+
+        EntityCondition rewrittenCondition = rewrite.getNewCondition();
+        assertThat(rewrittenCondition, instanceOf(EntityExpr.class));
+        EntityExpr rewrittenExpr = (EntityExpr)rewrittenCondition;
+        assertEquals("test", rewrittenExpr.getLhs());
+        assertEquals(IN, rewrittenExpr.getOperator());
+        assertThat(rewrittenExpr.getRhs(), instanceOf(EntityWhereString.class));
+        EntityWhereString rhs = (EntityWhereString)rewrittenExpr.getRhs();
+        assertEquals("select item from #temp1", rhs.sqlString);
     }
 }

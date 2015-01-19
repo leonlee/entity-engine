@@ -846,7 +846,7 @@ public class GenericDAO {
         // - when the list iterator is closed, drop the temporary table
         WhereRewrite whereRewrite = new WhereRewrite();
         if (databaseType == MSSQL) {
-            whereRewrite = rewriteConditionForLargeInClauses(whereEntityCondition);
+            whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses(whereEntityCondition);
             if (whereRewrite.isRequired()) {
                 whereEntityCondition = whereRewrite.getNewCondition();
             }
@@ -1106,7 +1106,8 @@ public class GenericDAO {
         return sql;
     }
 
-    private WhereRewrite rewriteConditionForLargeInClauses(final EntityCondition whereEntityCondition) {
+    @VisibleForTesting
+    WhereRewrite rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition) {
 
         final List<InReplacement> inReplacements = new ArrayList<InReplacement>();
 
@@ -1631,7 +1632,8 @@ public class GenericDAO {
         return backOffMillis;
     }
 
-    private static class WhereRewrite {
+    @VisibleForTesting
+    static class WhereRewrite {
 
         private final EntityCondition condition;
         private final Collection<InReplacement> inReplacements;
@@ -1658,7 +1660,8 @@ public class GenericDAO {
         }
     }
 
-    private static class InReplacement {
+    @VisibleForTesting
+    static class InReplacement {
         private final String temporaryTableName;
         private final Collection<?> items;
 
