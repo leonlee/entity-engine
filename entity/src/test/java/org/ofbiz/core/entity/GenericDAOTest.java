@@ -288,7 +288,7 @@ public class GenericDAOTest {
 
         try
         {
-            dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions);
+            dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions, Collections.<String>emptySet());
             fail("An exception was expected to be thrown");
         }
         catch (Exception e)

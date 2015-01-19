@@ -28,6 +28,7 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -158,6 +159,8 @@ public class EntityExpr extends EntityCondition {
                                 }
                                 entityConditionParams.add(new EntityConditionParam(field, inObj));
                             }
+                        } else if (rhs instanceof EntityWhereString) {
+                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList()) + " ");
                         } else {
                             whereStringBuilder.append(" ? ");
 

@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
@@ -53,6 +54,7 @@ import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -68,9 +70,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Nullable;
 
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
@@ -91,6 +96,7 @@ public class GenericDAO {
 
     public static final String module = GenericDAO.class.getName();
     public static final int ORACLE_MAX_LIST_SIZE = 1000;
+    public static final int MS_SQL_MAX_PARAMETER_COUNT = 2000;
 
     private static final Logger LOGGER = Logger.getLogger(GenericDAO.class);
 
@@ -103,6 +109,8 @@ public class GenericDAO {
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
+
+    private final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
 
     public static synchronized void removeGenericDAO(String helperName)
     {
@@ -828,6 +836,14 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
+        WhereRewrite whereRewrite = new WhereRewrite();
+        if (databaseType == MSSQL) {
+            whereRewrite = rewriteConditionForLargeInClauses(whereEntityCondition);
+            if (whereRewrite.isRequired()) {
+                whereEntityCondition = whereRewrite.getNewCondition();
+            }
+        }
+
         if (Debug.verboseOn()) {
             Debug.logVerbose("Doing selectListIteratorByCondition with whereEntityCondition: " + whereEntityCondition);
         }
@@ -839,16 +855,82 @@ public class GenericDAO {
         final String sql = getSelectQuery(selectFields, nonNullFindOptions, modelEntity, orderBy, whereEntityCondition,
                 havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams, databaseType);
 
-        final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
+        final SQLProcessor sqlP;
+        if (whereRewrite.isRequired()) {
+            sqlP = new SQLProcessor(helperName);
+        } else {
+            sqlP = new ReadOnlySQLProcessor(helperName);
+        }
 
-        return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams);
+        Set<String> temporaryTableNames = new HashSet<String>();
+        if (whereRewrite.isRequired()) {
+            for (InReplacement inReplacement : whereRewrite.getInReplacements()) {
+                String temporaryTableName = inReplacement.getTemporaryTableName();
+                generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
+                temporaryTableNames.add(temporaryTableName);
+            }
+        }
+
+        return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams, temporaryTableNames);
+    }
+
+    private void generateTemporaryTable(String tableName, Collection<?> items, SQLProcessor sqlP)
+            throws GenericEntityException
+    {
+        //Ensure connection is created
+        sqlP.getConnection();
+
+        //Determine the data type to create based on the item element type
+        //Right now this only works for SQL server so we hardcode the SQL server data types
+        Object firstItem = items.iterator().next();
+        String dataType;
+        if (firstItem instanceof Number) {
+            dataType = "bigint";
+        } else {
+            dataType = "varchar(8000)"; //8000 is max size of varchar for SQL server
+        }
+
+        sqlP.executeUpdate("create table #" + tableName + " (item " + dataType + " primary key)");
+
+        //Insert data into this temporary table
+        sqlP.prepareStatement("insert into #" + tableName + " (item) values (?)");
+        PreparedStatement stat = sqlP.getPreparedStatement();
+        try {
+            for (Object item : items) {
+                try {
+                    if (item instanceof Number) {
+                        stat.setLong(1, ((Number) item).longValue());
+                    } else if (item instanceof String) {
+                        stat.setString(1, (String) item);
+                    } else {
+                        stat.setObject(1, item);
+                    }
+                } catch (SQLException e) {
+                    throw new GenericEntityException(e.getMessage(), e);
+                }
+            }
+        }
+        finally {
+            try {
+                stat.close();
+            } catch (SQLException ignore) {}
+        }
+
+
+    }
+
+    private String generateSqlServerTemporaryTableName()
+    {
+        //SQL server max temporary table name is 116 characters, so this should be fine even if they never clean up
+        return "temp" + temporaryTableCounter.getAndIncrement();
     }
 
     @VisibleForTesting
     EntityListIterator createEntityListIterator(final SQLProcessor sqlP, final String sql,
             final EntityFindOptions nonNullFindOptions, final ModelEntity modelEntity,
             final List<ModelField> selectFields, final List<EntityConditionParam> whereEntityConditionParams,
-            final List<EntityConditionParam> havingEntityConditionParams)
+            final List<EntityConditionParam> havingEntityConditionParams,
+            final Set<String> temporaryTableNames)
             throws GenericEntityException
     {
         try
@@ -863,7 +945,12 @@ public class GenericDAO {
             setFetchSize(sqlP, nonNullFindOptions.getFetchSize());
             sqlP.executeQuery();
 
-            return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+            if (temporaryTableNames.isEmpty()) {
+                return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
+            } else {
+                return new EntityListIteratorWithTemporaryTableCleanup(sqlP, modelEntity, selectFields, modelFieldTypeReader, temporaryTableNames);
+            }
+
         }
         // The returned EntityListIterator must contain an SQLProcessor with an open connection to the database.
         // That's why the SQLProcessor only gets closed when an exception is thrown and the EntityListIterator
@@ -996,6 +1083,32 @@ public class GenericDAO {
         }
 
         return sql;
+    }
+
+    private WhereRewrite rewriteConditionForLargeInClauses(final EntityCondition whereEntityCondition) {
+
+        final List<InReplacement> inReplacements = new ArrayList<InReplacement>();
+
+        EntityCondition newCondition =  EntityConditionHelper.transformCondition(whereEntityCondition, new Function<EntityExpr, EntityCondition>() {
+            public EntityCondition apply(final EntityExpr input) {
+                if (input.getOperator().equals(EntityOperator.IN) && input.getRhs() instanceof Collection && ((Collection<?>) input.getRhs()).size() > MS_SQL_MAX_PARAMETER_COUNT) {
+                    //Generate replacement
+                    InReplacement inReplacement = new InReplacement(generateSqlServerTemporaryTableName(), (Collection<?>)input.getRhs());
+                    inReplacements.add(inReplacement);
+
+                    EntityWhereString newRhs = new EntityWhereString("select item from #" + inReplacement.getTemporaryTableName());
+                    EntityExpr replacementCondition = new EntityExpr((String)input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
+                    return replacementCondition;
+                } else {
+                    return input;
+                }
+            }
+        });
+
+        if (inReplacements.isEmpty())
+            return new WhereRewrite();
+
+        return new WhereRewrite(newCondition, inReplacements);
     }
 
     static private EntityCondition rewriteConditionToSplitListsLargerThan(
@@ -1496,4 +1609,76 @@ public class GenericDAO {
         Thread.sleep(backOffMillis);
         return backOffMillis;
     }
+
+    private static class WhereRewrite {
+
+        private final EntityCondition condition;
+        private final Collection<InReplacement> inReplacements;
+
+        public WhereRewrite(EntityCondition condition, Collection<InReplacement> inReplacements) {
+            this.condition = condition;
+            this.inReplacements = inReplacements;
+        }
+
+        public WhereRewrite() {
+            this(null, Collections.<InReplacement>emptyList());
+        }
+
+        public boolean isRequired() {
+            return condition != null;
+        }
+
+        public EntityCondition getNewCondition() {
+            return condition;
+        }
+
+        public Collection<InReplacement> getInReplacements() {
+            return inReplacements;
+        }
+    }
+
+    private static class InReplacement {
+        private final String temporaryTableName;
+        private final Collection<?> items;
+
+        public InReplacement(String temporaryTableName, Collection<?> items) {
+            this.temporaryTableName = temporaryTableName;
+            this.items = items;
+        }
+
+        public Collection<?> getItems() {
+            return items;
+        }
+
+        public String getTemporaryTableName() {
+            return temporaryTableName;
+        }
+    }
+
+    private static class EntityListIteratorWithTemporaryTableCleanup extends EntityListIterator
+    {
+        private final Set<String> temporaryTableNames;
+
+        public EntityListIteratorWithTemporaryTableCleanup(SQLProcessor sqlp, ModelEntity modelEntity,
+                List<ModelField> selectFields, ModelFieldTypeReader modelFieldTypeReader, Set<String> temporaryTableNames) {
+            super(sqlp, modelEntity, selectFields, modelFieldTypeReader);
+            this.temporaryTableNames = ImmutableSet.copyOf(temporaryTableNames);
+        }
+
+        @Override
+        public void close() throws GenericEntityException {
+            try {
+                dropTemporaryTables();
+            } finally {
+                super.close();
+            }
+        }
+
+        private void dropTemporaryTables() throws GenericEntityException {
+            for (String temporaryTableName : temporaryTableNames) {
+                sqlp.executeUpdate("drop table #" + temporaryTableName);
+            }
+        }
+    }
+
 }
