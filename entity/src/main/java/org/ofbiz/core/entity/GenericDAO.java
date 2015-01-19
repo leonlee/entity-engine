@@ -836,6 +836,14 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
+        //JDEV-31097: SQL server does not allow more than 2000 parameter markers (?) which can happen with huge IN queries
+        //(e.g. where pid in (1, 2, 3, 4, ...)
+        // so in this case we:
+        // - create a temporary table
+        // - put all the 'IN' values into this table
+        // - rewrite the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
+        // - run the query
+        // - when the list iterator is closed, drop the temporary table
         WhereRewrite whereRewrite = new WhereRewrite();
         if (databaseType == MSSQL) {
             whereRewrite = rewriteConditionForLargeInClauses(whereEntityCondition);
@@ -862,6 +870,7 @@ public class GenericDAO {
             sqlP = new ReadOnlySQLProcessor(helperName);
         }
 
+        //Generate any temporary tables required for the query (MS SQL Server only)
         Set<String> temporaryTableNames = new HashSet<String>();
         if (whereRewrite.isRequired()) {
             for (InReplacement inReplacement : whereRewrite.getInReplacements()) {
@@ -874,6 +883,16 @@ public class GenericDAO {
         return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams, temporaryTableNames);
     }
 
+    /**
+     * Creates a temporary table (MS SQL Server only) and fills it with items that originally were from an
+     * 'IN' query.
+     *
+     * @param tableName the name of the temporary table, without the leading '#' character.
+     * @param items the items from the 'IN' query that need to be inserted into the temporary table.
+     * @param sqlP SQL procesor to use.
+     *
+     * @throws GenericEntityException if an error occurs.
+     */
     private void generateTemporaryTable(String tableName, Collection<?> items, SQLProcessor sqlP)
             throws GenericEntityException
     {
@@ -882,6 +901,7 @@ public class GenericDAO {
 
         //Determine the data type to create based on the item element type
         //Right now this only works for SQL server so we hardcode the SQL server data types
+        //And we only support numbers and strings at this point
         Object firstItem = items.iterator().next();
         String dataType;
         if (firstItem instanceof Number) {
@@ -905,6 +925,8 @@ public class GenericDAO {
                     } else {
                         stat.setObject(1, item);
                     }
+
+                    stat.executeUpdate();
                 } catch (SQLException e) {
                     throw new GenericEntityException(e.getMessage(), e);
                 }
@@ -915,8 +937,6 @@ public class GenericDAO {
                 stat.close();
             } catch (SQLException ignore) {}
         }
-
-
     }
 
     private String generateSqlServerTemporaryTableName()
@@ -945,6 +965,7 @@ public class GenericDAO {
             setFetchSize(sqlP, nonNullFindOptions.getFetchSize());
             sqlP.executeQuery();
 
+            //If we have any temporary tables they can be dropped after the list iterator is closed
             if (temporaryTableNames.isEmpty()) {
                 return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
             } else {
