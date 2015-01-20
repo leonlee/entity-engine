@@ -23,9 +23,9 @@
  */
 package org.ofbiz.core.entity;
 
-import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
@@ -45,7 +45,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
@@ -59,8 +58,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.xml.parsers.ParserConfigurationException;
 
-import static org.ofbiz.core.entity.EntityOperator.*;
+import static org.ofbiz.core.entity.EntityOperator.AND;
+import static org.ofbiz.core.entity.EntityOperator.LIKE;
+import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
 
 /**
@@ -84,7 +86,7 @@ public class GenericDelegator implements DelegatorInterface {
     private static final String MESSAGE = "Database is locked";
 
     // A cache of delegator names to instances
-    private static final Cache<String, GenericDelegator> delegatorCache =
+    private static final LoadingCache<String, GenericDelegator> delegatorCache =
             CacheBuilder.newBuilder().build(new CacheLoader<String, GenericDelegator>() {
                 @Override
                 public GenericDelegator load(final String delegatorName) throws GenericEntityException {
