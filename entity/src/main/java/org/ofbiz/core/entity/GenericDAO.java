@@ -110,7 +110,7 @@ public class GenericDAO {
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
 
-    private final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
+    private static final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
 
     public static synchronized void removeGenericDAO(String helperName)
     {
@@ -158,6 +158,11 @@ public class GenericDAO {
         this.datasourceInfo = datasourceInfo;
         this.limitHelper = limitHelper;
         this.countHelper = countHelper;
+    }
+
+    @VisibleForTesting
+    static void resetTemporaryTableCounter() {
+        temporaryTableCounter.set(1);
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -844,12 +849,15 @@ public class GenericDAO {
         // - rewrite the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
         // - run the query
         // - when the list iterator is closed, drop the temporary table
-        WhereRewrite whereRewrite = new WhereRewrite();
+        final WhereRewrite whereRewrite;
         if (databaseType == MSSQL) {
-            whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses(whereEntityCondition);
+            whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses(whereEntityCondition, modelEntity);
             if (whereRewrite.isRequired()) {
                 whereEntityCondition = whereRewrite.getNewCondition();
             }
+        }
+        else {
+            whereRewrite = new WhereRewrite();
         }
 
         if (Debug.verboseOn()) {
@@ -1107,13 +1115,27 @@ public class GenericDAO {
     }
 
     @VisibleForTesting
-    WhereRewrite rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition) {
+    WhereRewrite rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition, final ModelEntity modelEntity) {
 
+        if (whereEntityCondition == null) {
+            return new WhereRewrite();
+        }
+
+        //Collect parameters to check if we have too many
+        List<EntityConditionParam> params = new ArrayList<EntityConditionParam>();
+        whereEntityCondition.makeWhereString(modelEntity, params);
+
+        //If we have less than the maximum, allow the query to go through unaltered
+        if (params.size() <= MS_SQL_MAX_PARAMETER_COUNT) {
+            return new WhereRewrite();
+        }
+
+        //Otherwise change every IN fragment to use temporary tables
         final List<InReplacement> inReplacements = new ArrayList<InReplacement>();
 
         EntityCondition newCondition =  EntityConditionHelper.transformCondition(whereEntityCondition, new Function<EntityExpr, EntityCondition>() {
             public EntityCondition apply(final EntityExpr input) {
-                if (input.getOperator().equals(EntityOperator.IN) && input.getRhs() instanceof Collection && ((Collection<?>) input.getRhs()).size() > MS_SQL_MAX_PARAMETER_COUNT) {
+                if (input.getOperator().equals(EntityOperator.IN)) {
                     //Generate replacement
                     InReplacement inReplacement = new InReplacement(generateSqlServerTemporaryTableName(), (Collection<?>)input.getRhs());
                     inReplacements.add(inReplacement);
@@ -1126,9 +1148,6 @@ public class GenericDAO {
                 }
             }
         });
-
-        if (inReplacements.isEmpty())
-            return new WhereRewrite();
 
         return new WhereRewrite(newCondition, inReplacements);
     }
