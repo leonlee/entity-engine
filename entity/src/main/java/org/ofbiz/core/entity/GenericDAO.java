@@ -925,21 +925,22 @@ public class GenericDAO {
         PreparedStatement stat = sqlP.getPreparedStatement();
         try {
             for (Object item : items) {
-                try {
-                    if (item instanceof Number) {
-                        stat.setLong(1, ((Number) item).longValue());
-                    } else if (item instanceof String) {
-                        stat.setString(1, (String) item);
-                    } else {
-                        stat.setObject(1, item);
-                    }
-
-                    stat.executeUpdate();
-                } catch (SQLException e) {
-                    throw new GenericEntityException(e.getMessage(), e);
+                if (item instanceof Number) {
+                    stat.setLong(1, ((Number) item).longValue());
+                } else if (item instanceof String) {
+                    stat.setString(1, (String) item);
+                } else {
+                    stat.setObject(1, item);
                 }
+
+                stat.addBatch();
             }
+            stat.executeBatch();
         }
+        catch (SQLException e) {
+            throw new GenericEntityException(e.getMessage(), e);
+        }
+
         finally {
             try {
                 stat.close();
