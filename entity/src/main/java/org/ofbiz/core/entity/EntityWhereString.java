@@ -56,6 +56,11 @@ public class EntityWhereString extends EntityCondition {
         return sqlString;
     }
 
+    @Override
+    public int getParameterCount(ModelEntity modelEntity) {
+        return 0;
+    }
+
     public void checkCondition(ModelEntity modelEntity) throws GenericModelException {// no nothing, this is always assumed to be fine... could do funky SQL syntax checking, but hey this is a HACK anyway
     }
 

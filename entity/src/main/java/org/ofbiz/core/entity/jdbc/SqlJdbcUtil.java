@@ -271,6 +271,27 @@ public class SqlJdbcUtil {
         return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
     }
 
+    public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues)
+    {
+        if (modelFields == null || modelFields.isEmpty())
+        {
+            return 0;
+        }
+
+        int parameterCount = 0;
+
+        for (ModelField modelField : modelFields)
+        {
+            final Object fieldValue = fieldValues.get(modelField.getName());
+            if (fieldValue != null) //null fieldValue -> ... IS NULL
+            {
+                parameterCount++;
+            }
+        }
+
+        return parameterCount;
+    }
+
     /**
      * Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS NULL" if null, all separated by the
      * given operator.

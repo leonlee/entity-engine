@@ -26,6 +26,7 @@ package org.ofbiz.core.entity;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -62,4 +63,18 @@ public abstract class EntityCondition implements Serializable {
      * @throws GenericModelException if the condition is not met
      */
     public abstract void checkCondition(ModelEntity modelEntity) throws GenericModelException;
+
+    /**
+     * Returns the number of SQL parameters that would be generated for this condition.
+     *
+     * @param modelEntity the entity being queried for (required)
+     *
+     * @return the number of SQL parameters.
+     */
+    public int getParameterCount(ModelEntity modelEntity)
+    {
+        List<EntityConditionParam> paramList = new ArrayList<EntityConditionParam>();
+        makeWhereString(modelEntity, paramList);
+        return paramList.size();
+    }
 }

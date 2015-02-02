@@ -27,6 +27,7 @@ package org.ofbiz.core.entity;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -849,15 +850,15 @@ public class GenericDAO {
         // - rewrite the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
         // - run the query
         // - when the list iterator is closed, drop the temporary table
-        final WhereRewrite whereRewrite;
+        final Optional<WhereRewrite> whereRewrite;
         if (databaseType == MSSQL) {
             whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses(whereEntityCondition, modelEntity);
-            if (whereRewrite.isRequired()) {
-                whereEntityCondition = whereRewrite.getNewCondition();
+            if (whereRewrite.isPresent()) {
+                whereEntityCondition = whereRewrite.get().getNewCondition();
             }
         }
         else {
-            whereRewrite = new WhereRewrite();
+            whereRewrite = Optional.absent();
         }
 
         if (Debug.verboseOn()) {
@@ -872,7 +873,7 @@ public class GenericDAO {
                 havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams, databaseType);
 
         final SQLProcessor sqlP;
-        if (whereRewrite.isRequired()) {
+        if (whereRewrite.isPresent()) {
             sqlP = new SQLProcessor(helperName);
         } else {
             sqlP = new ReadOnlySQLProcessor(helperName);
@@ -880,8 +881,8 @@ public class GenericDAO {
 
         //Generate any temporary tables required for the query (MS SQL Server only)
         Set<String> temporaryTableNames = new HashSet<String>();
-        if (whereRewrite.isRequired()) {
-            for (InReplacement inReplacement : whereRewrite.getInReplacements()) {
+        if (whereRewrite.isPresent()) {
+            for (InReplacement inReplacement : whereRewrite.get().getInReplacements()) {
                 String temporaryTableName = inReplacement.getTemporaryTableName();
                 generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
                 temporaryTableNames.add(temporaryTableName);
@@ -1116,19 +1117,15 @@ public class GenericDAO {
     }
 
     @VisibleForTesting
-    WhereRewrite rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition, final ModelEntity modelEntity) {
+    Optional<WhereRewrite> rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition, final ModelEntity modelEntity) {
 
         if (whereEntityCondition == null) {
-            return new WhereRewrite();
+            return Optional.absent();
         }
 
-        //Collect parameters to check if we have too many
-        List<EntityConditionParam> params = new ArrayList<EntityConditionParam>();
-        whereEntityCondition.makeWhereString(modelEntity, params);
-
         //If we have less than the maximum, allow the query to go through unaltered
-        if (params.size() <= MS_SQL_MAX_PARAMETER_COUNT) {
-            return new WhereRewrite();
+        if (whereEntityCondition.getParameterCount(modelEntity) <= MS_SQL_MAX_PARAMETER_COUNT) {
+            return Optional.absent();
         }
 
         //Otherwise change every IN fragment to use temporary tables
@@ -1150,7 +1147,7 @@ public class GenericDAO {
             }
         });
 
-        return new WhereRewrite(newCondition, inReplacements);
+        return Optional.of(new WhereRewrite(newCondition, inReplacements));
     }
 
     static private EntityCondition rewriteConditionToSplitListsLargerThan(
@@ -1661,14 +1658,6 @@ public class GenericDAO {
         public WhereRewrite(EntityCondition condition, Collection<InReplacement> inReplacements) {
             this.condition = condition;
             this.inReplacements = inReplacements;
-        }
-
-        public WhereRewrite() {
-            this(null, Collections.<InReplacement>emptyList());
-        }
-
-        public boolean isRequired() {
-            return condition != null;
         }
 
         public EntityCondition getNewCondition() {

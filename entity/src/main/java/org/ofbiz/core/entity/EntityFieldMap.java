@@ -96,6 +96,22 @@ public class EntityFieldMap extends EntityCondition {
         }
     }
 
+    @Override
+    public int getParameterCount(ModelEntity modelEntity) {
+        List<ModelField> whereFields = new ArrayList<ModelField>();
+
+        if (fieldMap != null && fieldMap.size() > 0) {
+            for (int fi = 0; fi < modelEntity.getFieldsSize(); fi++) {
+                ModelField curField = modelEntity.getField(fi);
+
+                if (fieldMap.containsKey(curField.getName())) {
+                    whereFields.add(curField);
+                }
+            }
+        }
+        return SqlJdbcUtil.countWhereStringParametersFromFields(whereFields, fieldMap);
+    }
+
     public String toString() {
         return "[FieldMap::" + operator + "::" + fieldMap + "]";
     }
