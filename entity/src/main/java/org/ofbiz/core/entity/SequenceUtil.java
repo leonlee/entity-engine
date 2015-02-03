@@ -219,7 +219,7 @@ public class SequenceUtil {
 
                         rs1 = selectPstmt.getResultSet();
                         if (rs1.next()) {
-                            val1 = rs1.getInt(parentUtil.idColName);
+                            val1 = rs1.getLong(parentUtil.idColName);
                         } else {
                             Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] first select failed: trying to add " +
                                     "row, result set was empty for sequence: " + seqName, module);
@@ -258,7 +258,7 @@ public class SequenceUtil {
                         rs2 = selectPstmt.getResultSet();
 
                         if (rs2.next()) {
-                            val2 = rs2.getInt(parentUtil.idColName);
+                            val2 = rs2.getLong(parentUtil.idColName);
                         } else {
                             Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] second select failed: aborting, result " +
                                 "set was empty for sequence: " + seqName, module);
