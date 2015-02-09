@@ -1,5 +1,6 @@
 package org.ofbiz.core.entity;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -18,6 +19,7 @@ import org.ofbiz.core.entity.model.ModelFieldTypeReader;
 import org.ofbiz.core.entity.model.ModelViewEntity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -65,6 +68,7 @@ public class GenericDAOTest {
         MockitoAnnotations.initMocks(this);
         when(mockModelEntity.getTableName(mockDatasourceInfo)).thenReturn(TABLE_NAME);
         dao = new GenericDAO(HELPER_NAME, mockModelFieldTypeReader, mockDatasourceInfo, mockLimitHelper, mockCountHelper);
+        GenericDAO.resetTemporaryTableCounter();
     }
 
     @Test
@@ -288,12 +292,101 @@ public class GenericDAOTest {
 
         try
         {
-            dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions);
+            dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions, Collections.<String>emptySet());
             fail("An exception was expected to be thrown");
         }
         catch (Exception e)
         {
             // do nothing, we were expecting the exception
         }
+    }
+
+    @Test
+    public void testRewriteWithTemporaryTables()
+    {
+        List<Integer> ids = Collections.nCopies(2001, 1);
+        ModelEntity modelEntity = new ModelEntity();
+        ModelField field = new ModelField();
+        field.setName("test");
+        modelEntity.addField(field);
+        Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
+                                            new EntityExpr("test", IN, ids), modelEntity);
+
+        assertTrue("Rewrite should be required.", rewrite.isPresent());
+        Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
+        assertThat(replacements, hasSize(1));
+        GenericDAO.InReplacement replacement = replacements.iterator().next();
+        assertEquals("Wrong replacements.", ids, replacement.getItems());
+        assertEquals("Wrong temp table name.", "temp1", replacement.getTemporaryTableName());
+
+        EntityCondition rewrittenCondition = rewrite.get().getNewCondition();
+        assertThat(rewrittenCondition, instanceOf(EntityExpr.class));
+        EntityExpr rewrittenExpr = (EntityExpr)rewrittenCondition;
+        assertEquals("test", rewrittenExpr.getLhs());
+        assertEquals(IN, rewrittenExpr.getOperator());
+        assertThat(rewrittenExpr.getRhs(), instanceOf(EntityWhereString.class));
+        EntityWhereString rhs = (EntityWhereString)rewrittenExpr.getRhs();
+        assertEquals("select item from #temp1", rhs.sqlString);
+    }
+
+    @Test
+    public void testRewriteWithTemporaryTablesTwoSmallerInFragments()
+    {
+        List<Integer> ids = Collections.nCopies(1001, 1);
+        ModelEntity modelEntity = new ModelEntity();
+        ModelField field1 = new ModelField();
+        field1.setName("test1");
+        modelEntity.addField(field1);
+        ModelField field2 = new ModelField();
+        field2.setName("test2");
+        modelEntity.addField(field2);
+
+        EntityExpr expr1 = new EntityExpr("test1", IN, ids);
+        EntityExpr expr2 = new EntityExpr("test2", IN, ids);
+        EntityExprList outerExpr = new EntityExprList(ImmutableList.of(expr1, expr2), EntityOperator.OR);
+        Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
+                outerExpr, modelEntity);
+
+        assertTrue("Rewrite should be required.", rewrite.isPresent());
+        Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
+        assertThat(replacements, hasSize(2));
+        GenericDAO.InReplacement replacement = replacements.iterator().next();
+        assertEquals("Wrong replacements.", ids, replacement.getItems());
+        assertEquals("Wrong temp table name.", "temp1", replacement.getTemporaryTableName());
+
+        EntityCondition rewrittenCondition = rewrite.get().getNewCondition();
+        assertThat(rewrittenCondition, instanceOf(EntityConditionList.class));
+        EntityConditionList outerCondition = (EntityConditionList)rewrittenCondition;
+        assertEquals(2, outerCondition.getConditionListSize());
+        EntityExpr rewritten1 = (EntityExpr)outerCondition.getCondition(0);
+        EntityExpr rewritten2 = (EntityExpr)outerCondition.getCondition(1);
+
+        assertEquals("test1", rewritten1.getLhs());
+        assertEquals("test2", rewritten2.getLhs());
+        assertEquals(IN, rewritten1.getOperator());
+        assertEquals(IN, rewritten2.getOperator());
+        assertThat(rewritten1.getRhs(), instanceOf(EntityWhereString.class));
+        assertThat(rewritten2.getRhs(), instanceOf(EntityWhereString.class));
+        EntityWhereString rhs1 = (EntityWhereString)rewritten1.getRhs();
+        EntityWhereString rhs2 = (EntityWhereString)rewritten2.getRhs();
+        assertEquals("select item from #temp1", rhs1.sqlString);
+        assertEquals("select item from #temp2", rhs2.sqlString);
+    }
+
+    /**
+     * Temp table rewrite should not occur with too few parameters.
+     */
+    @Test
+    public void testNoRewriteWithNotEnoughParameters()
+    {
+        List<Integer> ids = Collections.nCopies(2000, 1);
+        ModelEntity modelEntity = new ModelEntity();
+        ModelField field = new ModelField();
+        field.setName("test");
+        modelEntity.addField(field);
+        Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
+                new EntityExpr("test", IN, ids), modelEntity);
+
+        assertFalse("Rewrite should not be required.", rewrite.isPresent());
     }
 }

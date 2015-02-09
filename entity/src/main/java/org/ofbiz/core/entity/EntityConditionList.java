@@ -94,6 +94,15 @@ public class EntityConditionList extends EntityCondition {
         }
     }
 
+    @Override
+    public int getParameterCount(ModelEntity modelEntity) {
+        int count = 0;
+        for (EntityCondition condition : conditionList) {
+            count += condition.getParameterCount(modelEntity);
+        }
+        return count;
+    }
+
     public String toString() {
         StringBuilder toStringBuilder = new StringBuilder();
 

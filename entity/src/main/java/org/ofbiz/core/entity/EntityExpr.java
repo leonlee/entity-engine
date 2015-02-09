@@ -28,6 +28,7 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -158,6 +159,8 @@ public class EntityExpr extends EntityCondition {
                                 }
                                 entityConditionParams.add(new EntityConditionParam(field, inObj));
                             }
+                        } else if (rhs instanceof EntityWhereString) {
+                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList()) + " ");
                         } else {
                             whereStringBuilder.append(" ? ");
 
@@ -207,6 +210,40 @@ public class EntityExpr extends EntityCondition {
             ((EntityCondition) lhs).checkCondition(modelEntity);
             ((EntityCondition) rhs).checkCondition(modelEntity);
         }
+    }
+
+    @Override
+    public int getParameterCount(ModelEntity modelEntity) {
+        int parameterCount = 0;
+        if (lhs instanceof String) {
+            ModelField field = modelEntity.getField((String) this.getLhs());
+
+            if (field != null) {
+                if (this.getRhs() != null) {
+                    // treat the IN operator as a special case, especially with a Collection rhs
+                    if (EntityOperator.IN.equals(this.getOperator())) {
+                       if (rhs instanceof Collection) {
+                           parameterCount += ((Collection<?>)rhs).size();
+                        } else if (rhs instanceof EntityWhereString) {
+                           parameterCount += ((EntityWhereString)rhs).getParameterCount(modelEntity);
+                        } else {
+                           parameterCount++;
+                        }
+                    } else {
+                        parameterCount++;
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException("ModelField with field name " + this.getLhs() + " not found");
+            }
+        } else if (lhs instanceof EntityCondition) {
+            // then rhs MUST also be an EntityCondition
+            EntityCondition lhsCondition = (EntityCondition)lhs;
+            EntityCondition rhsCondition = (EntityCondition)rhs;
+            parameterCount += lhsCondition.getParameterCount(modelEntity);
+            parameterCount += rhsCondition.getParameterCount(modelEntity);
+        }
+        return parameterCount;
     }
 
     public String toString() {

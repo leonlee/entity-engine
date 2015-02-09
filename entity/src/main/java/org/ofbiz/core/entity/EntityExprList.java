@@ -93,6 +93,15 @@ public class EntityExprList extends EntityCondition {
         }
     }
 
+    @Override
+    public int getParameterCount(ModelEntity modelEntity) {
+        int parameterCount = 0;
+        for (EntityExpr expr : exprList) {
+            parameterCount += expr.getParameterCount(modelEntity);
+        }
+        return parameterCount;
+    }
+
     public String toString() {
         StringBuilder toStringBuilder = new StringBuilder();
 
