@@ -641,25 +641,19 @@ public class SqlJdbcUtil {
                         {
                             binaryInput = new ByteArrayInputStream(bytes);
                         }
+                        obj = deserialize(binaryInput);
                     }
-                    else
-                    {
+                    else {
                         Blob blobLocator = rs.getBlob(ind);
-                        if (blobLocator != null && blobLocator.length() > 0)
-                        {
-                            binaryInput = blobLocator.getBinaryStream();
-                        }
-                    }
-                    if (null != binaryInput)
-                    {
-                        try {
-                            ObjectInputStream in = new ObjectInputStream(binaryInput);
-                            obj = in.readObject();
-                            in.close();
-                        } catch (IOException ex) {
-                            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
-                        } catch (ClassNotFoundException ex) {
-                            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
+                        if (blobLocator != null) {
+                            try {
+                                if (blobLocator.length() > 0) {
+                                    binaryInput = blobLocator.getBinaryStream();
+                                }
+                                obj = deserialize(binaryInput);
+                            } finally {
+                                blobLocator.free();
+                            }
                         }
                     }
                     entity.dangerousSetNoCheckButFast(curField, obj);
@@ -726,6 +720,26 @@ public class SqlJdbcUtil {
             }
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while getting value: ", sqle);
+        }
+    }
+
+    private static Object deserialize(InputStream binaryInput) throws GenericDataSourceException {
+        if (binaryInput == null)
+        {
+            return null;
+        }
+        try {
+            ObjectInputStream in = new ObjectInputStream(binaryInput);
+            try {
+                return in.readObject();
+            }
+            finally {
+                in.close();
+            }
+        } catch (IOException ex) {
+            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
+        } catch (ClassNotFoundException ex) {
+            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
         }
     }
 
