@@ -64,6 +64,7 @@ public class DBCPConnectionFactory {
     protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
     private static final String PROP_JMX = "jmx";
+    private static final String PROP_MBEANNAME = "mbeanName";
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
@@ -284,17 +285,17 @@ public class DBCPConnectionFactory {
         //
         // this is the semantics that the ManagedBasicDataSourceFactory used to create a Mbean in the first place
         //
-//        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
-//        {
-//            String mBeanName = dbcpProperties.getProperty(BasicDataSourceFactory.PROP_MBEANNAME);
-//            try
-//            {
-//                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
-//            }
-//            catch (Exception e)
-//            {
-//                log.error("Exception un-registering MBean data source " + mBeanName, e);
-//            }
-//        }
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
+            try
+            {
+                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
+            }
+            catch (Exception e)
+            {
+                log.error("Exception un-registering MBean data source " + mBeanName, e);
+            }
+        }
     }
 }
