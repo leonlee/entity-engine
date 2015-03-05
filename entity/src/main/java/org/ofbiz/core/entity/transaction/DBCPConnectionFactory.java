@@ -25,9 +25,8 @@ package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.base.Joiner;
-import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.commons.dbcp.BasicDataSourceFactory;
-import org.apache.commons.dbcp.ManagedBasicDataSourceFactory;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
@@ -123,10 +122,10 @@ public class DBCPConnectionFactory {
 
     private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
     {
-        dataSource.setMaxActive(poolInfo.getMaxSize());
+        dataSource.setMaxTotal(poolInfo.getMaxSize());
         dataSource.setMinIdle(poolInfo.getMinSize());
         dataSource.setMaxIdle(poolInfo.getMaxIdle());
-        dataSource.setMaxWait(poolInfo.getMaxWait());
+        dataSource.setMaxWaitMillis(poolInfo.getMaxWait());
         dataSource.setDefaultCatalog(poolInfo.getDefaultCatalog());
 
         if (poolInfo.getInitialSize() != null)
@@ -163,7 +162,7 @@ public class DBCPConnectionFactory {
         }
         if (poolInfo.getRemoveAbandoned() != null)
         {
-            dataSource.setRemoveAbandoned(poolInfo.getRemoveAbandoned());
+            dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandoned());
             if (poolInfo.getRemoveAbandonedTimeout() != null)
             {
                 dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
@@ -188,10 +187,10 @@ public class DBCPConnectionFactory {
         Properties dbcpProperties = loadDbcpProperties();
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
-            return (BasicDataSource) ManagedBasicDataSourceFactory.createDataSource(dbcpProperties);
+            return BasicDataSourceFactory.createDataSource(dbcpProperties);
         }
 
-        return (BasicDataSource) BasicDataSourceFactory.createDataSource(dbcpProperties);
+        return BasicDataSourceFactory.createDataSource(dbcpProperties);
     }
 
     private static String toString(Properties properties)
@@ -285,17 +284,17 @@ public class DBCPConnectionFactory {
         //
         // this is the semantics that the ManagedBasicDataSourceFactory used to create a Mbean in the first place
         //
-        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
-        {
-            String mBeanName = dbcpProperties.getProperty(ManagedBasicDataSourceFactory.PROP_MBEANNAME);
-            try
-            {
-                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
-            }
-            catch (Exception e)
-            {
-                log.error("Exception un-registering MBean data source " + mBeanName, e);
-            }
-        }
+//        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+//        {
+//            String mBeanName = dbcpProperties.getProperty(BasicDataSourceFactory.PROP_MBEANNAME);
+//            try
+//            {
+//                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
+//            }
+//            catch (Exception e)
+//            {
+//                log.error("Exception un-registering MBean data source " + mBeanName, e);
+//            }
+//        }
     }
 }

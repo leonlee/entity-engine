@@ -1,6 +1,6 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 
 import javax.sql.DataSource;
@@ -41,7 +41,7 @@ public class ConnectionPoolInfoSynthesizer
     private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds)
     {
         return new ConnectionPoolInfo(
-                bds.getMaxActive(), bds.getMinIdle(), bds.getMaxWait(),
+                bds.getMaxTotal(), bds.getMinIdle(), bds.getMaxWaitMillis(),
                 -1, -1,
                 -1, -1,
                 bds.getValidationQuery(),
