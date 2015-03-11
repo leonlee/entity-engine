@@ -234,7 +234,7 @@ public class GenericDAOTest {
         final ModelField mockSelectField = mock(ModelField.class);
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
         final int maxResults = 40;
-        final int offset = 2000;
+        final long offset = (Long.MAX_VALUE - 10);
         when(mockFindOptions.getMaxResults()).thenReturn(maxResults);
         when(mockFindOptions.getOffset()).thenReturn(offset);
         final List<ModelField> selectFields = singletonList(mockSelectField);

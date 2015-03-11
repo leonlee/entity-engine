@@ -1501,9 +1501,9 @@ public class GenericDAO {
         return dbUtil.induceModelFromDb(messages);
     }
 
-    public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+    public long count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
             final EntityFindOptions findOptions) throws GenericEntityException{
-        int count = 0;
+        long count = 0;
         if (modelEntity == null) {
             return count;
         }
@@ -1550,7 +1550,7 @@ public class GenericDAO {
         try {
             resultSet = sqlP.executeQuery();
             if (resultSet.next()) {
-                count = resultSet.getInt(1);
+                count = resultSet.getLong(1);
             }
         }
         catch (SQLException e) {

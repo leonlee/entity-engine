@@ -224,7 +224,7 @@ public interface GenericHelper {
      * fieldName  it will be ignored as select count (distinct *) makes no sense
      * @return the number of rows that match the query
      */
-    int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+    long count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
             final EntityFindOptions findOptions)
         throws GenericEntityException;
 

@@ -1100,7 +1100,8 @@ public class GenericDelegator implements DelegatorInterface {
      *                    count (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
-    public int countByAnd(final String entityName, final String fieldName,
+    @Override
+    public long countByAnd(final String entityName, final String fieldName,
                           final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
         checkIfLocked();
@@ -1123,7 +1124,8 @@ public class GenericDelegator implements DelegatorInterface {
      *                    <code>select count (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
-    public int countByOr(final String entityName, final String fieldName,
+    @Override
+    public long countByOr(final String entityName, final String fieldName,
                          final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
         checkIfLocked();
@@ -1147,7 +1149,8 @@ public class GenericDelegator implements DelegatorInterface {
      *                        (distinct *)</code> makes no sense
      * @return the number of rows that match the query
      */
-    public int countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
+    @Override
+    public long countByCondition(final String entityName, final String fieldName, final EntityCondition entityCondition,
                                 final EntityFindOptions findOptions)
             throws GenericEntityException {
         checkIfLocked();
@@ -1165,7 +1168,8 @@ public class GenericDelegator implements DelegatorInterface {
      * @param entityName The Name of the Entity as defined in the entity model XML file
      * @return the number of rows in the table
      */
-    public int countAll(final String entityName) throws GenericEntityException {
+    @Override
+    public long countAll(final String entityName) throws GenericEntityException {
         checkIfLocked();
         return countByCondition(entityName, null, null, null);
     }

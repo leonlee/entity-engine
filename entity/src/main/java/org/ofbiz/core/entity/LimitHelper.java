@@ -26,10 +26,10 @@ public class LimitHelper
         return addLimitClause(sql, selectFields, 0, maxResults);
     }
 
-    public String addLimitClause(final String sql, final List<ModelField> selectFields, final int offset, final int maxResults)
+    public String addLimitClause(final String sql, final List<ModelField> selectFields, final long offset, final int maxResults)
     {
         StringBuilder sqlBuilder = new StringBuilder();
-        final int limit = maxResults + offset;
+        final long limit = maxResults + offset;
         if (offset < 0)
         {
             throw new IllegalArgumentException(String.format("Offset %d is invalid, it  must be a valid non-negative integer.", offset));
@@ -87,7 +87,7 @@ public class LimitHelper
         return sqlBuilder.toString();
     }
 
-    private String buildTopClause(String sql, int maxResults)
+    private String buildTopClause(String sql, long maxResults)
     {
         StringBuilder sqlBuilder = new StringBuilder(sql);
         sqlBuilder.insert(SELECT_OFFSET, "TOP " + maxResults + " ");
@@ -136,11 +136,11 @@ public class LimitHelper
     {
 
         private final List<ModelField> selectFields;
-        private final int offset;
-        private final int limit;
+        private final long offset;
+        private final long limit;
         private final String sql;
 
-        public OracleClauseBuilder(final List<ModelField> selectFields, final int offset, final int limit, final String sql)
+        public OracleClauseBuilder(final List<ModelField> selectFields, final long offset, final long limit, final String sql)
         {
 
             this.selectFields = selectFields;
@@ -194,12 +194,12 @@ public class LimitHelper
     private class MSSQLClauseBuilder
     {
         private final List<ModelField> selectFields;
-        private final int offset;
-        private final int limit;
+        private final long offset;
+        private final long limit;
         private final String sql;
         private final static String ROW_NUMBER_FUNCTION = ", ROW_NUMBER() OVER (";
 
-        public MSSQLClauseBuilder(final List<ModelField> selectFields, final int offset, final int limit, final String sql)
+        public MSSQLClauseBuilder(final List<ModelField> selectFields, final long offset, final long limit, final String sql)
         {
 
             this.selectFields = selectFields;

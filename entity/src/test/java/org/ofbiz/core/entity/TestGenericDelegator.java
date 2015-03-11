@@ -102,7 +102,7 @@ public class TestGenericDelegator
     @Test
     public void initialEntityCountShouldBeZero() throws Exception {
         // Invoke
-        final int projectCount = genericDelegator.countAll(PROJECT_ENTITY);
+        final long projectCount = genericDelegator.countAll(PROJECT_ENTITY);
 
         // Check
         assertEquals(0, projectCount);
@@ -118,7 +118,7 @@ public class TestGenericDelegator
         final GenericValue project = genericDelegator.create(PROJECT_ENTITY, fields);
 
         // Invoke
-        final int projectCount = genericDelegator.countAll(PROJECT_ENTITY);
+        final long projectCount = genericDelegator.countAll(PROJECT_ENTITY);
 
         // Check
         assertEquals(1, projectCount);

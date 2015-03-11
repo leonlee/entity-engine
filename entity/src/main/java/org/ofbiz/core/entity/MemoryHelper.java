@@ -553,7 +553,8 @@ public class MemoryHelper implements GenericHelper {
     }
 
     //Ignore Find Options for this implementation
-    public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
+    @Override
+    public long count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
             final EntityFindOptions findOptions) throws GenericEntityException  {
         Map<GenericEntity, GenericValue> entityCache = cache.get(modelEntity.getEntityName());
         if (entityCache == null) {

@@ -145,13 +145,13 @@ public interface DelegatorInterface {
 
     List<GenericValue> findByCondition(String entityName, EntityCondition entityCondition, Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;
 
-    int countByAnd(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException;
+    long countByAnd(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException;
 
-    int countByOr(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException;
+    long countByOr(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException;
 
-    int countByCondition(String entityName, String fieldName, EntityCondition condition, EntityFindOptions findOptions) throws GenericEntityException;
+    long countByCondition(String entityName, String fieldName, EntityCondition condition, EntityFindOptions findOptions) throws GenericEntityException;
 
-    int countAll(String entityName) throws GenericEntityException;
+    long countAll(String entityName) throws GenericEntityException;
 
     EntityListIterator findListIteratorByCondition(String entityName, EntityCondition entityCondition,
         Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;

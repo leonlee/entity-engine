@@ -118,7 +118,7 @@ public class EntityFindOptions implements Serializable {
     protected boolean distinct;
     /** maximum results to obtain from DB - negative values mean no limit */
     protected int maxResults = -1;
-    protected int offset;
+    protected long offset;
     protected int fetchSize = -1;
 
     /**
@@ -146,8 +146,11 @@ public class EntityFindOptions implements Serializable {
      */
     @Deprecated
     @SuppressWarnings("unused")
-    public EntityFindOptions(final boolean specifyTypeAndConcurrency, final int resultSetType,
-            final int resultSetConcurrency, final boolean distinct, final int maxResults)
+    public EntityFindOptions(final boolean specifyTypeAndConcurrency,
+            final int resultSetType,
+            final int resultSetConcurrency,
+            final boolean distinct,
+            final int maxResults)
     {
         this.specifyTypeAndConcurrency = specifyTypeAndConcurrency;
         this.resultSetType = resultSetType;
@@ -291,7 +294,7 @@ public class EntityFindOptions implements Serializable {
      *
      * @return see above
      */
-    public int getOffset() {
+    public long getOffset() {
         return offset;
     }
 
@@ -302,7 +305,7 @@ public class EntityFindOptions implements Serializable {
      * @param offset if negative, this method does nothing
      */
     @SuppressWarnings("unused")
-    public void setOffset(final int offset) {
+    public void setOffset(final long offset) {
         if (offset >= 0) {
             this.offset = offset;
         }
@@ -451,7 +454,7 @@ public class EntityFindOptions implements Serializable {
      * @return {@code this}, for convenient use as a chained builder
      */
     @SuppressWarnings("unused")
-    public EntityFindOptions range(final int offset, final int maxResults) {
+    public EntityFindOptions range(final long offset, final int maxResults) {
         this.maxResults = maxResults;
         this.offset = offset;
         return this;
