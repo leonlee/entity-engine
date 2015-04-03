@@ -23,7 +23,6 @@
  */
 package org.ofbiz.core.entity.model;
 
-import com.google.common.collect.ImmutableList;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
