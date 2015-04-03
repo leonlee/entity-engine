@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity.model;
 
+import com.google.common.collect.ImmutableList;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
@@ -57,6 +58,18 @@ public class ModelField {
 
     /** Default Constructor */
     public ModelField() {}
+
+    public ModelField(String name, String type, String colName, boolean isPk, List<String> validators)
+    {
+        this.name = UtilXml.checkEmpty(name);
+        this.type = UtilXml.checkEmpty(type);
+        this.colName = UtilXml.checkEmpty(colName, ModelUtil.javaNameToDbName(this.name));
+        this.isPk = isPk;
+        if (validators != null)
+        {
+            this.validators.addAll(validators);
+        }
+    }
 
     /** XML Constructor */
     public ModelField(Element fieldElement) {

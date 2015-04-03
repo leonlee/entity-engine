@@ -25,9 +25,9 @@
 package org.ofbiz.core.entity;
 
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.StringUtils;
+import com.google.common.collect.Maps;
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.entity.jdbc.SqlJdbcUtil.FieldType;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -39,18 +39,25 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Observable;
+import java.util.Set;
 import java.util.TreeSet;
+
+import static org.apache.commons.codec.binary.Base64.decodeBase64;
+import static org.ofbiz.core.entity.jdbc.SerializationUtil.deserialize;
+import static org.ofbiz.core.entity.jdbc.SerializationUtil.encodeBase64;
+import static org.ofbiz.core.entity.jdbc.SerializationUtil.serialize;
+import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.getFieldType;
 
 
 /**
@@ -73,12 +80,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     /** Reference to an instance of GenericDelegator used to do some basic operations on this entity value. If null various methods in this class will fail. This is automatically set by the GenericDelegator for all GenericValue objects instantiated through it. You may set this manually for objects you instantiate manually, but it is optional. */
     public transient GenericDelegator internalDelegator = null;
 
-    /** Contains the fields for this entity. Note that this should always be a
-     *  HashMap to allow for two things: non-synchronized reads (synchronized
-     *  writes are done through synchronized setters) and being able to store
-     *  null values. Null values are important because with them we can distinguish
-     *  between desiring to set a value to null and desiring to not modify the
-     *  current value on an update.
+    /** Contains the fields for this entity.
      */
     protected Map<String, Object> fields;
 
@@ -181,7 +183,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return modelEntity;
     }
 
-    /** Get the GenericDelegator instance that created this value object and that is repsonsible for it.
+    /** Get the GenericDelegator instance that created this value object and that is responsible for it.
      *@return GenericDelegator object
      */
     public GenericDelegator getDelegator() {
@@ -194,7 +196,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return internalDelegator;
     }
 
-    /** Set the GenericDelegator instance that created this value object and that is repsonsible for it. */
+    /** Set the GenericDelegator instance that created this value object and that is responsible for it. */
     public void setDelegator(final GenericDelegator internalDelegator) {
         if (internalDelegator == null) {
             return;
@@ -215,19 +217,18 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
 
     /** Returns true if the entity contains all of the primary key fields, but NO others. */
     public boolean isPrimaryKey() {
-        TreeSet<String> fieldKeys = new TreeSet<String>(fields.keySet());
+        Set<String> fieldKeys = new TreeSet<String>(fields.keySet());
 
         for (int i = 0; i < getModelEntity().getPksSize(); i++) {
             if (!fieldKeys.contains(getModelEntity().getPk(i).getName())) return false;
             fieldKeys.remove(getModelEntity().getPk(i).getName());
         }
-        if (!fieldKeys.isEmpty()) return false;
-        return true;
+        return fieldKeys.isEmpty();
     }
 
     /** Returns true if the entity contains all of the primary key fields. */
     public boolean containsPrimaryKey() {
-        TreeSet<String> fieldKeys = new TreeSet<String>(fields.keySet());
+        Set<String> fieldKeys = new TreeSet<String>(fields.keySet());
 
         for (int i = 0; i < getModelEntity().getPksSize(); i++) {
             if (!fieldKeys.contains(getModelEntity().getPk(i).getName())) return false;
@@ -255,7 +256,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      * @param setIfNull specifies whether or not to set the value if it is null
      * @return the previous value of the given field (whether updated or not)
      */
-    public synchronized Object set(final String field, final Object value, final boolean setIfNull) {
+    public Object set(final String field, final Object value, final boolean setIfNull) {
         final ModelField modelField = getModelEntity().getField(field);
         if (modelField == null) {
             throw new IllegalArgumentException("[GenericEntity.set] \"" + field + "\" is not a field of " + entityName);
@@ -296,71 +297,94 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
     public void dangerousSetNoCheckButFast(ModelField modelField, Object value) {
-        if (modelField == null) throw new IllegalArgumentException("Cannot set field with a null modelField");
         this.fields.put(modelField.getName(), value);
     }
 
     public Object dangerousGetNoCheckButFast(ModelField modelField) {
-        if (modelField == null) throw new IllegalArgumentException("Cannot get field with a null modelField");
         return this.fields.get(modelField.getName());
     }
 
-    /** Sets the named field to the passed value, converting the value from a String to the correct type using <code>Type.valueOf()</code>
+    /** Sets the named field to the passed value, converting the value from a String to the correct type using
+     * {@code Type.valueOf()} or similar.
+     * <p>
+     * <strong>WARNING</strong>: calling this for an {@link FieldType#OBJECT OBJECT} field is ambiguous, because
+     * you could mean either that the {@code String} is the Base64-encoded representation of the object and
+     * should be be deserialized or that the {@code String} is the actual object to be stored.  Since this
+     * method is intended for use in restoring the entity from an XML export, it assumes that the value is
+     * the Base64-encoding of an arbitrary object and attempts to deserialize it.  If this is not what is
+     * intended, then it is up to the caller to use {@link #set(String, Object)} for those fields, instead.
+     * </p>
+     *
      * @param name The field name to set
      * @param value The String value to convert and set
      */
-    public void setString(String name, String value) {
+    public void setString(String name, String value)
+    {
         ModelField field = getModelEntity().getField(name);
+        if (field == null)
+        {
+            set(name, value); // this will get an error in the set() method...
+            throw new Error("Not reached");  // Make null checking happy
+        }
 
-        if (field == null) set(name, value); // this will get an error in the set() method...
-
-        ModelFieldType type = getModelFieldType(field.getType());
-        String fieldType = type.getJavaType();
-
-        try {
-            switch (SqlJdbcUtil.getType(fieldType)) {
-            case 1:
+        final ModelFieldType type = getModelFieldType(field.getType());
+        final FieldType fieldType = SqlJdbcUtil.getFieldType(type.getJavaType());
+        switch (fieldType)
+        {
+            case STRING:
                 set(name, value);
                 break;
 
-            case 2:
-                set(name, java.sql.Timestamp.valueOf(value));
+            case TIMESTAMP:
+                set(name, Timestamp.valueOf(value));
                 break;
 
-            case 3:
-                set(name, java.sql.Time.valueOf(value));
+            case TIME:
+                set(name, Time.valueOf(value));
                 break;
 
-            case 4:
-                set(name, java.sql.Date.valueOf(value));
+            case DATE:
+                set(name, Date.valueOf(value));
                 break;
 
-            case 5:
+            case INTEGER:
                 set(name, Integer.valueOf(value));
                 break;
 
-            case 6:
+            case LONG:
                 set(name, Long.valueOf(value));
                 break;
 
-            case 7:
+            case FLOAT:
                 set(name, Float.valueOf(value));
                 break;
 
-            case 8:
+            case DOUBLE:
                 set(name, Double.valueOf(value));
                 break;
 
-            case 9:
+            case BOOLEAN:
                 set(name, Boolean.valueOf(value));
                 break;
 
-            case 10:
+            case OBJECT:
+                set(name, deserialize(decodeBase64(value)));
+                break;
+
+            case CLOB:
                 set(name, value);
                 break;
-            }
-        } catch (GenericNotImplementedException ex) {
-            throw new IllegalArgumentException(ex.getMessage());
+
+            case BLOB:
+                set(name, decodeBase64(value));
+                break;
+
+            case BYTE_ARRAY:
+                set(name, decodeBase64(value));
+                break;
+
+            default:
+                throw new UnsupportedOperationException("Unsupported type: " + fieldType);
         }
     }
 
@@ -406,16 +430,16 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             return object.toString();
     }
 
-    public java.sql.Timestamp getTimestamp(String name) {
-        return (java.sql.Timestamp) get(name);
+    public Timestamp getTimestamp(String name) {
+        return (Timestamp) get(name);
     }
 
-    public java.sql.Time getTime(String name) {
-        return (java.sql.Time) get(name);
+    public Time getTime(String name) {
+        return (Time) get(name);
     }
 
-    public java.sql.Date getDate(String name) {
-        return (java.sql.Date) get(name);
+    public Date getDate(String name) {
+        return (Date) get(name);
     }
 
     public Integer getInteger(String name) {
@@ -556,15 +580,12 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      */
     public Map<String, Object> getFields(Collection<String> keysofFields) {
         if (keysofFields == null) return null;
-        Iterator<String> keys = keysofFields.iterator();
-        String aKey = null;
-        HashMap<String, Object> aMap = new HashMap<String, Object>();
-
-        while (keys.hasNext()) {
-            aKey = keys.next();
-            aMap.put(aKey, this.fields.get(aKey));
+        Map<String, Object> map = Maps.newHashMapWithExpectedSize(keysofFields.size());
+        for (String key : keysofFields)
+        {
+            map.put(key, fields.get(key));
         }
-        return aMap;
+        return map;
     }
 
     /**
@@ -572,7 +593,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      *
      * @param newFieldValues map of valid field names to new values; if null, this method does nothing
      */
-    public synchronized void setFields(final Map<? extends String, ?> newFieldValues) {
+    public void setFields(final Map<? extends String, ?> newFieldValues) {
         if (newFieldValues == null) {
             return;
         }
@@ -613,18 +634,12 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
     public static int addToXmlDocument(Collection<GenericValue> values, Document document) {
-        if (values == null) return 0;
-        if (document == null) return 0;
+        if (values == null || document == null) return 0;
 
         Element rootElement = document.getDocumentElement();
-
-        Iterator<GenericValue> iter = values.iterator();
         int numberAdded = 0;
-
-        while (iter.hasNext()) {
-            GenericValue value = iter.next();
+        for (GenericEntity value : values) {
             Element valueElement = value.makeXmlElement(document);
-
             rootElement.appendChild(valueElement);
             numberAdded++;
         }
@@ -648,14 +663,13 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         Element element = null;
 
         if (prefix == null) prefix = "";
-        if (document != null) element = document.createElement(prefix + this.getEntityName());
+        if (document != null) element = document.createElement(prefix + entityName);
         // else element = new ElementImpl(null, this.getEntityName());
         if (element == null) return null;
 
         ModelEntity modelEntity = this.getModelEntity();
 
         Iterator<ModelField> modelFields = modelEntity.getFieldsIterator();
-
         while (modelFields.hasNext()) {
             ModelField modelField = modelFields.next();
             String name = modelField.getName();
@@ -664,11 +678,10 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             if (value != null) {
                 if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
                     // Atlassian FIX: Escape the CDATA sections (if any) in the value of the string
-                    UtilXml.addChildElementCDATAValue(element, name, escapeCDATA(value), document);
+                    UtilXml.addChildElementCDATAValue(element, name, escapeCData(value), document);
                 } else {
                     element.setAttribute(name, value);
                 }
-            } else {// do nothing will null values
             }
         }
 
@@ -680,16 +693,13 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      *@param prefix A prefix to put in front of the entity name in the tag name
      */
     public void writeXmlText(PrintWriter writer, String prefix) {
-        final int indent = 4;
-
         if (prefix == null) prefix = "";
         ModelEntity modelEntity = this.getModelEntity();
         ModelFieldTypeReader mtr = ModelFieldTypeReader.getModelFieldTypeReader(getDelegator().getEntityHelperName(modelEntity));
 
-        for (int i = 0; i < indent; i++) writer.print(' ');
-        writer.print('<');
+        writer.print("    <");
         writer.print(prefix);
-        writer.print(this.getEntityName());
+        writer.print(entityName);
 
         // write attributes immediately and if a CDATA element is needed, put those in a Map for now
         Map<String, String> cdataMap = new HashMap<String, String>();
@@ -702,28 +712,31 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             String value;
 
             ModelFieldType mft = mtr.getModelFieldType(modelField.getType());
-            // For blobs encode as Base64
-            if (mft.getJavaType().equals("java.lang.Object"))
+            FieldType fieldType = getFieldType(mft.getJavaType());
+
+            switch (fieldType)
             {
-                // need to serialise to Base64
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try
-                {
-                    new ObjectOutputStream(baos).writeObject(get(name));
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
-                value = StringUtils.newStringUtf8(Base64.encodeBase64(baos.toByteArray(), true));
-                cdataMap.put(name, value);
-                continue;
-            }
-            else
-            {
-                value = this.getString(name);
+                case OBJECT:
+                    value = encodeBase64(serialize(get(name)));
+                    if (value != null)
+                    {
+                        cdataMap.put(name, value);
+                    }
+                    continue;
+
+                case BLOB:
+                    throw new UnsupportedOperationException("These can't be exported, yet");
+
+                case BYTE_ARRAY:
+                    value = encodeBase64((byte[])get(name));
+                    if (value != null)
+                    {
+                        cdataMap.put(name, value);
+                    }
+                    continue;
             }
 
+            value = getString(name);
             if (value != null) {
                 if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
                     cdataMap.put(name, value);
@@ -733,24 +746,22 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
                     writer.print("=\"");
                     // encode the value...
                     writer.print(UtilFormatOut.encodeXmlValue(value));
-                    writer.print("\"");
+                    writer.print('"');
                 }
-            } else {// do nothing will null values
             }
         }
 
-        if (cdataMap.size() == 0) {
+        if (cdataMap.isEmpty()) {
             writer.println("/>");
         } else {
             writer.println('>');
 
             for (Entry<String, String> entry : cdataMap.entrySet()) {
-                for (int i = 0; i < (indent << 1); i++) writer.print(' ');
-                writer.print('<');
+                writer.print("        <");
                 writer.print(entry.getKey());
                 writer.print("><![CDATA[");
                 // Atlassian FIX: Escape the CDATA sections (if any) in the value of the string
-                writeCdata(writer, entry.getValue());
+                writer.print(escapeCData(entry.getValue()));
                 // Do not just print the value as CDATA section might have to be escaped.
                 // writer.print((String) entry.getValue());
                 writer.print("]]></");
@@ -759,58 +770,38 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             }
 
             // don't forget to close the entity.
-            for (int i = 0; i < indent; i++) writer.print(' ');
-            writer.print("</");
-            writer.print(this.getEntityName());
+            writer.print("    </");
+            writer.print(entityName);
             writer.println(">");
         }
     }
 
-
-    /**
-     * Splits the string on the ']]>' characters so that they can be escaped and do not cause
-     * broken CDATA sections.
-     * @param s
-     */
-    private void writeCdata(PrintWriter writer, String s)
-    {
-        if (s == null)
-        {
-            writer.print(s);
-            return;
-        }
-
-        int index = 0;
-        int oldIndex = 0;
-        while ((index = s.indexOf("]]>", oldIndex)) > -1)
-        {
-            writer.print(s.substring(oldIndex, index));
-            oldIndex = index + 3;
-            writer.print("]]]]><![CDATA[>");
-        }
-
-        writer.print(s.substring(oldIndex));
-    }
-
-    private String escapeCDATA(String s)
+    private static String escapeCData(String s)
     {
         if (s == null)
         {
             return null;
         }
 
-        StringBuilder buffer = new StringBuilder();
-        int index = 0;
-        int oldIndex = 0;
-        while ((index = s.indexOf("]]>", oldIndex)) > -1)
+        // If there are no occurrences of "]]>", then we can use the string as-is.
+        int index = s.indexOf("]]>");
+        if (index == -1)
         {
-            buffer.append(s.substring(oldIndex, index));
-            oldIndex = index + 3;
-            buffer.append("]]]]><![CDATA[>");
+            return s;
         }
 
-        buffer.append(s.substring(oldIndex));
-        return buffer.toString();
+        // Otherwise, we must split it into multiple CDATA sections to protect that sequence.
+        final StringBuilder sb = new StringBuilder(s.length() + 64);
+        int mark = 0;
+        do
+        {
+            sb.append(s, mark, index).append("]]]]><![CDATA[>");
+            mark = index + 3;
+            index = s.indexOf("]]>", mark);
+        }
+        while (index != -1);
+
+        return sb.append(s, mark, s.length()).toString();
     }
 
 
@@ -975,7 +966,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return this.set(key, value, true);
     }
 
-    public void putAll(java.util.Map<? extends String, ?> map) {
+    public void putAll(Map<? extends String, ?> map) {
         this.setFields(map);
     }
 
@@ -987,7 +978,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return this.get((String) key);
     }
 
-    public java.util.Set<String> keySet() {
+    public Set<String> keySet() {
         return this.fields.keySet();
     }
 
@@ -995,7 +986,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return this.fields.isEmpty();
     }
 
-    public java.util.Collection<Object> values() {
+    public Collection<Object> values() {
         return this.fields.values();
     }
 

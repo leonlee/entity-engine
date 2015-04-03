@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.collect.ImmutableMap;
 import org.ofbiz.core.entity.EntityConditionParam;
 import org.ofbiz.core.entity.GenericDAO;
 import org.ofbiz.core.entity.GenericDataSourceException;
@@ -45,16 +46,25 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectStreamClass;
 import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static org.ofbiz.core.entity.jdbc.SerializationUtil.deserialize;
+
 
 /**
  * GenericDAO Utility methods for general tasks
@@ -71,22 +81,16 @@ public class SqlJdbcUtil {
 
     public static final String module = GenericDAO.class.getName();
 
-    private static final int BOOLEAN = 9;
-
     /**
-     * Indicates whether the given field type represents a Boolean field. Equivalent to calling {@link #getType(String)}
-     * and comparing the result to the int value for a Boolean.
+     * Indicates whether the given field type represents a Boolean field.
+     * This convenience method is exactly equivalent to
+     * {@link FieldType#matches(String) FieldType.BOOLEAN.matches(fieldType)}
      *
      * @param fieldType the field type to check
      * @return see above
      */
     public static boolean isBoolean(final String fieldType) {
-        try {
-            return getType(fieldType) == BOOLEAN;
-        }
-        catch (GenericNotImplementedException e) {
-            throw new UnsupportedOperationException(e);
-        }
+        return FieldType.BOOLEAN.matches(fieldType);
     }
 
     /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
@@ -129,7 +133,7 @@ public class SqlJdbcUtil {
                     if (i == 0) {
                         // this is the first referenced member alias, so keep track of it for future use...
                         restOfStatement.append(makeViewTable(linkEntity, datasourceInfo));
-                        restOfStatement.append(" ");
+                        restOfStatement.append(' ');
                         restOfStatement.append(viewLink.getEntityAlias());
 
                         joinedAliasSet.add(viewLink.getEntityAlias());
@@ -149,7 +153,7 @@ public class SqlJdbcUtil {
                     }
 
                     restOfStatement.append(makeViewTable(relLinkEntity, datasourceInfo));
-                    restOfStatement.append(" ");
+                    restOfStatement.append(' ');
                     restOfStatement.append(viewLink.getRelEntityAlias());
                     restOfStatement.append(" ON ");
 
@@ -174,28 +178,21 @@ public class SqlJdbcUtil {
                             condBuffer.append(" AND ");
                         }
                         condBuffer.append(aliasToUse);
-                        condBuffer.append(".");
+                        condBuffer.append('.');
                         condBuffer.append(filterColName(linkField.getColName()));
 
                         condBuffer.append(" = ");
 
                         if (constValue.length() > 0) {
-                            //
-                            // Our limitation is that we don't escape quotes in the constant value.
-                            // This is OK because its us declaring the constant value in the model xml
-                            // and we will make sure there is NO quotes.
-                            //
-                            // but just to be sure we go bang if a quote is there
-                            if (constValue.indexOf('\'') >= 0) {
-                                throw new GenericModelException("The declared const-value in the key-map contains a single quote");
-                            }
-                            condBuffer.append("'");
+                            // Quoting is not handled here because ModelKeyMap's constructor guards us against
+                            // single-quotes in the value.
+                            condBuffer.append('\'');
                             condBuffer.append(constValue);
-                            condBuffer.append("'");
+                            condBuffer.append('\'');
                         } else {
                             ModelField relLinkField = relLinkEntity.getField(keyMap.getRelFieldName());
                             condBuffer.append(viewLink.getRelEntityAlias());
-                            condBuffer.append(".");
+                            condBuffer.append('.');
                             condBuffer.append(filterColName(relLinkField.getColName()));
                         }
                     }
@@ -210,21 +207,21 @@ public class SqlJdbcUtil {
 
                 sql.append(openParens.toString());
                 sql.append(restOfStatement.toString());
-                
+
                 // handle tables not included in view-link
                 Iterator<? extends Map.Entry<String, ?>> meIter = modelViewEntity.getMemberModelMemberEntities().entrySet().iterator();
                 boolean fromEmpty = restOfStatement.length() == 0;
-                
+
                 while (meIter.hasNext()) {
                     Map.Entry<String, ?> entry = meIter.next();
                     ModelEntity fromEntity = modelViewEntity.getMemberModelEntity(entry.getKey());
-                    
+
                     if (!joinedAliasSet.contains(entry.getKey())) {
                         if (!fromEmpty) sql.append(", ");
                         fromEmpty = false;
 
                         sql.append(makeViewTable(fromEntity, datasourceInfo));
-                        sql.append(" ");
+                        sql.append(' ');
                         sql.append(entry.getKey());
                     }
                 }
@@ -239,7 +236,7 @@ public class SqlJdbcUtil {
                     ModelEntity fromEntity = modelViewEntity.getMemberModelEntity(entry.getKey());
 
                     sql.append(makeViewTable(fromEntity, datasourceInfo));
-                    sql.append(" ");
+                    sql.append(' ');
                     sql.append(entry.getKey());
                     if (meIter.hasNext()) sql.append(", ");
                 }
@@ -279,7 +276,6 @@ public class SqlJdbcUtil {
         }
 
         int parameterCount = 0;
-
         for (ModelField modelField : modelFields)
         {
             final Object fieldValue = fieldValues.get(modelField.getName());
@@ -381,7 +377,7 @@ public class SqlJdbcUtil {
 
                     ModelEntity linkEntity = modelViewEntity.getMemberModelEntity(viewLink.getEntityAlias());
                     ModelEntity relLinkEntity = modelViewEntity.getMemberModelEntity(viewLink.getRelEntityAlias());
-                    
+
                     if (linkEntity == null) {
                         throw new GenericEntityException("Link entity not found with alias: " + viewLink.getEntityAlias() + " for entity: " + modelViewEntity.getEntityName());
                     }
@@ -402,7 +398,7 @@ public class SqlJdbcUtil {
                             whereString.append(" AND ");
                         }
                         whereString.append(viewLink.getEntityAlias());
-                        whereString.append(".");
+                        whereString.append('.');
                         whereString.append(filterColName(linkField.getColName()));
 
                         //We throw an exception because we didn't implement this for theta joins. This should not be
@@ -417,13 +413,13 @@ public class SqlJdbcUtil {
 
                         // NOTE: not testing if original table is optional, ONLY if related table is optional; otherwise things get really ugly...
                         // if (isOracleStyle && linkMemberEntity.getOptional()) whereString.append(" (+) ");
-                        if (isMssqlStyle && viewLink.isRelOptional()) whereString.append("*");
-                        whereString.append("=");
+                        if (isMssqlStyle && viewLink.isRelOptional()) whereString.append('*');
+                        whereString.append('=');
                         // if (isMssqlStyle && linkMemberEntity.getOptional()) whereString.append("*");
                         if (isOracleStyle && viewLink.isRelOptional()) whereString.append(" (+) ");
 
                         whereString.append(viewLink.getRelEntityAlias());
-                        whereString.append(".");
+                        whereString.append('.');
                         whereString.append(filterColName(relLinkField.getColName()));
                    }
                 }
@@ -432,7 +428,7 @@ public class SqlJdbcUtil {
             }
 
             if (whereString.length() > 0) {
-                return "(" + whereString.toString() + ")";
+                return '(' + whereString.toString() + ')';
             }
         }
         return "";
@@ -444,7 +440,7 @@ public class SqlJdbcUtil {
 
     public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy, boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
         StringBuilder sql = new StringBuilder("");
-        String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + ".") : "";
+        String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + '.') : "";
 
         if (orderBy != null && orderBy.size() > 0) {
             if (Debug.verboseOn()) Debug.logVerbose("Order by list contains: " + orderBy.size() + " entries.", module);
@@ -454,7 +450,7 @@ public class SqlJdbcUtil {
                 String ext = null;
 
                 // check for ASC/DESC
-                int spaceIdx = keyName.indexOf(" ");
+                int spaceIdx = keyName.indexOf(' ');
 
                 if (spaceIdx > 0) {
                     ext = keyName.substring(spaceIdx);
@@ -462,7 +458,7 @@ public class SqlJdbcUtil {
                 }
                 // optional way -/+
                 if (keyName.startsWith("-") || keyName.startsWith("+")) {
-                    ext = keyName.startsWith("-") ? " DESC" : " ASC";
+                    ext = (keyName.charAt(0) == '-') ? " DESC" : " ASC";
                     keyName = keyName.substring(1);
                 }
 
@@ -492,7 +488,7 @@ public class SqlJdbcUtil {
                 }
             }
         }
-        if (Debug.verboseOn()) Debug.logVerbose("makeOrderByClause: " + sql.toString(), module);
+        if (Debug.verboseOn()) Debug.logVerbose("makeOrderByClause: " + sql, module);
         return sql.toString();
     }
 
@@ -521,8 +517,8 @@ public class SqlJdbcUtil {
                 sql.append(" GROUP BY ");
                 sql.append(groupByString);
             }
-            
-            sql.append(")");
+
+            sql.append(')');
             return sql.toString();
         } else {
             return modelEntity.getTableName(datasourceInfo);
@@ -604,76 +600,33 @@ public class SqlJdbcUtil {
 
         if (mft == null) {
             throw new GenericModelException("definition fieldType " + curField.getType() + " not found, cannot getValue for field " +
-                    entity.getEntityName() + "." + curField.getName() + ".");
+                    entity.getEntityName() + '.' + curField.getName() + '.');
         }
         String fieldType = mft.getJavaType();
 
         try {
             // checking to see if the object is null is really only necessary for the numbers
-            int typeValue = getType(fieldType);
+            FieldType type = getFieldType(fieldType);
 
-            if (typeValue <= 4 || typeValue == 10 || typeValue == 11) {
-                switch (typeValue) {
-                case 1:
+            switch (type)
+            {
+                case STRING:
                     entity.dangerousSetNoCheckButFast(curField, rs.getString(ind));
                     break;
 
-                case 2:
+                case TIMESTAMP:
                     entity.dangerousSetNoCheckButFast(curField, rs.getTimestamp(ind));
                     break;
 
-                case 3:
+                case TIME:
                     entity.dangerousSetNoCheckButFast(curField, rs.getTime(ind));
                     break;
 
-                case 4:
+                case DATE:
                     entity.dangerousSetNoCheckButFast(curField, rs.getDate(ind));
                     break;
 
-                case 10:
-                    InputStream binaryInput = null;
-                    Object obj = null;
-                    // add support for Postgresql BYTEA datatypes and SQL Server IMAGE
-                    if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType()))
-                    {
-                        byte[] bytes = rs.getBytes(ind);
-                        if (bytes != null && bytes.length > 0)
-                        {
-                            binaryInput = new ByteArrayInputStream(bytes);
-                        }
-                    }
-                    else
-                    {
-                        Blob blobLocator = rs.getBlob(ind);
-                        if (blobLocator != null && blobLocator.length() > 0)
-                        {
-                            binaryInput = blobLocator.getBinaryStream();
-                        }
-                    }
-                    if (null != binaryInput)
-                    {
-                        try {
-                            ObjectInputStream in = new ObjectInputStream(binaryInput);
-                            obj = in.readObject();
-                            in.close();
-                        } catch (IOException ex) {
-                            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
-                        } catch (ClassNotFoundException ex) {
-                            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
-                        }
-                    }
-                    entity.dangerousSetNoCheckButFast(curField, obj);
-                    break;
-                case 11:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
-                    break;
-                case 12:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getClob(ind));
-                    break;
-                }
-            } else {
-                switch (typeValue) {
-                case 5:
+                case INTEGER:
                     int intValue = rs.getInt(ind);
 
                     if (rs.wasNull()) {
@@ -683,7 +636,7 @@ public class SqlJdbcUtil {
                     }
                     break;
 
-                case 6:
+                case LONG:
                     long longValue = rs.getLong(ind);
 
                     if (rs.wasNull()) {
@@ -693,7 +646,7 @@ public class SqlJdbcUtil {
                     }
                     break;
 
-                case 7:
+                case FLOAT:
                     float floatValue = rs.getFloat(ind);
 
                     if (rs.wasNull()) {
@@ -703,7 +656,7 @@ public class SqlJdbcUtil {
                     }
                     break;
 
-                case 8:
+                case DOUBLE:
                     double doubleValue = rs.getDouble(ind);
 
                     if (rs.wasNull()) {
@@ -722,11 +675,86 @@ public class SqlJdbcUtil {
                         entity.dangerousSetNoCheckButFast(curField, booleanValue);
                     }
                     break;
-                }
+
+                case OBJECT:
+                    if (isByteArrayType(mft)) {
+                        entity.dangerousSetNoCheckButFast(curField, getByteArrayAsObject(rs, ind));
+                    } else {
+                        entity.dangerousSetNoCheckButFast(curField, getBlobAsObject(rs, ind));
+                    }
+                    break;
+
+                case BLOB:
+                    entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
+                    break;
+
+                case CLOB:
+                    entity.dangerousSetNoCheckButFast(curField, rs.getClob(ind));
+                    break;
+
+                case BYTE_ARRAY:
+                    if (isByteArrayType(mft)) {
+                        entity.dangerousSetNoCheckButFast(curField, rs.getBytes(ind));
+                    } else {
+                        entity.dangerousSetNoCheckButFast(curField, getBlobAsByteArray(rs, ind));
+                    }
+                    break;
             }
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while getting value: ", sqle);
         }
+    }
+
+    @Nullable
+    private static Object getByteArrayAsObject(final ResultSet rs, final int ind)
+            throws SQLException, GenericDataSourceException
+    {
+        final byte[] bytes = rs.getBytes(ind);
+        return (bytes != null && bytes.length > 0) ? deserialize(new ByteArrayInputStream(bytes)) : null;
+    }
+
+    @Nullable
+    private static Object getBlobAsObject(final ResultSet rs, final int ind)
+            throws SQLException, GenericDataSourceException
+    {
+        final Blob blob = rs.getBlob(ind);
+        if (blob == null || blob.length() <= 0L) {
+            return null;
+        }
+        final InputStream is = blob.getBinaryStream();
+        try {
+            return deserialize(is);
+        } finally {
+            try {
+                is.close();
+            } catch (IOException ioe) {
+                Debug.logWarning(ioe);
+            }
+        }
+    }
+
+    @Nullable
+    private static byte[] getBlobAsByteArray(final ResultSet rs, final int ind) throws SQLException
+    {
+        final Blob blob = rs.getBlob(ind);
+        if (blob == null)
+        {
+            return null;
+        }
+
+        final long len = blob.length();
+        if (len <= 0L)
+        {
+            return null;
+        }
+
+        if (blob.length() > Integer.MAX_VALUE)
+        {
+            throw new SQLException("BLOB exceeds Integer.MAX_VALUE in length; cannot be retrieved as byte array");
+        }
+
+        // Yes, the starting position really is 1L.  Because JDBC.  *sigh*
+        return blob.getBytes(1L, (int)len);
     }
 
     public static void setValue(SQLProcessor sqlP, ModelField modelField, GenericEntity entity, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
@@ -740,7 +768,7 @@ public class SqlJdbcUtil {
 
         if (mft == null) {
             throw new GenericModelException("GenericDAO.getValue: definition fieldType " + modelField.getType() + " not found, cannot setValue for field " +
-                    entityName + "." + modelField.getName() + ".");
+                    entityName + '.' + modelField.getName() + '.');
         }
 
         String fieldType = mft.getJavaType();
@@ -753,7 +781,7 @@ public class SqlJdbcUtil {
                 // this is only an info level message because under normal operation for most JDBC 
                 // drivers this will be okay, but if not then the JDBC driver will throw an exception
                 // and when lower debug levels are on this should help give more info on what happened
-                if (Debug.verboseOn()) Debug.logVerbose("type of field " + entityName + "." + modelField.getName() +
+                if (Debug.verboseOn()) Debug.logVerbose("type of field " + entityName + '.' + modelField.getName() +
                         " is " + fieldClassName + ", was expecting " + mft.getJavaType() + "; this may " +
                         "indicate an error in the configuration or in the class, and may result " +
                         "in an SQL-Java data conversion error. Will use the real field type: " +
@@ -763,46 +791,46 @@ public class SqlJdbcUtil {
         }
 
         try {
-            int typeValue = getType(fieldType);
+            FieldType type = getFieldType(fieldType);
 
-            switch (typeValue) {
-            case 1:
+            switch (type) {
+            case STRING:
                 sqlP.setValue((String) fieldValue);
                 break;
 
-            case 2:
-                sqlP.setValue((java.sql.Timestamp) fieldValue);
+            case TIMESTAMP:
+                sqlP.setValue((Timestamp) fieldValue);
                 break;
 
-            case 3:
-                sqlP.setValue((java.sql.Time) fieldValue);
+            case TIME:
+                sqlP.setValue((Time) fieldValue);
                 break;
 
-            case 4:
-                sqlP.setValue((java.sql.Date) fieldValue);
+            case DATE:
+                sqlP.setValue((Date) fieldValue);
                 break;
 
-            case 5:
-                sqlP.setValue((java.lang.Integer) fieldValue);
+            case INTEGER:
+                sqlP.setValue((Integer) fieldValue);
                 break;
 
-            case 6:
-                sqlP.setValue((java.lang.Long) fieldValue);
+            case LONG:
+                sqlP.setValue((Long) fieldValue);
                 break;
 
-            case 7:
-                sqlP.setValue((java.lang.Float) fieldValue);
+            case FLOAT:
+                sqlP.setValue((Float) fieldValue);
                 break;
 
-            case 8:
-                sqlP.setValue((java.lang.Double) fieldValue);
+            case DOUBLE:
+                sqlP.setValue((Double) fieldValue);
                 break;
 
             case BOOLEAN:
-                sqlP.setValue((java.lang.Boolean) fieldValue);
+                sqlP.setValue((Boolean) fieldValue);
                 break;
 
-            case 10:
+            case OBJECT:
                 if (isByteArrayType(mft))
                 {
                     sqlP.setByteArrayData(fieldValue);
@@ -812,21 +840,44 @@ public class SqlJdbcUtil {
                     sqlP.setBinaryStream(fieldValue);
                 }
                 break;
-                
-            case 11:
+
+            case BLOB:
                 if (fieldValue == null && isByteArrayType(mft))
                 {
                     sqlP.setByteArrayData(null);
                 }
-                else
+                else if (fieldValue instanceof Blob)
                 {
                     sqlP.setValue((Blob)fieldValue);
                 }
+                else
+                {
+                    sqlP.setBlob((byte[])fieldValue);
+                }
                 break;
-            
-            case 12:
-                sqlP.setValue((java.sql.Clob) fieldValue);
+
+            case CLOB:
+                if (fieldValue instanceof Clob)
+                {
+                    sqlP.setValue((Clob)fieldValue);
+                }
+                else
+                {
+                    sqlP.setValue((String)fieldValue);
+                }
                 break;
+
+            case BYTE_ARRAY:
+                if (isByteArrayType(mft))
+                {
+                    sqlP.setByteArray((byte[]) fieldValue);
+                }
+                else
+                {
+                    sqlP.setBlob((byte[]) fieldValue);
+                }
+                break;
+
             }
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while setting value: ", sqle);
@@ -838,40 +889,155 @@ public class SqlJdbcUtil {
         return "BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType());
     }
 
-    protected static HashMap<String, Integer> fieldTypeMap = new HashMap<String, Integer>();
-    static {
-        fieldTypeMap.put("java.lang.String", 1);
-        fieldTypeMap.put("String", 1);
-        fieldTypeMap.put("java.sql.Timestamp", 2);
-        fieldTypeMap.put("Timestamp", 2);
-        fieldTypeMap.put("java.sql.Time", 3);
-        fieldTypeMap.put("Time", 3);
-        fieldTypeMap.put("java.sql.Date", 4);
-        fieldTypeMap.put("Date", 4);
-        fieldTypeMap.put("java.lang.Integer", 5);
-        fieldTypeMap.put("Integer", 5);
-        fieldTypeMap.put("java.lang.Long", 6);
-        fieldTypeMap.put("Long", 6);
-        fieldTypeMap.put("java.lang.Float", 7);
-        fieldTypeMap.put("Float", 7);
-        fieldTypeMap.put("java.lang.Double", 8);
-        fieldTypeMap.put("Double", 8);
-        fieldTypeMap.put("java.lang.Boolean", BOOLEAN);
-        fieldTypeMap.put("Boolean", BOOLEAN);
-        fieldTypeMap.put("java.lang.Object", 10);
-        fieldTypeMap.put("Object", 10);
-        fieldTypeMap.put("java.sql.Blob", 11);
-        fieldTypeMap.put("Blob", 11);
-        fieldTypeMap.put("java.sql.Clob", 12);
-        fieldTypeMap.put("Clob", 12);
+    private static final Map<String, FieldType> JAVA_TYPE_MAP = FieldType.buildJavaTypeMap();
+
+    public static int getType(String javaType) throws GenericNotImplementedException {
+        final FieldType type = JAVA_TYPE_MAP.get(javaType);
+        if (type == null) {
+            throw new IllegalArgumentException("Java type " + javaType + " not currently supported. Sorry.");
+        }
+        return type.ordinal() + 1;
     }
 
-    public static int getType(String fieldType) throws GenericNotImplementedException {
-        Integer val = fieldTypeMap.get(fieldType);
-
-        if (val == null) {
-            throw new GenericNotImplementedException("Java type " + fieldType + " not currently supported. Sorry.");
+    /**
+     * Does the same thing as {@link #getType(String)}, except that it returns an {@code enum} type instead
+     * of a magic number and doesn't throw a checked exception.
+     *
+     * @param javaType the java type to resolve to a field type
+     * @return the matching field type
+     * @throws IllegalArgumentException if the java class type is unsupported
+     * @since 1.0.65
+     */
+    @Nonnull
+    public static FieldType getFieldType(String javaType) {
+        final FieldType type = JAVA_TYPE_MAP.get(javaType);
+        if (type == null) {
+            throw new IllegalArgumentException("Java type " + javaType + " not currently supported. Sorry.");
         }
-        return val;
+        return type;
+    }
+    
+
+    public enum FieldType
+    {
+        /**
+         * The underlying field type is something like VARCHAR or TEXT that can hold variable-length
+         * character data.
+         */
+        STRING("String", "java.lang.String"),
+
+        /**
+         * The database field type maps to {@link Timestamp}.
+         */
+        TIMESTAMP("Timestamp", "java.sql.Timestamp"),
+
+        /**
+         * The database field type maps to {@link Time}.
+         */
+        TIME("Time", "java.sql.Time"),
+
+        /**
+         * The database field type maps to {@link Date}.
+         */
+        DATE("Date", "java.sql.Date"),
+
+        /**
+         * The database field has an integer type with sufficient precision to hold {@code int} values.
+         */
+        INTEGER("Integer", "java.lang.Integer"),
+
+        /**
+         * The database field has an integer type with sufficient precision to hold {@code long} values.
+         */
+        LONG("Long", "java.lang.Long"),
+
+        /**
+         * The database field has a floating-point decimal type with sufficient precision to hold {@code float} values.
+         */
+        FLOAT("Float", "java.lang.Float"),
+
+        /**
+         * The database field has a floating-point decimal type with sufficient precision to hold {@code double} values.
+         */
+        DOUBLE("Double", "java.lang.Double"),
+
+        /**
+         * The database field can hold a boolean value.  On most databases that just means it is a {@code BOOLEAN}
+         * column, but some databases do not have this type and emulate it with something else, such as a
+         * {@code TINYINT} on MySQL.
+         */
+        BOOLEAN("Boolean", "java.lang.Boolean"),
+
+        /**
+         * The database field holds serialized Object data.  The underlying database type is a BLOB on most
+         * databases; however, it is {@code BYTEA} for Postgres and {@code IMAGE} for SqlServer.  The bytes
+         * stored are the serialized form of the object assigned to the field, and the value is implicitly
+         * deserialized when the value is read back in.  Classes are loaded using the default behaviour of
+         * {@link ObjectInputStream#resolveClass(ObjectStreamClass)}, and no mechanism is exposed for changing
+         * this behaviour.  If your field requires any kind of customized serialization, then {@link #BYTE_ARRAY}
+         * should be preferred.
+         */
+        OBJECT("Object", "java.lang.Object"),
+
+        /**
+         * The database field is a {@code CLOB} or whatever the nearest equivalent is.
+         */
+        CLOB("Clob", "java.sql.Clob"),
+
+        /**
+         * The database field is a {@code BLOB} or whatever the nearest equivalent is.  BLOB field support
+         * is untested and probably incomplete.
+         */
+        BLOB("Blob", "java.sql.Blob"),
+
+        /**
+         * The database field holds arbitrary binary data.  The underlying database type is a BLOB on most
+         * databases; however, it is {@code BYTEA} for Postgres and {@code IMAGE} for SqlServer.  Unlike
+         * {@link #OBJECT}, this type does not perform any implicit serialization or deserialization of
+         * its data.
+         */
+        BYTE_ARRAY("byte[]", "[B");
+
+        private final String[] javaTypes;
+
+        // The array never escapes this class, so the warning is meaningless
+        @SuppressWarnings("AssignmentToCollectionOrArrayFieldFromParameter")
+        FieldType(String... javaTypes)
+        {
+            this.javaTypes = javaTypes;
+        }
+
+        /**
+         * Returns {@code true} if the specified java type corresponds to this field type.
+         * Calling {@code fieldType.matches(javaType)} is equivalent to {@code fieldType == getFieldType(javaType)},
+         * except that it does not throw an exception when {@code javaType} is {@code null} or unrecognized.
+         *
+         * @param javaType the proposed java type
+         * @return {@code true} if the specified java type corresponds to this field type; {@code false} otherwise.
+         */
+        public boolean matches(final String javaType)
+        {
+            for (String myJavaType : javaTypes)
+            {
+                if (myJavaType.equals(javaType))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static Map<String,FieldType> buildJavaTypeMap()
+        {
+            final ImmutableMap.Builder<String, FieldType> map = ImmutableMap.builder();
+            for (FieldType fieldType : FieldType.values())
+            {
+                for (String javaType : fieldType.javaTypes)
+                {
+                    map.put(javaType, fieldType);
+                }
+            }
+            return map.build();
+        }
     }
 }
