@@ -54,6 +54,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -896,7 +897,7 @@ public class SqlJdbcUtil {
         if (type == null) {
             throw new IllegalArgumentException("Java type " + javaType + " not currently supported. Sorry.");
         }
-        return type.ordinal() + 1;
+        return type.getOldTypeNumber();
     }
 
     /**
@@ -924,49 +925,49 @@ public class SqlJdbcUtil {
          * The underlying field type is something like VARCHAR or TEXT that can hold variable-length
          * character data.
          */
-        STRING("String", "java.lang.String"),
+        STRING(1, "String", "java.lang.String"),
 
         /**
          * The database field type maps to {@link Timestamp}.
          */
-        TIMESTAMP("Timestamp", "java.sql.Timestamp"),
+        TIMESTAMP(2, "Timestamp", "java.sql.Timestamp"),
 
         /**
          * The database field type maps to {@link Time}.
          */
-        TIME("Time", "java.sql.Time"),
+        TIME(3, "Time", "java.sql.Time"),
 
         /**
          * The database field type maps to {@link Date}.
          */
-        DATE("Date", "java.sql.Date"),
+        DATE(4, "Date", "java.sql.Date"),
 
         /**
          * The database field has an integer type with sufficient precision to hold {@code int} values.
          */
-        INTEGER("Integer", "java.lang.Integer"),
+        INTEGER(5, "Integer", "java.lang.Integer"),
 
         /**
          * The database field has an integer type with sufficient precision to hold {@code long} values.
          */
-        LONG("Long", "java.lang.Long"),
+        LONG(6, "Long", "java.lang.Long"),
 
         /**
          * The database field has a floating-point decimal type with sufficient precision to hold {@code float} values.
          */
-        FLOAT("Float", "java.lang.Float"),
+        FLOAT(7, "Float", "java.lang.Float"),
 
         /**
          * The database field has a floating-point decimal type with sufficient precision to hold {@code double} values.
          */
-        DOUBLE("Double", "java.lang.Double"),
+        DOUBLE(8, "Double", "java.lang.Double"),
 
         /**
          * The database field can hold a boolean value.  On most databases that just means it is a {@code BOOLEAN}
          * column, but some databases do not have this type and emulate it with something else, such as a
          * {@code TINYINT} on MySQL.
          */
-        BOOLEAN("Boolean", "java.lang.Boolean"),
+        BOOLEAN(9, "Boolean", "java.lang.Boolean"),
 
         /**
          * The database field holds serialized Object data.  The underlying database type is a BLOB on most
@@ -977,18 +978,18 @@ public class SqlJdbcUtil {
          * this behaviour.  If your field requires any kind of customized serialization, then {@link #BYTE_ARRAY}
          * should be preferred.
          */
-        OBJECT("Object", "java.lang.Object"),
+        OBJECT(10, "Object", "java.lang.Object"),
 
         /**
          * The database field is a {@code CLOB} or whatever the nearest equivalent is.
          */
-        CLOB("Clob", "java.sql.Clob"),
+        CLOB(11, "Clob", "java.sql.Clob"),
 
         /**
          * The database field is a {@code BLOB} or whatever the nearest equivalent is.  BLOB field support
          * is untested and probably incomplete.
          */
-        BLOB("Blob", "java.sql.Blob"),
+        BLOB(12, "Blob", "java.sql.Blob"),
 
         /**
          * The database field holds arbitrary binary data.  The underlying database type is a BLOB on most
@@ -996,15 +997,32 @@ public class SqlJdbcUtil {
          * {@link #OBJECT}, this type does not perform any implicit serialization or deserialization of
          * its data.
          */
-        BYTE_ARRAY("byte[]", "[B");
+        BYTE_ARRAY(13, "byte[]", "[B");
 
+        private final int oldTypeNumber;
         private final String[] javaTypes;
 
         // The array never escapes this class, so the warning is meaningless
         @SuppressWarnings("AssignmentToCollectionOrArrayFieldFromParameter")
-        FieldType(String... javaTypes)
+        FieldType(final int oldTypeNumber, String... javaTypes)
         {
+            this.oldTypeNumber = oldTypeNumber;
             this.javaTypes = javaTypes;
+        }
+
+        /**
+         * Returns the old hardcoded type number that is associated with this field type, such as {@code 5} for
+         * {@code INTEGER}.
+         * <p>
+         * The use of magic numbers to communicate this information is error-prone and heavily discouraged.  Stick
+         * with the {@code FieldType} enum itself wherever possible.
+         * </p>
+         *
+         * @return the old hardcoded type number that is associated with this field type.
+         */
+        public int getOldTypeNumber()
+        {
+            return oldTypeNumber;
         }
 
         /**
@@ -1029,9 +1047,17 @@ public class SqlJdbcUtil {
 
         static Map<String,FieldType> buildJavaTypeMap()
         {
+            final Map<Integer,FieldType> typeNumberMapping = new HashMap<Integer, FieldType>(64);
             final ImmutableMap.Builder<String, FieldType> map = ImmutableMap.builder();
             for (FieldType fieldType : FieldType.values())
             {
+                final FieldType collision = typeNumberMapping.put(fieldType.oldTypeNumber, fieldType);
+                if (collision != null)
+                {
+                    throw new IllegalStateException("FieldType '" + fieldType + "' uses the same value that '" +
+                            collision + "' uses for its old type number: " + fieldType.oldTypeNumber);
+                }
+
                 for (String javaType : fieldType.javaTypes)
                 {
                     map.put(javaType, fieldType);
