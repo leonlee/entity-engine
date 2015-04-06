@@ -61,7 +61,7 @@ import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.getFieldType;
 
 
 /**
- * Generic Entity Value Object - Handles persisntence for any defined entity.
+ * Generic Entity Value Object - Handles persistence for any defined entity.
  * <p>Note that this class extends <code>Observable</code> to achieve change notification for
  * <code>Observer</code>s. Whenever a field changes the name of the field will be passed to
  * the <code>notifyObservers()</code> method, and through that to the <code>update()</code> method of each
@@ -74,7 +74,7 @@ import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.getFieldType;
  */
 public class GenericEntity extends Observable implements Map<String, Object>, Serializable, Comparable<GenericEntity>, Cloneable {
 
-    /** Name of the GenericDelegator, used to reget the GenericDelegator when deserialized */
+    /** Name of the GenericDelegator, used to re-get the GenericDelegator when deserialized */
     public String delegatorName = null;
 
     /** Reference to an instance of GenericDelegator used to do some basic operations on this entity value. If null various methods in this class will fail. This is automatically set by the GenericDelegator for all GenericValue objects instantiated through it. You may set this manually for objects you instantiate manually, but it is optional. */
@@ -323,8 +323,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         ModelField field = getModelEntity().getField(name);
         if (field == null)
         {
-            set(name, value); // this will get an error in the set() method...
-            throw new Error("Not reached");  // Make null checking happy
+            throw new IllegalArgumentException("[GenericEntity.setString] \"" + name + "\" is not a field of " + entityName);
         }
 
         final ModelFieldType type = getModelFieldType(field.getType());
