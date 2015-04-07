@@ -58,6 +58,18 @@ public class ModelField {
     /** Default Constructor */
     public ModelField() {}
 
+    public ModelField(String name, String type, String colName, boolean isPk, List<String> validators)
+    {
+        this.name = UtilXml.checkEmpty(name);
+        this.type = UtilXml.checkEmpty(type);
+        this.colName = UtilXml.checkEmpty(colName, ModelUtil.javaNameToDbName(this.name));
+        this.isPk = isPk;
+        if (validators != null)
+        {
+            this.validators.addAll(validators);
+        }
+    }
+
     /** XML Constructor */
     public ModelField(Element fieldElement) {
         this.type = UtilXml.checkEmpty(fieldElement.getAttribute("type"));

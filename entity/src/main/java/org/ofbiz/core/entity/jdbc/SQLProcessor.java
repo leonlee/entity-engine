@@ -1069,6 +1069,52 @@ public class SQLProcessor
     }
 
     /**
+     * Set the next binding variable of the currently active prepared statement.
+     * Note that this *must* actually be a BLOB field, not a PostgreSQL BYTEA or
+     * SQLServer IMAGE field.  Use {@link #setByteArray(byte[])} to set those!
+     *
+     * @param field the field value
+     * @throws SQLException if something goes wrong
+     */
+    public void setBlob(byte[] field) throws SQLException
+    {
+        if (field != null)
+        {
+            _ps.setBinaryStream(_ind, new ByteArrayInputStream(field));
+        }
+        else
+        {
+            _ps.setNull(_ind, Types.BLOB);
+        }
+
+        recordParameter("BLOB");
+        _ind++;
+    }
+
+    /**
+     * Set the next binding variable of the currently active prepared statement.
+     * Note that this *must* actually be a PostgreSQL BYTEA or SQLServer IMAGE field.
+     * Use {@link #setBlob(byte[])} to set BLOBs!
+     *
+     * @param field the field value
+     * @throws SQLException if something goes wrong
+     */
+    public void setByteArray(byte[] field) throws SQLException
+    {
+        if (field != null)
+        {
+            _ps.setBytes(_ind, field);
+        }
+        else
+        {
+            _ps.setNull(_ind, Types.LONGVARBINARY);
+        }
+
+        recordParameter("byte[]");
+        _ind++;
+    }
+
+    /**
      * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
      * to a BLOB that is stored as an OID SQL type.
      *
@@ -1095,7 +1141,7 @@ public class SQLProcessor
             }
             catch (IOException ex)
             {
-                throw new SQLException(ex.getMessage());
+                throw new SQLException(ex);
             }
         }
         else
@@ -1131,7 +1177,7 @@ public class SQLProcessor
             }
             catch (IOException ex)
             {
-                throw new SQLException(ex.getMessage());
+                throw new SQLException(ex);
             }
         }
         else

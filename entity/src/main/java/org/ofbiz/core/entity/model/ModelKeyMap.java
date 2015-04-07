@@ -54,6 +54,11 @@ public class ModelKeyMap {
         // if no relFieldName is specified, use the fieldName; this is convenient for when they are named the same, which is often the case
         this.relFieldName = UtilXml.checkEmpty(keyMapElement.getAttribute("rel-field-name"), this.fieldName);
         this.constValue = UtilXml.checkEmpty(keyMapElement.getAttribute("const-value"));
+        if (this.constValue.indexOf('\'') != -1)
+        {
+            throw new IllegalArgumentException("The const-value parameter must not contain single-quote (\"'\"): " +
+                    this.constValue);
+        }
     }
 
     public String getConstValue()

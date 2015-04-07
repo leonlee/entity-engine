@@ -29,7 +29,6 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.util.UtilValidate;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -44,10 +43,10 @@ import java.util.Map;
  */
 public class GenericValue extends GenericEntity {
 
-    /** Hashtable to cache various related entity collections */
+    /** HashMap to cache various related entity collections */
     public transient Map<String, List<GenericValue>> relatedCache = null;
 
-    /** Hashtable to cache various related cardinality one entity collections */
+    /** HashMap to cache various related cardinality on entity collections */
     public transient Map<String, GenericValue> relatedOneCache = null;
 
     /** This Map will contain the original field values from the database iff
@@ -208,7 +207,7 @@ public class GenericValue extends GenericEntity {
      *@return List of GenericValue instances as specified in the relation definition
      */
     public List<GenericValue> getRelatedEmbeddedCache(String relationName) throws GenericEntityException {
-        if (relatedCache == null) relatedCache = new Hashtable<String, List<GenericValue>>();
+        if (relatedCache == null) relatedCache = new HashMap<String, List<GenericValue>>();
         List<GenericValue> col = relatedCache.get(relationName);
 
         if (col == null) {
@@ -259,7 +258,7 @@ public class GenericValue extends GenericEntity {
      *@return List of GenericValue instances as specified in the relation definition
      */
     public GenericValue getRelatedOneEmbeddedCache(String relationName) throws GenericEntityException {
-        if (relatedOneCache == null) relatedOneCache = new Hashtable<String, GenericValue>();
+        if (relatedOneCache == null) relatedOneCache = new HashMap<String, GenericValue>();
         GenericValue value = relatedOneCache.get(relationName);
 
         if (value == null) {
