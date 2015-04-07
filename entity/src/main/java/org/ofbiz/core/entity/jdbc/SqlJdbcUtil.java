@@ -50,6 +50,7 @@ import java.io.ObjectStreamClass;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -907,7 +908,7 @@ public class SqlJdbcUtil {
      * @param javaType the java type to resolve to a field type
      * @return the matching field type
      * @throws IllegalArgumentException if the java class type is unsupported
-     * @since 1.0.65
+     * @since 1.1.0
      */
     @Nonnull
     public static FieldType getFieldType(String javaType) {
@@ -917,8 +918,44 @@ public class SqlJdbcUtil {
         }
         return type;
     }
-    
 
+    /**
+     * An enumeration of the various data types supported by the entity engine.
+     * <p>
+     * Each field type expresses the type of data that the {@link GenericEntity#get(String) get} and
+     * {@link GenericEntity#set(String, Object)} methods will expect to work with.  For example, if
+     * the field type is {@link #TIMESTAMP}, then it expects {@code java.sql.Timestamp} values to be
+     * provided to {@code set} and will use {@link ResultSet#getTimestamp(int)} to obtain the values
+     * when reading them from the database.
+     * </p><p>
+     * Exactly how these map to actual database types is defined by the field types XML for that
+     * particular database.  In short, the mapping process is that {@code entitymodel.xml} defines
+     * the field and specifies its model type, which is something like {@code "long-varchar"}.
+     * The {@code fieldtype-mydbtype.xml} file then maps this to a Java type and database type.
+     * For example:
+     * </p>
+     * <code><pre>
+     *     &lt;!-- From entitymodel.xml --&gt;
+     *             &lt;field name="lowerUserName" col-name="lower_user_name" type="long-varchar" /&gt;
+     *     &lt;!-- From fieldtype-mysql.xml --&gt;
+     *             &lt;field-type-def type="long-varchar" sql-type="VARCHAR(255)" java-type="String" /&gt;
+     * </pre></code>
+     * <p>
+     * So the field {@code "lowerUserName"} on this entity maps to the {@code "long-varchar"} {@link ModelFieldType}.
+     * That returns {@code "VARCHAR(255)"} for {@link ModelFieldType#getSqlType()} and this is what gets used in
+     * the database schema.  It returns {@code "String"} for {@link ModelFieldType#getJavaType()}, and
+     * {@link #getFieldType(String)} maps that to {@link #STRING}.  This is what tells {@link GenericEntity}
+     * and {@link SQLProcessor} to use {@link ResultSet#getString(int)} and
+     * {@link PreparedStatement#setString(int, String)} to interact with the database storage and to use
+     * {@code String} objects internally.
+     * </p>
+     * <p>
+     * It's convoluted, especially when you realize that there are four different things you can mean when
+     * talking about a field's "type", but it mostly works. :P
+     * </p>
+     *
+     * @since 1.1.0
+     */
     public enum FieldType
     {
         /**
