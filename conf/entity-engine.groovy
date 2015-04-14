@@ -24,7 +24,7 @@ class EntityEngine
                 jobType : 'maven3',
                 jobMavenExe : 'Maven 3.2',
                 jobGoal : 'clean verify',
-                label : 'platform',
+                label : 'ofbiz',
                 releaseJavaVersion : 'JDK 1.6',
                 hasTests : 'true',
         ].each { key, value -> configuration.get(key, value) }
@@ -33,7 +33,7 @@ class EntityEngine
     }
 }
 
-templateRepository(url: "https://bitbucket.org/atlassian/java-platform-plan-templates")
+templateRepository(url: "https://bitbucket.org/atlassian/entity-engine")
 
 // maven 3
 [ '1.0' ].each
@@ -41,7 +41,7 @@ templateRepository(url: "https://bitbucket.org/atlassian/java-platform-plan-temp
             defaultPlan(EntityEngine.includeDefaults(
                     planKey : "${EntityEngine.key}B${projectBranch.replace('.','D')}X",
                     planName : "${projectBranch}.x",
-                    branch : "${projectBranch}.x",
+                    branch : "${EntityEngine.repository}-${projectBranch}.x",
                     issueSuffix : "-${projectBranch}",
             ))
         }
