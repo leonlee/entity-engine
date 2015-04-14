@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.atlassian.ofbiz</groupId>
         <artifactId>entityengine-parent</artifactId>
-        <version>1.1.0</version>
+        <version>1.1.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>entityengine</artifactId>
@@ -82,7 +82,8 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>10.0.1</version>
+            <version>11.0.2</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.hsqldb</groupId>
