@@ -423,8 +423,8 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         Object object = get(name);
 
         if (object == null) return null;
-        if (object instanceof java.lang.String)
-            return (String) object;
+        if (object instanceof String)
+            return (String)object;
         else
             return object.toString();
     }
@@ -716,23 +716,41 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             switch (fieldType)
             {
                 case OBJECT:
+                {
                     value = encodeBase64(serialize(get(name)));
                     if (value != null)
                     {
                         cdataMap.put(name, value);
                     }
                     continue;
+                }
 
                 case BLOB:
+                {
                     throw new UnsupportedOperationException("These can't be exported, yet");
+                }
 
                 case BYTE_ARRAY:
-                    value = encodeBase64((byte[])get(name));
+                {
+                    final Object obj = get(name);
+                    // This can only happen if you constructed this GenericEntity using a field map that
+                    // gave a string value for this.  This seems to happen in JIRA's project import, so
+                    // we need a special case for it, here. :P
+                    if (obj instanceof String)
+                    {
+                        value = (String)obj;
+                    }
+                    else
+                    {
+                        // Otherwise, we assume sanity and let it blow up if it has to
+                        value = encodeBase64((byte[])obj);
+                    }
                     if (value != null)
                     {
                         cdataMap.put(name, value);
                     }
                     continue;
+                }
             }
 
             value = getString(name);
