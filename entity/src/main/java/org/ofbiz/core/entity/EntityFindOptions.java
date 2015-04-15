@@ -119,7 +119,7 @@ public class EntityFindOptions implements Serializable {
     /** maximum results to obtain from DB - negative values mean no limit */
     protected int maxResults = -1;
     protected int offset;
-    protected int fetchSize = -1;
+    protected int fetchSize = Integer.valueOf(System.getProperty("entity.find.options.fetch.size", "-1"));
 
     /**
      * Default constructor. Defaults are as follows:
