@@ -1070,8 +1070,9 @@ public class SQLProcessor
 
     /**
      * Set the next binding variable of the currently active prepared statement.
-     * Note that this *must* actually be a BLOB field, not a PostgreSQL BYTEA or
-     * SQLServer IMAGE field.  Use {@link #setByteArray(byte[])} to set those!
+     * Note that this *must* actually be a {@code BLOB} field, not a PostgreSQL {@code BYTEA}, a
+     * SQLServer {@code IMAGE}, or an HSQL {@code OBJECT} field.  Use {@link #setByteArray(byte[])}
+     * to set those!
      *
      * @param field the field value
      * @throws SQLException if something goes wrong
@@ -1093,8 +1094,8 @@ public class SQLProcessor
 
     /**
      * Set the next binding variable of the currently active prepared statement.
-     * Note that this *must* actually be a PostgreSQL BYTEA or SQLServer IMAGE field.
-     * Use {@link #setBlob(byte[])} to set BLOBs!
+     * Note that this *must* actually be a PostgreSQL {@code BYTEA}, a SQLServer {@code IMAGE},
+     * or an HSQL {@code OBJECT} field.  Use {@link #setBlob(byte[])} to set {@code BLOB}s!
      *
      * @param field the field value
      * @throws SQLException if something goes wrong

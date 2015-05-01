@@ -888,7 +888,10 @@ public class SqlJdbcUtil {
 
     private static boolean isByteArrayType(ModelFieldType mft)
     {
-        return "BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType());
+        final String type = mft.getSqlType();
+        return "BYTEA".equals(type)
+                || "IMAGE".equals(type)
+                || "OTHER".equals(type);
     }
 
     private static final Map<String, FieldType> JAVA_TYPE_MAP = FieldType.buildJavaTypeMap();
