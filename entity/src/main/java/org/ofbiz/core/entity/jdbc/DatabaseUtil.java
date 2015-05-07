@@ -849,7 +849,7 @@ public class DatabaseUtil
                     {
                         if (retMsgsBuffer.length() > 0)
                         {
-                            retMsgsBuffer.append("\n");
+                            retMsgsBuffer.append('\n');
                         }
                         retMsgsBuffer.append(retMsg);
                     }
@@ -857,7 +857,7 @@ public class DatabaseUtil
             }
             if (retMsgsBuffer.length() > 0)
             {
-                error("Could not create missing indices for entity \"" + modelEntity.getEntityName() + "\"", messages);
+                error("Could not create missing indices for entity \"" + modelEntity.getEntityName() + '"', messages);
                 error(retMsgsBuffer.toString(), messages);
             }
         }
@@ -1399,6 +1399,7 @@ public class DatabaseUtil
             while (tableNamesIter.hasNext())
             {
                 String curTableName = tableNamesIter.next();
+                indexInfo.put(curTableName, new TreeSet<String>());
 
                 ResultSet rsCols = null;
                 try
@@ -1432,16 +1433,6 @@ public class DatabaseUtil
                         indexName = (indexName == null) ? null : indexName.toUpperCase();
 
                         Set<String> tableIndexList = indexInfo.get(curTableName);
-
-                        if (tableIndexList == null)
-                        {
-                            tableIndexList = new TreeSet<String>();
-                            indexInfo.put(curTableName, tableIndexList);
-                            if (Debug.verboseOn())
-                            {
-                                Debug.logVerbose("Adding new Map for table: " + curTableName);
-                            }
-                        }
                         if (!tableIndexList.contains(indexName))
                         {
                             totalIndices++;
