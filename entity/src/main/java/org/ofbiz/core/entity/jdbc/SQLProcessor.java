@@ -309,7 +309,7 @@ public class SQLProcessor
             }
             catch (SQLException sqle)
             {
-                Debug.logWarning(sqle.getMessage(), module);
+                Debug.logWarning(sqle, sqle.getMessage(), module);
             }
 
             _connection = null;
