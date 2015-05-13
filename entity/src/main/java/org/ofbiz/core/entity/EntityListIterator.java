@@ -54,7 +54,6 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     protected List<ModelField> selectFields;
     protected ModelFieldTypeReader modelFieldTypeReader;
     protected boolean closed = false;
-    protected boolean warnAboutMissingClose = true;
     protected boolean haveMadeValue = false;
     protected GenericDelegator delegator = null;
 
@@ -364,7 +363,7 @@ public class EntityListIterator implements ListIterator<GenericValue> {
 
     protected void finalize() throws Throwable {
         try {
-            if (!closed && warnAboutMissingClose) {
+            if (!closed && isWarnAboutMissingClose()) {
                 System.err.println("ERROR: org.ofbiz.core.entity.EntityListIterator: Finalize was called on open iterator!");
             }
         }
@@ -374,13 +373,11 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     }
 
     /**
-     * Disables warning about missing close when finalize occur.
-     * @return this
+     * Decides if object should print warn when finalize was called on unclosed iterator.
      * @deprecated Do not use this method - it may disappear in any time!
      */
     @Deprecated
-    protected EntityListIterator dontWarnAboutMissingClose() {
-        warnAboutMissingClose = false;
-        return this;
+    boolean isWarnAboutMissingClose() {
+        return true;
     }
 }
