@@ -54,6 +54,7 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     protected List<ModelField> selectFields;
     protected ModelFieldTypeReader modelFieldTypeReader;
     protected boolean closed = false;
+    protected boolean dontWarnAboutMissingClose = false;
     protected boolean haveMadeValue = false;
     protected GenericDelegator delegator = null;
 
@@ -95,7 +96,7 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     }
 
     /**
-     * Get the column index for the given field name. 
+     * Get the column index for the given field name.
      *
      * @param entityFieldName the field name to find.
      * @return the index of the column if found or -1 if not.
@@ -186,7 +187,7 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** performs the same function as the ResultSet.absolute method; 
+    /** performs the same function as the ResultSet.absolute method;
      * if rowNum is positive, goes to that position relative to the beginning of the list;
      * if rowNum is negative, goes to that position relative to the end of the list;
      * a rowNum of 1 is the same as first(); a rowNum of -1 is the same as last()
@@ -316,8 +317,8 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Gets a partial list of results starting at start and containing at most number elements. 
-     * Start is a one based value, ie 1 is the first element. 
+    /** Gets a partial list of results starting at start and containing at most number elements.
+     * Start is a one based value, ie 1 is the first element.
      */
     public List<GenericValue> getPartialList(int start, int number) throws GenericEntityException {
         try {
@@ -363,12 +364,23 @@ public class EntityListIterator implements ListIterator<GenericValue> {
 
     protected void finalize() throws Throwable {
         try {
-            if (!closed) {
+            if (!closed && !dontWarnAboutMissingClose) {
                 System.err.println("ERROR: org.ofbiz.core.entity.EntityListIterator: Finalize was called on open iterator!");
             }
         }
         finally {
             super.finalize();
         }
+    }
+
+    /**
+     * Disables warning about missing close when finalize occur.
+     * @return this
+     * @deprecated Do not use this method - it may disappear in any time!
+     */
+    @Deprecated
+    protected EntityListIterator dontWarnAboutMissingClose() {
+        dontWarnAboutMissingClose = true;
+        return this;
     }
 }

@@ -481,7 +481,7 @@ public class MemoryHelper implements GenericHelper {
             {
                 //do nothing
             }
-        };
+        }.dontWarnAboutMissingClose();
     }
 
     public int removeByAnd(ModelEntity modelEntity, Map<String, ?> fields) throws GenericEntityException {
