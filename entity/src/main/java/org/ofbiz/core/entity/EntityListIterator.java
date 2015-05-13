@@ -360,4 +360,15 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     public void set(GenericValue obj) {
         throw new GeneralRuntimeException("CursorListIterator currently only supports read-only access");
     }
+
+    protected void finalize() throws Throwable {
+        try {
+            if (!closed) {
+                System.err.println("ERROR: org.ofbiz.core.entity.EntityListIterator: Finalize was called on open iterator!");
+            }
+        }
+        finally {
+            super.finalize();
+        }
+    }
 }
