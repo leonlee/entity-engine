@@ -1,9 +1,10 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
-import org.apache.commons.dbcp.BasicDataSource;
+
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 
-import javax.sql.DataSource;
+
 import java.lang.reflect.InvocationTargetException;
 
 /**
@@ -18,19 +19,19 @@ public class ConnectionPoolInfoSynthesizer
      * @param ds the
      * @return ConnectionPoolInfo
      */
-    public static ConnectionPoolInfo synthesizeConnectionPoolInfo(final DataSource ds)
+    public static ConnectionPoolInfo synthesizeConnectionPoolInfo(final javax.sql.DataSource ds)
     {
-        if (ds instanceof BasicDataSource)
+        if (ds instanceof DataSource)
         {
-            return copyBasicDataSource((BasicDataSource) ds);
+            return copyBasicDataSource((DataSource) ds);
         }
         //
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
         // so we have to use reflection to get this to happen at runtime
         //
-        else if ("org.apache.tomcat.dbcp.dbcp.BasicDataSource".equals(ds.getClass().getName()))
+        else if ("org.apache.tomcat.jdbc.pool.DataSource".equals(ds.getClass().getName()))
         {
-            return reflectDataSource(ds);
+            return reflectDataSource((DataSource) ds);
         }
         else
         {
@@ -38,15 +39,14 @@ public class ConnectionPoolInfoSynthesizer
         }
     }
 
-    private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds)
+    private static ConnectionPoolInfo copyBasicDataSource(DataSource bds)
     {
         return new ConnectionPoolInfo(
-                bds.getMaxActive(), bds.getMinIdle(), bds.getMaxWait(),
+                bds.getMaxActive(), bds.getMinIdle(), (long) bds.getMaxWait(),
                 -1, -1,
                 -1, -1,
                 bds.getValidationQuery(),
-                bds.getMinEvictableIdleTimeMillis(), bds.getTimeBetweenEvictionRunsMillis()
-        );
+                -1L, -1L); //todo fix eviction
     }
 
     private static ConnectionPoolInfo reflectDataSource(DataSource ds)
