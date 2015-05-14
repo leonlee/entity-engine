@@ -90,11 +90,6 @@ public class DBCPConnectionFactory {
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
                 dataSource = createDataSource(jdbcDatasource);
-//                dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
-//                dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
-//                dataSource.setUrl(jdbcDatasource.getUri());
-//                dataSource.setUsername(jdbcDatasource.getUsername());
-//                dataSource.setPassword(jdbcDatasource.getPassword());
                 dataSource.setConnectionProperties(toString(info));
 
                 if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
@@ -155,14 +150,8 @@ public class DBCPConnectionFactory {
             }
         }
 
-//        if (poolInfo.getPoolPreparedStatements() != null)
-//        {
-//            dataSource.state(poolInfo.getPoolPreparedStatements());
-//            if (dataSource.isPoolPreparedStatements() && poolInfo.getMaxOpenPreparedStatements() != null)
-//            {
-//                dataSource.setMaxOpenPreparedStatements(poolInfo.getMaxOpenPreparedStatements());
-//            }
-//        }
+        //Pooling prepared statemnts is not used in Tomcat pool
+
         if (poolInfo.getRemoveAbandoned() != null)
         {
             dataSource.setRemoveAbandoned(poolInfo.getRemoveAbandoned());
@@ -171,33 +160,37 @@ public class DBCPConnectionFactory {
                 dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
             }
         }
-//        if (poolInfo.getMinEvictableTimeMillis() != null)
-//        {
-//            dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
-//        }
-//        if (poolInfo.getNumTestsPerEvictionRun() != null)
-//        {
-//            dataSource.setNumTestsPerEvictionRun(poolInfo.getNumTestsPerEvictionRun());
-//        }
-//        if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
-//        {
-//            dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
-//        }
+        if (poolInfo.getMinEvictableTimeMillis() != null)
+        {
+            dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis().intValue());
+        }
+        if (poolInfo.getNumTestsPerEvictionRun() != null)
+        {
+            dataSource.setNumTestsPerEvictionRun(poolInfo.getNumTestsPerEvictionRun());
+        }
+        if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
+        {
+            dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis().intValue());
+        }
     }
 
     private static DataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
     {
         Properties dbcpProperties = loadDbcpProperties();
-//        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
-//        {
-//            return (DataSource) ManagedDataSourceFactory.createDataSource(dbcpProperties);
-//        }
-
-        Properties dsProperties = new Properties();
+        Properties dsProperties = new Properties(dbcpProperties);
         dsProperties.setProperty("driverClassName", jdbcDatasource.getDriverClassName());
         dsProperties.setProperty("url", jdbcDatasource.getUri());
         dsProperties.setProperty("username", jdbcDatasource.getUsername());
         dsProperties.setProperty("password", jdbcDatasource.getPassword());
+
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            dsProperties.setProperty("jmxEnabled", String.valueOf(Boolean.TRUE));
+        }
+        else
+        {
+            dsProperties.setProperty("jmxEnabled", String.valueOf(Boolean.FALSE));
+        }
 
         return (DataSource) dataSourceFactory.createDataSource(dsProperties);
     }
@@ -217,7 +210,7 @@ public class DBCPConnectionFactory {
     {
         Properties dbcpProperties = new Properties();
 
-        // load everything in c3p0.properties
+        // load everything in dbcp.properties
         InputStream fileProperties = DBCPConnectionFactory.class.getResourceAsStream("/" + DBCP_PROPERTIES);
         if (fileProperties != null)
         {
