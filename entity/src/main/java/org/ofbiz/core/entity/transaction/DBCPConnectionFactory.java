@@ -25,19 +25,19 @@ package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
-import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.log4j.Logger;
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.DataSourceFactory;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
-import org.weakref.jmx.MBeanExporter;
 
+import javax.management.ObjectName;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.ofbiz.core.entity.util.PropertyUtils.copyOf;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
@@ -61,11 +60,15 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
  */
 public class DBCPConnectionFactory {
     private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
-    private static final String DBCP_PROPERTIES = "dbcp.properties";
-    protected static final Map<String, DataSource> dsCache = Maps.newConcurrentMap();
-    protected static final Map<String, ConnectionTracker> trackerCache = Maps.newConcurrentMap();
+
+    protected static final Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
+    private static final DataSourceFactory dataSourceFactory = new DataSourceFactory();
+
     private static final String PROP_JMX = "jmx";
-    private static DataSourceFactory dataSourceFactory = new DataSourceFactory();
+    private static final String DBCP_PROPERTIES = "dbcp.properties";
+    private static final String PROP_MBEANNAME = "mbeanName";
+
 
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
@@ -183,16 +186,18 @@ public class DBCPConnectionFactory {
         dsProperties.setProperty("username", jdbcDatasource.getUsername());
         dsProperties.setProperty("password", jdbcDatasource.getPassword());
 
+        final DataSource dataSource = (DataSource) dataSourceFactory.createDataSource(dsProperties);
+
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
-            dsProperties.setProperty("jmxEnabled", String.valueOf(Boolean.TRUE));
-        }
-        else
-        {
-            dsProperties.setProperty("jmxEnabled", String.valueOf(Boolean.FALSE));
+            dataSource.setJmxEnabled(true);
+            ManagementFactory.getPlatformMBeanServer().registerMBean(
+                    dataSource.getPool().getJmxPool(),
+                    ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)));
         }
 
-        return (DataSource) dataSourceFactory.createDataSource(dsProperties);
+        return dataSource;
+
     }
 
     private static String toString(Properties properties)
@@ -263,11 +268,11 @@ public class DBCPConnectionFactory {
             try
             {
                 dataSource.close();
-//                unregisterMBeanIfPresent();
+                unregisterMBeanIfPresent();
             }
             catch (Exception e)
             {
-                Debug.logError(e, "Error closing connection pool in DBCP");
+                Debug.logError(e, "Error closing connection pool");
             }
 
 
@@ -276,27 +281,21 @@ public class DBCPConnectionFactory {
         trackerCache.remove(helperName);
     }
 
-//    private static void unregisterMBeanIfPresent()
-//    {
-//        //
-//        // Ideally the Apache DBCP ManagedDataSourceFactory would clean up the registered JMX bean when the data source was closed
-//        // however it doesnt.  So we use its facilities to do what it should for it.
-//        //
-//        Properties dbcpProperties = loadDbcpProperties();
-//        //
-//        // this is the semantics that the ManagedDataSourceFactory used to create a Mbean in the first place
-//        //
-//        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
-//        {
-//            String mBeanName = dbcpProperties.getProperty(ManagedDataSourceFactory.PROP_MBEANNAME);
-//            try
-//            {
-//                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
-//            }
-//            catch (Exception e)
-//            {
-//                log.error("Exception un-registering MBean data source " + mBeanName, e);
-//            }
-//        }
-//    }
+    private static void unregisterMBeanIfPresent()
+    {
+        //Just to be sure that mbean was unregistered, we go it manualy
+        Properties dbcpProperties = loadDbcpProperties();
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
+            try
+            {
+                ManagementFactory.getPlatformMBeanServer().unregisterMBean(ObjectName.getInstance(mBeanName));
+            }
+            catch (Exception e)
+            {
+                log.error("Exception un-registering MBean data source " + mBeanName, e);
+            }
+        }
+    }
 }
