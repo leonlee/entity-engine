@@ -8,7 +8,7 @@ package org.ofbiz.core.entity.jdbc;
  *
  * This class is used to "clearly document" the mode the SQLProcessor is in
  *
- * @deprecated use ExplicitCommitSQLProcessor instead (fixes typo in name)
+ * @deprecated use ExplicitCommitSQLProcessor instead (fixes typo in name).  Since v1.0.41.
  */
 @Deprecated
 public class ExplcitCommitSQLProcessor extends SQLProcessor

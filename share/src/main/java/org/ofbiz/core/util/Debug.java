@@ -43,7 +43,6 @@ import java.util.Map;
  * @since      2.0
  */
 public final class Debug {
-
     public static final boolean useLog4J = true;
     public static final String noModuleModule = "NoModule";  // set to null for previous behavior
 

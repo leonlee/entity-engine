@@ -1,5 +1,8 @@
 package org.ofbiz.core.entity.jdbc;
 
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Answers;
@@ -8,12 +11,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.model.ModelEntity;
 
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
