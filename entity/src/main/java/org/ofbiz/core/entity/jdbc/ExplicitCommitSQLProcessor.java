@@ -8,6 +8,8 @@ package org.ofbiz.core.entity.jdbc;
  * It will be created with {@link org.ofbiz.core.entity.jdbc.SQLProcessor.CommitMode#EXPLICIT_COMMIT}.
  *
  * This class is used to "clearly document" the mode the SQLProcessor is in.
+ *
+ * @since v1.0.41
  */
 public class ExplicitCommitSQLProcessor extends SQLProcessor {
 

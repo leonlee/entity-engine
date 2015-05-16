@@ -28,14 +28,14 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelIndex;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -84,19 +84,19 @@ public class TestDatabaseUtil {
      */
     @Test
     public void testCheckDb() throws Exception {
-        final TreeSet<String> tables = new TreeSet<String>();
+        final TreeSet<String> tables = new TreeSet<>();
         tables.add("BOOKS");
         tables.add("AUTHORS");
 
-        final Map<String, List<DatabaseUtil.ColumnCheckInfo>> columnInfo = new HashMap<String, List<DatabaseUtil.ColumnCheckInfo>>();
+        final Map<String, List<DatabaseUtil.ColumnCheckInfo>> columnInfo = new HashMap<>();
         DatabaseUtil.ColumnCheckInfo a1 = createCcInfo("AUTHORS", "NAME");
         DatabaseUtil.ColumnCheckInfo a2 = createCcInfo("AUTHORS", "AGE");
 
         DatabaseUtil.ColumnCheckInfo b1 = createCcInfo("BOOKS", "TITLE");
         DatabaseUtil.ColumnCheckInfo b2 = createCcInfo("BOOKS", "AUTHOR");
 
-        columnInfo.put("AUTHORS", new ArrayList<DatabaseUtil.ColumnCheckInfo>(Arrays.asList(a1, a2)));
-        columnInfo.put("BOOKS", new ArrayList<DatabaseUtil.ColumnCheckInfo>(Arrays.asList(b1, b2)));
+        columnInfo.put("AUTHORS", new ArrayList<>(Arrays.asList(a1, a2)));
+        columnInfo.put("BOOKS", new ArrayList<>(Arrays.asList(b1, b2)));
 
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
@@ -130,11 +130,11 @@ public class TestDatabaseUtil {
             }
         };
 
-        Map<String, ModelEntity> entities = new HashMap<String, ModelEntity>();
+        Map<String, ModelEntity> entities = new HashMap<>();
         entities.put("AUTHORS", createSimpleModelEntity("AUTHORS", "NAME", "AGE"));
         // deliberately missing title to produce one error message
         entities.put("BOOKS", createSimpleModelEntity("BOOKS", "AUTHOR"));
-        List<String> messages = new ArrayList<String>();
+        List<String> messages = new ArrayList<>();
         du.checkDb(entities, messages, true);
         assertEquals(4, messages.size());
         assertTrue(messages.get(0).matches(".*Checking #.*"));
@@ -164,7 +164,7 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
 
-        List<String> messages = new ArrayList<String>();
+        List<String> messages = new ArrayList<>();
         Set<String> tableNames = ImmutableSet.of("t1", "t2", "t3");
 
         // the call to the production method
@@ -177,10 +177,10 @@ public class TestDatabaseUtil {
         assertThat(indexInfo.get("t2"), contains("T2_INDEX"));
         assertThat(indexInfo.get("t3"), hasSize(0));
         assertTrue("unexpected error messages", messages.isEmpty());
-        final Set<String> t1Indexes = new TreeSet<String>();
+        final Set<String> t1Indexes = new TreeSet<>();
         t1Indexes.addAll(Arrays.asList("T1_INDEX1", "T1_INDEX2"));
         assertEquals(t1Indexes, indexInfo.get("t1"));
-        final Set<String> t2Indexes = new TreeSet<String>();
+        final Set<String> t2Indexes = new TreeSet<>();
         t2Indexes.add("T2_INDEX");
         assertEquals(t2Indexes, indexInfo.get("t2"));
     }
@@ -214,7 +214,7 @@ public class TestDatabaseUtil {
 
         DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
 
-        List<String> messages = new ArrayList<String>();
+        List<String> messages = new ArrayList<>();
         Set<String> tableNames = ImmutableSet.of("t1", "t2", "t3");
 
         // the call to the production method
@@ -263,7 +263,7 @@ public class TestDatabaseUtil {
         when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
         when(rightResultSet.getString("TABLE_TYPE")).thenReturn("TABLE");
-        final Collection<String> messages = new ArrayList<String>();
+        final Collection<String> messages = new ArrayList<>();
 
         //invoke
         final Set<String> tableNames = du.getTableNames(messages);
@@ -302,7 +302,7 @@ public class TestDatabaseUtil {
         when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
         when(rightResultSet.getString("TABLE_TYPE")).thenReturn("TABLE");
-        final Collection<String> messages = new ArrayList<String>();
+        final Collection<String> messages = new ArrayList<>();
 
         //invoke
         final Set<String> tableNames = du.getTableNames(messages);
@@ -315,16 +315,16 @@ public class TestDatabaseUtil {
     public void testMissingIndices() {
 
         // record requests for index info
-        final AtomicReference<Set<String>> tableNamesReceived = new AtomicReference<Set<String>>();
+        final AtomicReference<Set<String>> tableNamesReceived = new AtomicReference<>();
         final AtomicBoolean includeUniqueReceived = new AtomicBoolean();
 
-        final Map<String, Set<String>> indexInfo = new HashMap<String, Set<String>>();
+        final Map<String, Set<String>> indexInfo = new HashMap<>();
         indexInfo.put("e1", Collections.<String>emptySet());
         indexInfo.put("e2", quickSet("E2I2"));
         indexInfo.put("e3", Collections.<String>emptySet());
 
         // record requests to create indexes
-        final Map<String, Set<String>> creationCalls = new HashMap<String, Set<String>>();
+        final Map<String, Set<String>> creationCalls = new HashMap<>();
 
         DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
             @Override
@@ -351,8 +351,8 @@ public class TestDatabaseUtil {
                 return null;
             }
         };
-        List<String> messages = new ArrayList<String>();
-        Map<String, ModelEntity> modelEntities = new HashMap<String, ModelEntity>();
+        List<String> messages = new ArrayList<>();
+        Map<String, ModelEntity> modelEntities = new HashMap<>();
 
         {
             // entity e1 has one index
@@ -402,7 +402,7 @@ public class TestDatabaseUtil {
     }
 
     private static <T> Set<T> quickSet(T... members) {
-        Set<T> s = new HashSet<T>();
+        Set<T> s = new HashSet<>();
         s.addAll(Arrays.asList(members));
         return s;
     }
@@ -412,9 +412,9 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
         du.error("mesg", null);
 
-        List<String> expected = new ArrayList<String>();
+        List<String> expected = new ArrayList<>();
         expected.add("mesg");
-        Collection<String> in = new ArrayList<String>();
+        Collection<String> in = new ArrayList<>();
         du.error("mesg", in);
         assertEquals(expected, in);
         du.error("mesg2", in);
@@ -427,9 +427,9 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
         du.important("mesg", null);
 
-        List<String> expected = new ArrayList<String>();
+        List<String> expected = new ArrayList<>();
         expected.add("mesg");
-        Collection<String> in = new ArrayList<String>();
+        Collection<String> in = new ArrayList<>();
         du.important("mesg", in);
         assertEquals(expected, in);
         du.important("mesg2", in);
@@ -442,9 +442,9 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
         du.warn("mesg", null);
 
-        List<String> expected = new ArrayList<String>();
+        List<String> expected = new ArrayList<>();
         expected.add("mesg");
-        Collection<String> in = new ArrayList<String>();
+        Collection<String> in = new ArrayList<>();
         du.warn("mesg", in);
         assertEquals(expected, in);
         du.warn("mesg2", in);
@@ -457,9 +457,9 @@ public class TestDatabaseUtil {
         DatabaseUtil du = new DatabaseUtil(null, null, null, null);
         du.verbose("mesg", null);
 
-        List<String> expected = new ArrayList<String>();
+        List<String> expected = new ArrayList<>();
         expected.add("mesg");
-        Collection<String> in = new ArrayList<String>();
+        Collection<String> in = new ArrayList<>();
         du.verbose("mesg", in);
         assertEquals(expected, in);
         du.verbose("mesg2", in);
@@ -483,7 +483,7 @@ public class TestDatabaseUtil {
     }
 
     private Map<String, Object> createIndexMetadataRow(final String indexName, final String tableName, boolean unique) {
-        Map<String, Object> row = new HashMap<String, Object>();
+        Map<String, Object> row = new HashMap<>();
         row.put("TYPE", DatabaseMetaData.tableIndexClustered);
         row.put("INDEX_NAME", indexName);
         row.put("TABLE_NAME", tableName);
