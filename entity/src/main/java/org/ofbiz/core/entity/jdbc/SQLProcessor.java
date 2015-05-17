@@ -39,6 +39,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.transaction.Status;
+
+import com.google.common.annotations.VisibleForTesting;
+
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericDataSourceException;
 import org.ofbiz.core.entity.GenericEntityException;
@@ -140,11 +144,13 @@ public class SQLProcessor
 
     /**
      * Construct a SQLProcessor based on the helper/datasource.
-     * <p/>
+     * <p>
      * It will be in {@link org.ofbiz.core.entity.jdbc.SQLProcessor.CommitMode#EXPLICIT_COMMIT} by default
-     *
+     * </p>
+     * <p>
      * This is the legacy mode of SQLProcessor as it was before the CommitMode support was added.  This constructor
      * has been left in place because other plugins may be using it and hence to preserve the API.
+     * </p>
      *
      * @param helperName The datasource helper (see entityengine.xml &lt;datasource name=".."&gt;)
      */
@@ -156,8 +162,9 @@ public class SQLProcessor
     /**
      * Construct a SQLProcessor with an connection given. The connection will not be closed by this SQLProcessor, but
      * may be by some other.
-     * <p/>
-     * It does not particpate in any commiting not does it set the autoCommit mode of the connection
+     * <p>
+     * It does not participate in any commiting not does it set the autoCommit mode of the connection
+     * </p>
      *
      * @param helperName The datasource helper (see entityengine.xml &lt;datasource name=".."&gt;)
      * @param connection The connection to be used
@@ -167,15 +174,12 @@ public class SQLProcessor
         this(helperName, CommitMode.NOT_INVOLVED);
         this._connection = connection;
 
-        // Do not commit while closing
-        if (_connection != null)
-        {
-            _manualTX = false;
-        }
+        // If the connection is provided to us, then commits are left up to the caller
+        this._manualTX = (connection == null);
     }
 
     /**
-     * @return the @{link CommitMode} the SQLProcessor is in
+     * @return the {@link CommitMode} the SQLProcessor is in
      */
     public CommitMode getCommitMode()
     {
@@ -242,7 +246,8 @@ public class SQLProcessor
         }
         catch (SQLException sqle2)
         {
-            Debug.logWarning("[SQLProcessor.rollback]: SQL Exception while rolling back insert. Error was:" + sqle2, module);
+            Debug.logWarning("[SQLProcessor.rollback]: SQL Exception while rolling back insert. Error was:" + sqle2,
+                    module);
             Debug.logWarning(sqle2, module);
         }
     }
@@ -259,69 +264,95 @@ public class SQLProcessor
         _sql = null;
         _parameterValues = null;
 
-        if (_rs != null)
-        {
-            try
-            {
-                _rs.close();
-            }
-            catch (SQLException sqle)
-            {
-                Debug.logWarning(sqle.getMessage(), module);
-            }
+        closeResultSet();
+        closePreparedStatement();
+        closeStatement();
+        closeConnection();
+    }
 
-            _rs = null;
+    private void closeResultSet()
+    {
+        final ResultSet rs = _rs;
+        if (rs == null)
+        {
+            return;
         }
+        _rs = null;
 
-        if (_ps != null)
+        try
         {
-            try
-            {
-                _ps.close();
-            }
-            catch (SQLException sqle)
-            {
-                Debug.logWarning(sqle.getMessage(), module);
-            }
-
-            _ps = null;
+            rs.close();
         }
-
-        if (_stmt != null)
+        catch (SQLException sqle)
         {
-            try
-            {
-                _stmt.close();
-            }
-            catch (SQLException sqle)
-            {
-                Debug.logWarning(sqle.getMessage(), module);
-            }
-
-            _stmt = null;
-        }
-
-        if ((_connection != null) && (_bDeleteConnection))
-        {
-            try
-            {
-                _connection.close();
-            }
-            catch (SQLException sqle)
-            {
-                Debug.logWarning(sqle.getMessage(), module);
-            }
-
-            _connection = null;
+            Debug.logWarning(sqle, "Error closing ResultSet", module);
         }
     }
+
+    private void closePreparedStatement()
+    {
+        final PreparedStatement ps = _ps;
+        if (ps == null)
+        {
+            return;
+        }
+        _ps = null;
+
+        try
+        {
+            ps.close();
+        }
+        catch (SQLException sqle)
+        {
+            Debug.logWarning(sqle, "Error closing PreparedStatement", module);
+        }
+    }
+
+    private void closeStatement()
+    {
+        final Statement stmt = _stmt;
+        if (stmt == null)
+        {
+            return;
+        }
+        _stmt = null;
+
+        try
+        {
+            stmt.close();
+        }
+        catch (SQLException sqle)
+        {
+            Debug.logWarning(sqle, "Error closing Statement", module);
+        }
+    }
+
+    @VisibleForTesting
+    void closeConnection()
+    {
+        final Connection connection = _connection;
+        if (connection == null || !_bDeleteConnection)
+        {
+            return;
+        }
+        _connection = null;
+
+        try
+        {
+            connection.close();
+        }
+        catch (SQLException sqle)
+        {
+            Debug.logWarning(sqle, "Error closing Connection", module);
+        }
+    }
+
 
     /**
      * Once upon a time, SQLProcessor used to commit the connection, regardless of what SQL was executed.  Now we do
      * this in a smarter way.
      *
      * @param connection the connection in play
-     *
      * @throws GenericDataSourceException if something goes wrong
      */
     private void smartCommit(final Connection connection) throws GenericDataSourceException
@@ -341,7 +372,6 @@ public class SQLProcessor
      * Get a connection from the ConnectionFactory
      *
      * @return The connection created
-     *
      * @throws GenericEntityException if an SQLException occurs
      */
     public Connection getConnection() throws GenericEntityException
@@ -409,7 +439,7 @@ public class SQLProcessor
 
         try
         {
-            if (TransactionUtil.getStatus() == TransactionUtil.STATUS_ACTIVE)
+            if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE)
             {
                 _manualTX = false;
             }
@@ -428,10 +458,10 @@ public class SQLProcessor
     /**
      * The old versions of OFBIZ used to set the autoCommit to FALSE on every interaction.  This COSTS a lot because
      * other code, such as Tomcats DBCP will try to set autoCommit back to TRUE on passivate.
-     * <p/>
+     * <p>
      * Hence we get a flip-flop effect where OFBIZ sets it to false and then DBCP sets it to true and the DB layer runs
      * hot following contradicting orders.
-     * <p/>
+     * <p>
      * So we need to be a bit smarter in how we do that
      *
      * @param connection the Connection in play
@@ -482,7 +512,6 @@ public class SQLProcessor
      * Prepare a statement. In case no connection has been given, allocate a new one.
      *
      * @param sql The SQL statement to be executed
-     *
      * @throws GenericEntityException if an SQLException occurs
      */
     public void prepareStatement(String sql) throws GenericEntityException
@@ -502,31 +531,26 @@ public class SQLProcessor
      * @throws GenericEntityException if an SQLException occurs
      */
     public void prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
-            final int resultSetConcurrency)
-        throws GenericEntityException
+            final int resultSetConcurrency) throws GenericEntityException
     {
         if (Debug.verboseOn())
         {
             Debug.logVerbose("[SQLProcessor.prepareStatement] sql=" + sql, module);
         }
 
-        if (_connection == null)
-        {
-            getConnection();
-        }
-
+        final Connection connection = getConnection();
         try
         {
             _sql = sql;
-            _parameterValues = new ArrayList<String>();
+            _parameterValues = new ArrayList<>();
             _ind = 1;
             if (specifyTypeAndConcur)
             {
-                _ps = _connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
+                _ps = connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
             }
             else
             {
-                _ps = _connection.prepareStatement(sql);
+                _ps = connection.prepareStatement(sql);
             }
         }
         catch (SQLException sqle)
@@ -545,7 +569,7 @@ public class SQLProcessor
     {
         if (_connection instanceof ConnectionWithSQLInterceptor)
         {
-            _sqlInterceptor = ((ConnectionWithSQLInterceptor) _connection).getNonNullSQLInterceptor();
+            _sqlInterceptor = ((ConnectionWithSQLInterceptor)_connection).getNonNullSQLInterceptor();
         }
         else
         {
@@ -585,7 +609,6 @@ public class SQLProcessor
      * Execute a query based on the prepared statement
      *
      * @return The result set of the query
-     *
      * @throws GenericDataSourceException if an SQLException occurs
      */
     public ResultSet executeQuery() throws GenericDataSourceException
@@ -611,9 +634,7 @@ public class SQLProcessor
      * Execute a query baed ont SQL string given
      *
      * @param sql The SQL string to be executed
-     *
      * @return The result set of the query
-     *
      * @throws GenericDataSourceException if an SQLException occurs
      */
     public ResultSet executeQuery(String sql) throws GenericEntityException
@@ -626,13 +647,12 @@ public class SQLProcessor
      * Execute updates
      *
      * @return The number of rows updated
-     *
      * @throws GenericDataSourceException if an SQLException occurs
      */
     public int executeUpdate() throws GenericDataSourceException
     {
         validateCommitMode();
-        
+
         try
         {
             beforeExecution();
@@ -655,15 +675,13 @@ public class SQLProcessor
      * Execute update based on the SQL statement given
      *
      * @param sql SQL statement to be executed
-     *
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements
-     *
      * @throws GenericDataSourceException if an SQLException occurs or (2) 0 for SQL statements that return nothing
      */
     public int executeUpdate(String sql) throws GenericDataSourceException
     {
         validateCommitMode();
-        
+
         Statement stmt = null;
 
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
@@ -704,7 +722,8 @@ public class SQLProcessor
     {
         if (_commitMode == CommitMode.READONLY)
         {
-            throw new IllegalStateException("The current CommitMode is READ ONLY and you are trying to perform an UPDATE");
+            throw new IllegalStateException(
+                    "The current CommitMode is READ ONLY and you are trying to perform an UPDATE");
         }
     }
 
@@ -712,7 +731,6 @@ public class SQLProcessor
      * Test if there more records available
      *
      * @return true, if there more records available
-     *
      * @throws GenericDataSourceException if an SQLException occurs
      */
     public boolean next() throws GenericDataSourceException
@@ -753,7 +771,6 @@ public class SQLProcessor
      *
      * @param sql       The SQL string to be executed
      * @param aListener The callback function object
-     *
      * @throws GenericEntityException if an SQLException occurs
      */
     public void execQuery(String sql, ExecQueryCallbackFunctionIF aListener) throws GenericEntityException
@@ -808,7 +825,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(String field) throws SQLException
@@ -830,7 +846,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(java.sql.Timestamp field) throws SQLException
@@ -852,7 +867,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(java.sql.Time field) throws SQLException
@@ -874,7 +888,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(java.sql.Date field) throws SQLException
@@ -896,7 +909,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Integer field) throws SQLException
@@ -918,7 +930,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Long field) throws SQLException
@@ -940,7 +951,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Float field) throws SQLException
@@ -962,7 +972,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Double field) throws SQLException
@@ -984,7 +993,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Boolean field) throws SQLException
@@ -1006,7 +1014,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Object field) throws SQLException
@@ -1028,7 +1035,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Blob field) throws SQLException
@@ -1050,7 +1056,6 @@ public class SQLProcessor
      * Set the next binding variable of the currently active prepared statement
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setValue(Clob field) throws SQLException
@@ -1120,7 +1125,6 @@ public class SQLProcessor
      * to a BLOB that is stored as an OID SQL type.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setBinaryStream(Object field) throws SQLException
@@ -1157,11 +1161,10 @@ public class SQLProcessor
     /**
      * Set the next binding variable of the currently active prepared statement to write the serialized data of 'field'
      * to a BLOB that is stored as a Byte Array SQL type.
-     *
+     * <p>
      * This method is specifically added to support PostgreSQL BYTEA and SQLServer IMAGE datatypes.
      *
      * @param field the field value in play
-     *
      * @throws SQLException if somethings goes wrong
      */
     public void setByteArrayData(Object field) throws SQLException
@@ -1206,9 +1209,6 @@ public class SQLProcessor
     @Override
     public String toString()
     {
-        return new StringBuilder(256).append("commitMode:").append(_commitMode)
-                .append(" | conn:").append(_connection)
-                .append(" | SQL : '").append(_sql)
-                .append('\'').toString();
+        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
     }
 }

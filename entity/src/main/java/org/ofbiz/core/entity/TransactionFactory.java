@@ -23,81 +23,116 @@
  */
 package org.ofbiz.core.entity;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import javax.annotation.concurrent.GuardedBy;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.transaction.TransactionFactoryInterface;
 import org.ofbiz.core.util.Debug;
 
-import javax.transaction.TransactionManager;
-import javax.transaction.UserTransaction;
-import java.sql.Connection;
-import java.sql.SQLException;
-
 /**
  * TransactionFactory - central source for JTA objects
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
-public class TransactionFactory {
+public class TransactionFactory
+{
+    @GuardedBy("TransactionFactory.class")
+    private static volatile TransactionFactoryInterface transactionFactory = null;
 
-    public static TransactionFactoryInterface transactionFactory = null;
-
-    public static TransactionFactoryInterface getTransactionFactory() {
-        if (transactionFactory == null) { // don't want to block here
-            synchronized (TransactionFactory.class) {
-                // must check if null again as one of the blocked threads can still enter
-                if (transactionFactory == null) {
-                    try {
-                        String className = EntityConfigUtil.getInstance().getTxFactoryClass();
-
-                        if (className == null) {
-                            throw new IllegalStateException("Could not find transaction factory class name definition");
-                        }
-                        Class<?> tfClass = null;
-
-                        if (className != null && className.length() > 0) {
-                            try {
-                                ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                                tfClass = loader.loadClass(className);
-                            } catch (ClassNotFoundException e) {
-                                Debug.logWarning(e);
-                                throw new IllegalStateException("Error loading TransactionFactory class \"" + className + "\": " + e.getMessage());
-                            }
-                        }
-
-                        try {
-                            transactionFactory = (TransactionFactoryInterface) tfClass.newInstance();
-                        } catch (IllegalAccessException e) {
-                            Debug.logWarning(e);
-                            throw new IllegalStateException("Error loading TransactionFactory class \"" + className + "\": " + e.getMessage());
-                        } catch (InstantiationException e) {
-                            Debug.logWarning(e);
-                            throw new IllegalStateException("Error loading TransactionFactory class \"" + className + "\": " + e.getMessage());
-                        }
-                    } catch (SecurityException e) {
-                        Debug.logError(e);
-                        throw new IllegalStateException("Error loading TransactionFactory class: " + e.getMessage());
-                    }
-                }
-            }
-        }
-        return transactionFactory;
+    public static TransactionFactoryInterface getTransactionFactory()
+    {
+        final TransactionFactoryInterface existing = transactionFactory;
+        return (existing != null) ? existing : getTransactionFactoryUnderLock();
     }
 
-    public static TransactionManager getTransactionManager() {
+    synchronized private static TransactionFactoryInterface getTransactionFactoryUnderLock()
+    {
+        final TransactionFactoryInterface existing = transactionFactory;
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        try
+        {
+            final TransactionFactoryInterface created = createTransactionFactory();
+            transactionFactory = created;
+            return created;
+        }
+        catch (SecurityException se)
+        {
+            Debug.logError(se);
+            throw new IllegalStateException("Error loading TransactionFactory class: " + se.getMessage());
+        }
+    }
+
+    @GuardedBy("TransactionFactory.class")
+    private static TransactionFactoryInterface createTransactionFactory()
+    {
+        final String className = EntityConfigUtil.getInstance().getTxFactoryClass();
+        if (className == null || className.isEmpty())
+        {
+            throw new IllegalStateException("Could not find transaction factory class name definition");
+        }
+
+        final Class<?> tfClass = loadClass(className);
+        try
+        {
+            return (TransactionFactoryInterface)tfClass.newInstance();
+        }
+        catch (IllegalAccessException | InstantiationException e)
+        {
+            Debug.logWarning(e);
+            throw new IllegalStateException("Error loading TransactionFactory class \"" + className + "\": "
+                    + e.getMessage());
+        }
+    }
+
+    private static Class<?> loadClass(String className)
+    {
+        final Class<?> tfClass;
+        try
+        {
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            if (loader == null)
+            {
+                loader = TransactionFactory.class.getClassLoader();
+            }
+            tfClass = loader.loadClass(className);
+        }
+        catch (ClassNotFoundException e)
+        {
+            Debug.logWarning(e);
+            throw new IllegalStateException(
+                    "Error loading TransactionFactory class \"" + className + "\": " + e.getMessage());
+        }
+        return tfClass;
+    }
+
+    public static TransactionManager getTransactionManager()
+    {
         return getTransactionFactory().getTransactionManager();
     }
 
-    public static UserTransaction getUserTransaction() {
+    public static UserTransaction getUserTransaction()
+    {
         return getTransactionFactory().getUserTransaction();
     }
 
-    public static String getTxMgrName() {
+    public static String getTxMgrName()
+    {
         return getTransactionFactory().getTxMgrName();
     }
 
-    public static Connection getConnection(String helperName) throws SQLException, GenericEntityException {
+    public static Connection getConnection(String helperName) throws SQLException, GenericEntityException
+    {
         return getTransactionFactory().getConnection(helperName);
     }
 }

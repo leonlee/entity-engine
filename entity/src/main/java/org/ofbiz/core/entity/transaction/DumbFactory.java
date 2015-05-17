@@ -24,12 +24,20 @@
 
 package org.ofbiz.core.entity.transaction;
 
-import javax.transaction.*;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.*;
-import org.ofbiz.core.util.*;
+import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.util.Debug;
+
+import static javax.transaction.Status.STATUS_NO_TRANSACTION;
 
 /**
  * A dumb, non-working transaction manager.
@@ -39,82 +47,88 @@ import org.ofbiz.core.util.*;
  * @version    $Revision: 1.1 $
  * @since      2.0
  */
-public class DumbFactory implements TransactionFactoryInterface {
-    public TransactionManager getTransactionManager() {
-        return new TransactionManager() {
-            public void begin() throws NotSupportedException, SystemException {
-            }
-
-            public void commit() throws RollbackException, HeuristicMixedException, HeuristicRollbackException, SecurityException, IllegalStateException, SystemException {
-            }
-
-            public int getStatus() throws SystemException {
-                return TransactionUtil.STATUS_NO_TRANSACTION;
-            }
-
-            public Transaction getTransaction() throws SystemException {
-                return null;
-            }
-
-            public void resume(Transaction transaction) throws InvalidTransactionException, IllegalStateException, SystemException {
-            }
-
-            public void rollback() throws IllegalStateException, SecurityException, SystemException {
-            }
-
-            public void setRollbackOnly() throws IllegalStateException, SystemException {
-            }
-
-            public void setTransactionTimeout(int i) throws SystemException {
-            }
-
-            public Transaction suspend() throws SystemException {
-                return null;
-            }
-        };
+public class DumbFactory implements TransactionFactoryInterface
+{
+    public TransactionManager getTransactionManager()
+    {
+        return DumbTransactionManager.INSTANCE;
     }
 
-    public UserTransaction getUserTransaction() {
-        return new UserTransaction() {
-            public void begin() throws NotSupportedException, SystemException {
-            }
-
-            public void commit() throws RollbackException, HeuristicMixedException, HeuristicRollbackException, SecurityException, IllegalStateException, SystemException {
-            }
-
-            public int getStatus() throws SystemException {
-                return TransactionUtil.STATUS_NO_TRANSACTION;
-            }
-
-            public void rollback() throws IllegalStateException, SecurityException, SystemException {
-            }
-
-            public void setRollbackOnly() throws IllegalStateException, SystemException {
-            }
-
-            public void setTransactionTimeout(int i) throws SystemException {
-            }
-        };
+    public UserTransaction getUserTransaction()
+    {
+        return DumbUserTransaction.INSTANCE;
     }
     
-    public String getTxMgrName() {
+    public String getTxMgrName()
+    {
         return "dumb";
     }
     
-    public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
-
-        if (datasourceInfo.getJdbcDatasource() != null) {
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
-            return otherCon;
-        } else {
-            Debug.logError("Dumb/Empty is the configured transaction manager but no inline-jdbc element was specified in the " + helperName + " datasource. Please check your configuration");
+    public Connection getConnection(String helperName) throws SQLException, GenericEntityException
+    {
+        final DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        if (datasourceInfo.getJdbcDatasource() == null) {
+            Debug.logError("Dumb/Empty is the configured transaction manager but no inline-jdbc element was specified in the "
+                    + helperName + " datasource. Please check your configuration");
             return null;
         }
+
+        return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
     }
 
     public void removeDatasource(final String helperName)
     {
         ConnectionFactory.removeDatasource(helperName);
+    }
+
+    static class DumbTransactionManager implements TransactionManager
+    {
+        static final DumbTransactionManager INSTANCE = new DumbTransactionManager();
+
+        public void begin() {}
+        public void commit() {}
+
+        public int getStatus()
+        {
+            return STATUS_NO_TRANSACTION;
+        }
+
+        public Transaction getTransaction()
+        {
+            return null;
+        }
+
+        public void resume(Transaction transaction) {}
+
+        public void rollback() {}
+
+        public void setRollbackOnly() {}
+
+        public void setTransactionTimeout(int i) {}
+
+        public Transaction suspend()
+        {
+            return null;
+        }
+    }
+
+    static class DumbUserTransaction implements UserTransaction
+    {
+        static final DumbUserTransaction INSTANCE = new DumbUserTransaction();
+
+        public void begin() {}
+
+        public void commit() {}
+
+        public int getStatus()
+        {
+            return STATUS_NO_TRANSACTION;
+        }
+
+        public void rollback() {}
+
+        public void setRollbackOnly() {}
+
+        public void setTransactionTimeout(int i) {}
     }
 }

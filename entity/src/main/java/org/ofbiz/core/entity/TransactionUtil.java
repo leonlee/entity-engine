@@ -50,7 +50,7 @@ public class TransactionUtil implements javax.transaction.Status {
     // Debug module name
     public static final String module = TransactionUtil.class.getName();
 
-    public static final ThreadLocal<LocalTransaction> localTransaction = new ThreadLocal<LocalTransaction>();
+    public static final ThreadLocal<LocalTransaction> localTransaction = new ThreadLocal<>();
 
     /** Begins a transaction in the current thread IF transactions are available; only
      * tries if the current transaction status is ACTIVE, if not active it returns false.
