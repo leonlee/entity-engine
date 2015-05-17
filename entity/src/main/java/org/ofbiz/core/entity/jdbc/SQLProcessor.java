@@ -44,6 +44,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.transaction.Status;
+
 import com.google.common.annotations.VisibleForTesting;
 
 import org.ofbiz.core.entity.ConnectionFactory;
@@ -65,7 +67,7 @@ import org.ofbiz.core.util.Debug;
 public class SQLProcessor
 {
     /**
-     * A reference queue for holding the weak reference guards for the connection that were cleared by the GC
+     * A reference queue for holding the phantom reference guards for the connection that were cleared by the GC
      * rather than an explicit close.  This queue should always be empty; finding a reference in it indicates
      * a serious programming error.
      */
@@ -458,7 +460,7 @@ public class SQLProcessor
         smartSetAutoCommit(_connection);
         try
         {
-            if (TransactionUtil.getStatus() == TransactionUtil.STATUS_ACTIVE)
+            if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE)
             {
                 _manualTX = false;
             }
