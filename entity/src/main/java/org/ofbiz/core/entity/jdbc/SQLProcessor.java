@@ -1171,12 +1171,6 @@ public class SQLProcessor
         _ind++;
     }
 
-    @Override
-    public String toString()
-    {
-        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
-    }
-
     private void closeAbandonedProcessors()
     {
         Reference<? extends SQLProcessor> abandoned = ABANDONED.poll();
@@ -1191,6 +1185,12 @@ public class SQLProcessor
     void closeAbandonedProcessor(ConnectionGuard abandoned)
     {
         abandoned.close();
+    }
+
+    @Override
+    public String toString()
+    {
+        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
     }
 
     interface ConnectionGuard extends Closeable
