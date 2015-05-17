@@ -14,7 +14,7 @@ import static org.junit.Assert.fail;
  */
 public class SQLProcessorTest
 {
-    private static final int ATTEMPTS = 1000;
+    private static final int ATTEMPTS = 100;
 
     @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -26,8 +26,13 @@ public class SQLProcessorTest
         for (int i = 1; i < ATTEMPTS; ++i)
         {
             System.gc();
-            System.runFinalization();
-            Thread.sleep(10L);
+            Thread.sleep(50L);
+            if (i > ATTEMPTS / 2)
+            {
+                System.runFinalization();
+                Thread.sleep(50L);
+            }
+
             if (success.get())
             {
                 System.out.println("Successful reclaimed leaked connection on attempt #" + i);
