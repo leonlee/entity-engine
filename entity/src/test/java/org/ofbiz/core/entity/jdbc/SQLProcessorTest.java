@@ -26,7 +26,8 @@ public class SQLProcessorTest
         for (int i = 1; i < ATTEMPTS; ++i)
         {
             System.gc();
-            Thread.yield();
+            System.runFinalization();
+            Thread.sleep(10L);
             if (success.get())
             {
                 System.out.println("Successful reclaimed leaked connection on attempt #" + i);
