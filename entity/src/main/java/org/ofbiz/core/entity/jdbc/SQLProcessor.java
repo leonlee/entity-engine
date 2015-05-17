@@ -259,15 +259,20 @@ public class SQLProcessor
      */
     public void close() throws GenericDataSourceException
     {
-        smartCommit(_connection);
+        try
+        {
+            smartCommit(_connection);
+        }
+        finally
+        {
+            _sql = null;
+            _parameterValues = null;
 
-        _sql = null;
-        _parameterValues = null;
-
-        closeResultSet();
-        closePreparedStatement();
-        closeStatement();
-        closeConnection();
+            closeResultSet();
+            closePreparedStatement();
+            closeStatement();
+            closeConnection();
+        }
     }
 
     private void closeResultSet()
