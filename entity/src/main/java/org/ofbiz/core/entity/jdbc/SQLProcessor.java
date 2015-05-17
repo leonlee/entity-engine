@@ -25,8 +25,12 @@ package org.ofbiz.core.entity.jdbc;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -38,8 +42,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import javax.transaction.Status;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -61,6 +64,13 @@ import org.ofbiz.core.util.Debug;
  */
 public class SQLProcessor
 {
+    /**
+     * A reference queue for holding the weak reference guards for the connection that were cleared by the GC
+     * rather than an explicit close.  This queue should always be empty; finding a reference in it indicates
+     * a serious programming error.
+     */
+    static final ReferenceQueue<SQLProcessor> ABANDONED = new ReferenceQueue<>();
+
     public enum CommitMode
     {
         /**
@@ -96,6 +106,10 @@ public class SQLProcessor
      */
     private String helperName;
 
+    // Finalization guard.  This is meant to help catch errors where the SQLProcessor is not correctly closed.
+    @VisibleForTesting
+    volatile ConnectionGuard _guard = null;
+
     // / The database resources to be used
     private Connection _connection = null;
 
@@ -116,9 +130,6 @@ public class SQLProcessor
 
     // / true in case of manual transactions
     private boolean _manualTX;
-
-    // / true in case the connection shall be closed.
-    private boolean _bDeleteConnection = false;
 
     private CommitMode _commitMode;
 
@@ -327,16 +338,21 @@ public class SQLProcessor
         }
     }
 
-    @VisibleForTesting
-    void closeConnection()
+    private void closeConnection()
     {
-        final Connection connection = _connection;
-        if (connection == null || !_bDeleteConnection)
+        // If we don't have a connection guard, then we didn't open the connection ourselves, so we shouldn't close it
+        final ConnectionGuard guard = _guard;
+        if (guard == null)
         {
             return;
         }
-        _connection = null;
 
+        // Since we are properly closing the connection, ensure that the GC won't enqueue our guard (or that if by
+        // some strange race condition it does, that this would be harmless).
+        final Connection connection = _connection;
+        guard.clear();
+        _guard = null;
+        _connection = null;
         try
         {
             connection.close();
@@ -387,14 +403,18 @@ public class SQLProcessor
             _manualTX = false;
             _commitMode = CommitMode.EXTERNAL_COMMIT;
             _connection = TransactionUtil.getLocalTransactionConnection();
+            _guard = null;
             return _connection;
         }
 
-        _manualTX = true;
+        // Seems like a good time to purge any abandoned processors...
+        closeAbandonedProcessors();
 
+        _manualTX = true;
         try
         {
             _connection = ConnectionFactory.getConnection(helperName);
+            _guard = new DefaultConnectionGuard(this, _connection);
         }
         catch (SQLException sqle)
         {
@@ -433,13 +453,12 @@ public class SQLProcessor
                 Debug.logVerbose("Transaction isolation level set to 'Serializable'.", module);
             }
         }
-        //
-        // we need to normalise the connections autoCommit status
-        smartSetAutoCommit(_connection);
 
+        // we need to normalise the connection's autoCommit status
+        smartSetAutoCommit(_connection);
         try
         {
-            if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE)
+            if (TransactionUtil.getStatus() == TransactionUtil.STATUS_ACTIVE)
             {
                 _manualTX = false;
             }
@@ -451,7 +470,6 @@ public class SQLProcessor
                     "transaction status: " + e.toString(), module);
         }
 
-        _bDeleteConnection = true;
         return _connection;
     }
 
@@ -539,8 +557,13 @@ public class SQLProcessor
         }
 
         final Connection connection = getConnection();
+        final ConnectionGuard guard = _guard;
         try
         {
+            if (guard != null)
+            {
+                guard.setSql(sql);
+            }
             _sql = sql;
             _parameterValues = new ArrayList<>();
             _ind = 1;
@@ -1146,22 +1169,84 @@ public class SQLProcessor
         _ind++;
     }
 
-    protected void finalize() throws Throwable
-    {
-        try
-        {
-            this.close();
-        }
-        catch (Exception e)
-        {
-            Debug.logError(e, "Error closing the result, connection, etc in finalize EntityListIterator");
-        }
-        super.finalize();
-    }
-
     @Override
     public String toString()
     {
         return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
+    }
+
+    private void closeAbandonedProcessors()
+    {
+        Reference<? extends SQLProcessor> abandoned = ABANDONED.poll();
+        while (abandoned != null)
+        {
+            closeAbandonedProcessor((ConnectionGuard)abandoned);
+            abandoned = ABANDONED.poll();
+        }
+    }
+
+    @VisibleForTesting
+    void closeAbandonedProcessor(ConnectionGuard abandoned)
+    {
+        abandoned.close();
+    }
+
+    interface ConnectionGuard extends Closeable
+    {
+        void clear();
+        void close();
+        void setSql(String sql);
+    }
+
+    static class DefaultConnectionGuard extends PhantomReference<SQLProcessor> implements ConnectionGuard
+    {
+        private AtomicReference<Connection> connectionRef;
+        private volatile String sql;
+
+        DefaultConnectionGuard(SQLProcessor owner, Connection connection)
+        {
+            super(owner, ABANDONED);
+            this.connectionRef = new AtomicReference<>(connection);
+        }
+
+        @Override
+        public void clear()
+        {
+            connectionRef.set(null);
+            sql = null;
+            super.clear();
+        }
+
+        @Override
+        public void close()
+        {
+            final Connection connection = connectionRef.getAndSet(null);
+            if (connection != null)
+            {
+                close(connection);
+            }
+        }
+
+        private void close(Connection connection)
+        {
+            Debug.logError("!!! ABANDONED SQLProcessor DETECTED!!!" +
+                    "\n\tThis probably means that somebody forgot to close an EntityListIterator." +
+                    "\n\tConnection: " + connection +
+                    "\n\tSQL: " + sql, module);
+            try
+            {
+                connection.close();
+            }
+            catch (SQLException sqle)
+            {
+                Debug.logError(sqle, "ConnectionGuard.close() failed", module);
+            }
+        }
+
+        @Override
+        public void setSql(String sql)
+        {
+            this.sql = sql;
+        }
     }
 }

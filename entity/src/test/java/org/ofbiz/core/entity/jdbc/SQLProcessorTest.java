@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.ofbiz.core.entity.jdbc.SQLProcessor.ConnectionGuard;
 
 import static org.junit.Assert.fail;
 
@@ -14,19 +15,31 @@ import static org.junit.Assert.fail;
  */
 public class SQLProcessorTest
 {
-    private static final int ATTEMPTS = 1000;
+    private static final int ATTEMPTS = 100;
 
     @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Test
-    public void testFinalization() throws Exception
+    public void testConnectionGuard() throws Exception
     {
-        final AtomicBoolean success = abandonConnection();
+        final ConnectionGuard guard = abandonConnection();
 
+        final AtomicBoolean success = new AtomicBoolean();
         for (int i = 1; i < ATTEMPTS; ++i)
         {
             System.gc();
-            Thread.yield();
+            SQLProcessor fixture = new SQLProcessor("defaultDS")
+            {
+                @Override
+                void closeAbandonedProcessor(ConnectionGuard abandoned)
+                {
+                    success.set(true);
+                    super.closeAbandonedProcessor(abandoned);
+                }
+            };
+            fixture.prepareStatement("SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS");
+            fixture.close();
+
             if (success.get())
             {
                 System.out.println("Successful reclaimed leaked connection on attempt #" + i);
@@ -34,22 +47,15 @@ public class SQLProcessorTest
             }
         }
 
+        System.err.println("Forcibly closing guard from the test, since it didn't get closed automatically. :(");
+        guard.close();
         fail("Unsuccessful at collecting leaked connection even in " + ATTEMPTS + " attempts!");
     }
 
-    private static AtomicBoolean abandonConnection() throws Exception
+    private static ConnectionGuard abandonConnection() throws Exception
     {
-        final AtomicBoolean closed = new AtomicBoolean();
-        final SQLProcessor sqlProcessor = new SQLProcessor("defaultDS")
-        {
-            @Override
-            void closeConnection()
-            {
-                closed.set(true);
-                super.closeConnection();
-            }
-        };
+        final SQLProcessor sqlProcessor = new SQLProcessor("defaultDS");
         sqlProcessor.prepareStatement("SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS");
-        return closed;
+        return sqlProcessor._guard;
     }
 }
