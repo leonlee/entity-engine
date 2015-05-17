@@ -1200,7 +1200,7 @@ public class SQLProcessor
 
     static class DefaultConnectionGuard extends PhantomReference<SQLProcessor> implements ConnectionGuard
     {
-        private AtomicReference<Connection> connectionRef;
+        private final AtomicReference<Connection> connectionRef;
         private volatile String sql;
 
         DefaultConnectionGuard(SQLProcessor owner, Connection connection)
