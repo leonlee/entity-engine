@@ -71,11 +71,21 @@ public class EntityConfigUtil
 
     public static EntityConfigUtil getInstance()
     {
-        if (singletonInstance == null)
+        final EntityConfigUtil existing = singletonInstance;
+        return (existing != null) ? existing : getInstanceUnderLock();
+    }
+
+    synchronized private static EntityConfigUtil getInstanceUnderLock()
+    {
+        final EntityConfigUtil existing = singletonInstance;
+        if (existing != null)
         {
-            singletonInstance = new EntityConfigUtil();
+            return existing;
         }
-        return singletonInstance;
+
+        final EntityConfigUtil created = new EntityConfigUtil();
+        singletonInstance = created;
+        return created;
     }
 
     protected Element getXmlRootElement() throws GenericEntityConfException
