@@ -1216,6 +1216,11 @@ public class SQLProcessor
             this.connectionRef = new AtomicReference<>(connection);
         }
 
+        /**
+         * Called by {@link SQLProcessor#close()} to confirm that the guard is no longer needed.
+         * This clears all internal references, which prevents the reference from getting cleared by the GC
+         * instead.  This in turn prevents it from ever showing up in {@link #ABANDONED}.
+         */
         @Override
         public void clear()
         {
@@ -1224,6 +1229,11 @@ public class SQLProcessor
             super.clear();
         }
 
+        /**
+         * Called by {@link SQLProcessor#closeAbandonedProcessors()} if this reference is found in the
+         * {@link #ABANDONED} reference queue, which means it must have been collected by the GC instead
+         * of by a proper call to {@link SQLProcessor#close()}.
+         */
         @Override
         public void close()
         {
