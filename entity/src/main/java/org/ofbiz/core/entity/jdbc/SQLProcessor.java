@@ -44,6 +44,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 import javax.transaction.Status;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -64,6 +66,7 @@ import org.ofbiz.core.util.Debug;
  * @version $Revision: 1.7 $
  * @since 2.0
  */
+@NotThreadSafe  // You really ought to just assume this for everything in entity engine...
 public class SQLProcessor
 {
     /**
@@ -337,9 +340,13 @@ public class SQLProcessor
         guard.clear();
         _guard = null;
         _connection = null;
+
         try
         {
-            connection.close();
+            if (connection != null)
+            {
+                connection.close();
+            }
         }
         catch (SQLException sqle)
         {
@@ -1197,6 +1204,7 @@ public class SQLProcessor
         void setSql(String sql);
     }
 
+    @ThreadSafe
     static class DefaultConnectionGuard extends PhantomReference<SQLProcessor> implements ConnectionGuard
     {
         private final AtomicReference<Connection> connectionRef;
