@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.atlassian.ofbiz</groupId>
         <artifactId>entityengine-parent</artifactId>
-        <version>1.1.5-tomcatcp4-SNAPSHOT</version>
+        <version>1.1.5-dbcp-SNAPSHOT</version>
     </parent>
 
     <artifactId>entityengine</artifactId>
@@ -57,18 +57,18 @@
             <version>1.4.3</version>
             <scope>provided</scope>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>commons-dbcp</groupId>-->
-            <!--<artifactId>commons-dbcp</artifactId>-->
-            <!--<version>1.4</version>-->
-            <!--<scope>provided</scope>-->
-        <!--</dependency>-->
         <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-jdbc</artifactId>
-            <version>8.0.22</version>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-dbcp2</artifactId>
+            <version>2.1</version>
             <scope>provided</scope>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.tomcat</groupId>-->
+            <!--<artifactId>tomcat-jdbc</artifactId>-->
+            <!--<version>8.0.22</version>-->
+            <!--<scope>provided</scope>-->
+        <!--</dependency>-->
         <!--<dependency>-->
             <!--<groupId>net.ju-n.commons-dbcp-jmx</groupId>-->
             <!--<artifactId>commons-dbcp-jmx-jdbc4</artifactId>-->

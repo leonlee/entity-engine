@@ -25,9 +25,9 @@ package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.base.Joiner;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.log4j.Logger;
-import org.apache.tomcat.jdbc.pool.DataSource;
-import org.apache.tomcat.jdbc.pool.DataSourceFactory;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
@@ -61,9 +61,9 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 public class DBCPConnectionFactory {
     private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
 
-    protected static final Map<String, DataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
-    private static final DataSourceFactory dataSourceFactory = new DataSourceFactory();
+//    private static final DataSourceFactory dataSourceFactory = new DataSourceFactory();
 
     private static final String PROP_JMX = "jmx";
     private static final String DBCP_PROPERTIES = "dbcp.properties";
@@ -74,7 +74,7 @@ public class DBCPConnectionFactory {
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
         // the DataSource implementation
-        DataSource dataSource = dsCache.get(helperName);
+        BasicDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null) {
             return trackConnection(helperName,dataSource);
         }
@@ -121,12 +121,12 @@ public class DBCPConnectionFactory {
         return null;
     }
 
-    private static void initConnectionPoolSettings(final DataSource dataSource, final ConnectionPoolInfo poolInfo)
+    private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
     {
-        dataSource.setMaxActive(poolInfo.getMaxSize());
+        dataSource.setMaxTotal(poolInfo.getMaxSize());
         dataSource.setMinIdle(poolInfo.getMinSize());
         dataSource.setMaxIdle(poolInfo.getMaxIdle());
-        dataSource.setMaxWait((int) poolInfo.getMaxWait());
+        dataSource.setMaxWaitMillis(poolInfo.getMaxWait());
         dataSource.setDefaultCatalog(poolInfo.getDefaultCatalog());
 
         if (poolInfo.getInitialSize() != null)
@@ -157,7 +157,7 @@ public class DBCPConnectionFactory {
 
         if (poolInfo.getRemoveAbandoned() != null)
         {
-            dataSource.setRemoveAbandoned(poolInfo.getRemoveAbandoned());
+            dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandoned());
             if (poolInfo.getRemoveAbandonedTimeout() != null)
             {
                 dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
@@ -177,7 +177,7 @@ public class DBCPConnectionFactory {
         }
     }
 
-    private static DataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
+    private static BasicDataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
     {
         Properties dbcpProperties = loadDbcpProperties();
         Properties dsProperties = new Properties(dbcpProperties);
@@ -186,14 +186,14 @@ public class DBCPConnectionFactory {
         dsProperties.setProperty("username", jdbcDatasource.getUsername());
         dsProperties.setProperty("password", jdbcDatasource.getPassword());
 
-        final DataSource dataSource = (DataSource) dataSourceFactory.createDataSource(dsProperties);
+        final BasicDataSource dataSource = BasicDataSourceFactory.createDataSource(dsProperties);
 
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
-            dataSource.setJmxEnabled(true);
-            ManagementFactory.getPlatformMBeanServer().registerMBean(
-                    dataSource.getPool().getJmxPool(),
-                    ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)));
+            dataSource.setJmxName(ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)).getCanonicalName());
+//            ManagementFactory.getPlatformMBeanServer().registerMBean(
+//                    dataSource.getPool().getJmxPool(),
+//                    O);
         }
 
         return dataSource;
@@ -243,7 +243,7 @@ public class DBCPConnectionFactory {
         return dbcpProperties;
     }
 
-    private static Connection trackConnection(final String helperName, final DataSource dataSource)
+    private static Connection trackConnection(final String helperName, final BasicDataSource dataSource)
     {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
         return connectionTracker.trackConnection(helperName, new Callable<Connection>()
@@ -262,7 +262,7 @@ public class DBCPConnectionFactory {
      */
     public synchronized static void removeDatasource(String helperName)
     {
-        DataSource dataSource = dsCache.get(helperName);
+        BasicDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null)
         {
             try

@@ -1,7 +1,7 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
 
-import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 
 
@@ -21,17 +21,17 @@ public class ConnectionPoolInfoSynthesizer
      */
     public static ConnectionPoolInfo synthesizeConnectionPoolInfo(final javax.sql.DataSource ds)
     {
-        if (ds instanceof DataSource)
+        if (ds instanceof BasicDataSource)
         {
-            return copyBasicDataSource((DataSource) ds);
+            return copyBasicDataSource((BasicDataSource) ds);
         }
         //
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
         // so we have to use reflection to get this to happen at runtime
         //
-        else if ("org.apache.tomcat.jdbc.pool.DataSource".equals(ds.getClass().getName()))
+        else if ("org.apache.commons.dbcp2.BasicDataSource".equals(ds.getClass().getName()))
         {
-            return reflectDataSource((DataSource) ds);
+            return reflectDataSource((BasicDataSource) ds);
         }
         else
         {
@@ -39,17 +39,17 @@ public class ConnectionPoolInfoSynthesizer
         }
     }
 
-    private static ConnectionPoolInfo copyBasicDataSource(DataSource bds)
+    private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds)
     {
         return new ConnectionPoolInfo(
-                bds.getMaxActive(), bds.getMinIdle(), (long) bds.getMaxWait(),
+                bds.getMaxTotal(), bds.getMinIdle(), (long) bds.getMaxWaitMillis(),
                 -1, -1,
                 -1, -1,
                 bds.getValidationQuery(),
                 -1L, -1L); //todo fix eviction
     }
 
-    private static ConnectionPoolInfo reflectDataSource(DataSource ds)
+    private static ConnectionPoolInfo reflectDataSource(BasicDataSource ds)
     {
         return new ConnectionPoolInfo(
                 getInt(ds, "getMaxActive"), getInt(ds, "getMinIdle"), getLong(ds, "getMaxWait"),
@@ -60,7 +60,7 @@ public class ConnectionPoolInfoSynthesizer
         );
     }
 
-    private static Integer getInt(DataSource ds, String methodName)
+    private static Integer getInt(BasicDataSource ds, String methodName)
     {
         try
         {
@@ -85,7 +85,7 @@ public class ConnectionPoolInfoSynthesizer
         }
     }
 
-    private static Long getLong(DataSource ds, String methodName)
+    private static Long getLong(BasicDataSource ds, String methodName)
     {
         try
         {
@@ -110,7 +110,7 @@ public class ConnectionPoolInfoSynthesizer
         }
     }
 
-    private static String getStr(DataSource ds, String methodName)
+    private static String getStr(BasicDataSource ds, String methodName)
     {
         try
         {
