@@ -119,9 +119,6 @@ public class SQLProcessor
     private PreparedStatement _ps = null;
 
     // / The database resources to be used
-    private Statement _stmt = null;
-
-    // / The database resources to be used
     private ResultSet _rs = null;
 
     // / The SQL String used. Use for debugging only
@@ -283,7 +280,6 @@ public class SQLProcessor
 
             closeResultSet();
             closePreparedStatement();
-            closeStatement();
             closeConnection();
         }
     }
@@ -323,25 +319,6 @@ public class SQLProcessor
         catch (SQLException sqle)
         {
             Debug.logWarning(sqle, "Error closing PreparedStatement", module);
-        }
-    }
-
-    private void closeStatement()
-    {
-        final Statement stmt = _stmt;
-        if (stmt == null)
-        {
-            return;
-        }
-        _stmt = null;
-
-        try
-        {
-            stmt.close();
-        }
-        catch (SQLException sqle)
-        {
-            Debug.logWarning(sqle, "Error closing Statement", module);
         }
     }
 
@@ -567,10 +544,16 @@ public class SQLProcessor
         final ConnectionGuard guard = _guard;
         try
         {
+            // If the guard is null, then the connection we are using belongs to somebody else, so how it gets
+            // cleanup up is not our problem.  However, if we allocated the connection and then this SQLProcessor
+            // gets abandoned to GC without closing it, then we want to be able to report the last SQL that was
+            // requested on the connection, as knowing the kind of work the connection was used for may help us
+            // track down the code that leaked it.
             if (guard != null)
             {
                 guard.setSql(sql);
             }
+
             _sql = sql;
             _parameterValues = new ArrayList<>();
             _ind = 1;
@@ -661,7 +644,7 @@ public class SQLProcessor
     }
 
     /**
-     * Execute a query baed ont SQL string given
+     * Execute a query based on the SQL string given
      *
      * @param sql The SQL string to be executed
      * @return The result set of the query
@@ -712,13 +695,22 @@ public class SQLProcessor
     {
         validateCommitMode();
 
-        Statement stmt = null;
-
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         List<String> emptyList = Collections.emptyList();
+
+        Statement stmt = null;
         try
         {
+            // Note: NPE if you haven't already allocated a connection...
             stmt = _connection.createStatement();
+
+            // If there is a connection guard, record the SQL we are executing for debugging purposes if the
+            // connection gets leaked.
+            final ConnectionGuard guard = _guard;
+            if (guard != null)
+            {
+                guard.setSql(sql);
+            }
 
             sqlInterceptor.beforeExecution(sql, emptyList, stmt);
 
@@ -1236,7 +1228,7 @@ public class SQLProcessor
 
         private void close(Connection connection)
         {
-            Debug.logError("!!! ABANDONED SQLProcessor DETECTED!!!" +
+            Debug.logError("!!! ABANDONED SQLProcessor DETECTED !!!" +
                     "\n\tThis probably means that somebody forgot to close an EntityListIterator." +
                     "\n\tConnection: " + connection +
                     "\n\tSQL: " + sql, module);
