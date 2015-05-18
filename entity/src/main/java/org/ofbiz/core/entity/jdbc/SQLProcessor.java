@@ -545,7 +545,7 @@ public class SQLProcessor
         try
         {
             // If the guard is null, then the connection we are using belongs to somebody else, so how it gets
-            // cleanup up is not our problem.  However, if we allocated the connection and then this SQLProcessor
+            // cleaned up is not our problem.  However, if we allocated the connection and then this SQLProcessor
             // gets abandoned to GC without closing it, then we want to be able to report the last SQL that was
             // requested on the connection, as knowing the kind of work the connection was used for may help us
             // track down the code that leaked it.
