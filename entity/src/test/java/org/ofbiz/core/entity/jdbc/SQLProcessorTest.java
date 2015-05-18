@@ -25,7 +25,7 @@ public class SQLProcessorTest
         final ConnectionGuard guard = abandonConnection();
 
         final AtomicBoolean success = new AtomicBoolean();
-        for (int i = 1; i < ATTEMPTS; ++i)
+        for (int i = 1; i <= ATTEMPTS; ++i)
         {
             System.gc();
             SQLProcessor fixture = new SQLProcessor("defaultDS")
