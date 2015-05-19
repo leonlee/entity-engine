@@ -25,7 +25,7 @@ import org.ofbiz.core.util.Debug;
  * @since v1.0.65
  */
 @ThreadSafe
-class ConnectionGuard extends PhantomReference<SQLProcessor> implements Closeable
+class ConnectionGuard extends PhantomReference<SQLProcessor>
 {
     /**
      * Map for holding existing connection guards.
@@ -59,11 +59,14 @@ class ConnectionGuard extends PhantomReference<SQLProcessor> implements Closeabl
      * Registers a guard for the association between the lifecycle of the given {@code SQLProcessor} with the
      * given database {@code Connection}.
      * <p>
-     * If this guard is not explicitly {@link #close() closed}, and if at some later time the {@code SQLProcessor}
+     * If this guard is not explicitly {@link #clear() cleared}, and if at some later time the {@code SQLProcessor}
      * is garbage collected, then the {@code ConnectionGuard} will log an error and close the connection.  The
      * {@code SQLProcessor} should call {@link #setSql(String)} whenever the {@code SQLProcessor} creates a new
      * {@code PreparedStatement} (or {@code Statement}) so that this information will be available for debugging
      * purposes in the event of a connection leak.
+     * </p>
+     * <p>
+     * Note that {@link #clear()} is the <em>normal</em> way of releasing the guard.
      * </p>
      *
      * @param owner the {@code SQLProcessor} that allocated the connection
@@ -79,8 +82,12 @@ class ConnectionGuard extends PhantomReference<SQLProcessor> implements Closeabl
 
     /**
      * Called by {@link SQLProcessor#close()} to confirm that the guard is no longer needed.
+     * <p>
      * This clears all internal references, which prevents the reference from getting cleared by the GC
-     * instead.  This in turn prevents it from ever showing up in {@link #ABANDONED}.
+     * instead.  This in turn prevents it from ever showing up in {@link #ABANDONED}, so it should only
+     * be called if the connection is actually being closed.
+     * </p>
+     *
      */
     @Override
     public void clear()
@@ -96,18 +103,17 @@ class ConnectionGuard extends PhantomReference<SQLProcessor> implements Closeabl
      * {@link #ABANDONED} reference queue, which means it must have been collected by the GC instead
      * of by a proper call to {@link SQLProcessor#close()}.
      */
-    @Override
-    public void close()
+    private void closeAbandonedProcessor()
     {
         GUARDS.remove(this);
         final Connection connection = connectionRef.getAndSet(null);
         if (connection != null)
         {
-            close(connection);
+            closeAbandonedConnection(connection);
         }
     }
 
-    private void close(Connection connection)
+    private void closeAbandonedConnection(Connection connection)
     {
         Debug.logError("!!! ABANDONED SQLProcessor DETECTED !!!" +
                 "\n\tThis probably means that somebody forgot to close an EntityListIterator." +
@@ -128,13 +134,20 @@ class ConnectionGuard extends PhantomReference<SQLProcessor> implements Closeabl
         this.sql = sql;
     }
 
+    /**
+     * Collects any abandoned {@code SQLProcessor}s that have been detected.
+     * <p>
+     * Any {@code SQLProcessor} that is found to have been abandoned is closed and an error is logged reporting
+     * what has happened as well as the last SQL statement known to have been executed on that connection.
+     * </p>
+     */
     @SuppressWarnings("CastToConcreteClass")  // Have to; the reference queue isn't more specific than that.
     static void closeAbandonedProcessors()
     {
         Reference<? extends SQLProcessor> abandoned = ABANDONED.poll();
         while (abandoned != null)
         {
-            ((ConnectionGuard)abandoned).close();
+            ((ConnectionGuard)abandoned).closeAbandonedProcessor();
             abandoned = ABANDONED.poll();
         }
     }
