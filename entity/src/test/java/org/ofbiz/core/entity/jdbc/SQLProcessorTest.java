@@ -22,7 +22,7 @@ public class SQLProcessorTest
     @Test
     public void testConnectionGuard() throws Exception
     {
-        final ConnectionGuard guard = abandonConnection();
+        abandonConnection();
 
         final AtomicBoolean success = new AtomicBoolean();
         for (int i = 1; i <= ATTEMPTS; ++i)
@@ -47,8 +47,6 @@ public class SQLProcessorTest
             }
         }
 
-        System.err.println("Forcibly closing guard from the test, since it didn't get closed automatically. :(");
-        guard.close();
         fail("Unsuccessful at collecting leaked connection even in " + ATTEMPTS + " attempts!");
     }
 

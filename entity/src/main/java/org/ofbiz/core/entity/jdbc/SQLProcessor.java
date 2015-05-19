@@ -42,6 +42,8 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -69,6 +71,15 @@ import org.ofbiz.core.util.Debug;
 @NotThreadSafe  // You really ought to just assume this for everything in entity engine...
 public class SQLProcessor
 {
+    /**
+     * Map for holding existing connection guards.
+     * <p>
+     * This is necessary to guarantee that a leaked connection does actually become <em>phantom-reachable</em>,
+     * which in turn is necessary to guarantee that it gets enqueued.
+     * </p>
+     */
+    private static final ConcurrentMap<ConnectionGuard,ConnectionGuard> GUARDS = new ConcurrentHashMap<>(64);
+
     /**
      * A reference queue for holding the phantom reference guards for the connection that were cleared by the GC
      * rather than an explicit close.  This queue should always be empty; finding a reference in it indicates
@@ -338,6 +349,7 @@ public class SQLProcessor
         // some strange race condition it does, that this would be harmless).
         final Connection connection = _connection;
         guard.clear();
+        GUARDS.remove(guard);
         _guard = null;
         _connection = null;
 
@@ -405,7 +417,9 @@ public class SQLProcessor
         try
         {
             _connection = ConnectionFactory.getConnection(helperName);
-            _guard = new DefaultConnectionGuard(this, _connection);
+            final ConnectionGuard guard = new DefaultConnectionGuard(this, _connection);
+            GUARDS.put(guard, guard);
+            _guard = guard;
         }
         catch (SQLException sqle)
         {
