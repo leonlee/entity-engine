@@ -64,7 +64,6 @@ import org.ofbiz.core.util.Debug;
 public class SQLProcessor
 {
 
-
     public enum CommitMode
     {
         /**
@@ -101,8 +100,7 @@ public class SQLProcessor
     private String helperName;
 
     // Finalization guard.  This is meant to help catch errors where the SQLProcessor is not correctly closed.
-    @VisibleForTesting
-    volatile ConnectionGuard _guard = null;
+    private volatile ConnectionGuard _guard = null;
 
     // / The database resources to be used
     private Connection _connection = null;
