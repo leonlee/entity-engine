@@ -9,7 +9,7 @@
 
 	<groupId>com.atlassian.ofbiz</groupId>
 	<artifactId>entityengine-parent</artifactId>
-	<version>1.1.6-dbcp-SNAPSHOT</version>
+    <version>1.1.5-dbcp2-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>Atlassian OFBiz Fork</name>

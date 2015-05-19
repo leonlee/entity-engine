@@ -94,18 +94,9 @@ public class DBCPConnectionFactory {
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
                 dataSource = createDataSource(jdbcDatasource);
                 dataSource.setConnectionProperties(toString(info));
-
-                if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
-                {
-                    dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
-                }
-
                 // set connection pool attributes
-                ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
-                if (poolInfo != null)
-                {
-                    initConnectionPoolSettings(dataSource, poolInfo);
-                }
+                final ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
+                initConnectionPoolSettings(dataSource, poolInfo);
 
                 dataSource.setLogWriter(Debug.getPrintWriter());
 
@@ -123,6 +114,11 @@ public class DBCPConnectionFactory {
 
     private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
     {
+        if(poolInfo == null)
+        {
+            return;
+        }
+
         dataSource.setMaxTotal(poolInfo.getMaxSize());
         dataSource.setMinIdle(poolInfo.getMinSize());
         dataSource.setMaxIdle(poolInfo.getMaxIdle());
@@ -134,24 +130,24 @@ public class DBCPConnectionFactory {
             dataSource.setInitialSize(poolInfo.getInitialSize());
         }
 
-        if (isNotEmpty(poolInfo.getValidationQuery()))
-        {
-            // testOnBorrow defaults to true when this is set, but can still be forced to false
-            dataSource.setTestOnBorrow(poolInfo.getTestOnBorrow() == null || poolInfo.getTestOnBorrow());
-            if (poolInfo.getTestOnReturn() != null)
-            {
-                dataSource.setTestOnReturn(poolInfo.getTestOnReturn());
-            }
-            if (poolInfo.getTestWhileIdle() != null)
-            {
-                dataSource.setTestWhileIdle(poolInfo.getTestWhileIdle());
-            }
-            dataSource.setValidationQuery(poolInfo.getValidationQuery());
-            if (poolInfo.getValidationQueryTimeout() != null)
-            {
-                dataSource.setValidationQueryTimeout(poolInfo.getValidationQueryTimeout());
-            }
-        }
+//        if (isNotEmpty(poolInfo.getValidationQuery()))
+//        {
+//            // testOnBorrow defaults to true when this is set, but can still be forced to false
+//            dataSource.setTestOnBorrow(poolInfo.getTestOnBorrow() == null || poolInfo.getTestOnBorrow());
+//            if (poolInfo.getTestOnReturn() != null)
+//            {
+//                dataSource.setTestOnReturn(poolInfo.getTestOnReturn());
+//            }
+//            if (poolInfo.getTestWhileIdle() != null)
+//            {
+//                dataSource.setTestWhileIdle(poolInfo.getTestWhileIdle());
+//            }
+//            dataSource.setValidationQuery(poolInfo.getValidationQuery());
+//            if (poolInfo.getValidationQueryTimeout() != null)
+//            {
+//                dataSource.setValidationQueryTimeout(poolInfo.getValidationQueryTimeout());
+//            }
+//        }
 
         //Pooling prepared statemnts is not used in Tomcat pool
 
@@ -194,6 +190,11 @@ public class DBCPConnectionFactory {
 //            ManagementFactory.getPlatformMBeanServer().registerMBean(
 //                    dataSource.getPool().getJmxPool(),
 //                    O);
+        }
+
+        if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
+        {
+            dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
         }
 
         return dataSource;
