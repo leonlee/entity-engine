@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.transaction.Status;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -59,8 +60,10 @@ import org.ofbiz.core.util.Debug;
  * @version $Revision: 1.7 $
  * @since 2.0
  */
+@NotThreadSafe  // You really ought to just assume this for everything in entity engine...
 public class SQLProcessor
 {
+
     public enum CommitMode
     {
         /**
@@ -96,14 +99,14 @@ public class SQLProcessor
      */
     private String helperName;
 
+    // Finalization guard.  This is meant to help catch errors where the SQLProcessor is not correctly closed.
+    private volatile ConnectionGuard _guard = null;
+
     // / The database resources to be used
     private Connection _connection = null;
 
     // / The database resources to be used
     private PreparedStatement _ps = null;
-
-    // / The database resources to be used
-    private Statement _stmt = null;
 
     // / The database resources to be used
     private ResultSet _rs = null;
@@ -116,9 +119,6 @@ public class SQLProcessor
 
     // / true in case of manual transactions
     private boolean _manualTX;
-
-    // / true in case the connection shall be closed.
-    private boolean _bDeleteConnection = false;
 
     private CommitMode _commitMode;
 
@@ -270,7 +270,6 @@ public class SQLProcessor
 
             closeResultSet();
             closePreparedStatement();
-            closeStatement();
             closeConnection();
         }
     }
@@ -313,42 +312,35 @@ public class SQLProcessor
         }
     }
 
-    private void closeStatement()
+    private void closeConnection()
     {
-        final Statement stmt = _stmt;
-        if (stmt == null)
+        // If we don't have a connection guard, then we didn't open the connection ourselves, so we shouldn't close it
+        final ConnectionGuard guard = _guard;
+        if (guard == null)
         {
             return;
         }
-        _stmt = null;
 
-        try
-        {
-            stmt.close();
-        }
-        catch (SQLException sqle)
-        {
-            Debug.logWarning(sqle, "Error closing Statement", module);
-        }
-    }
-
-    @VisibleForTesting
-    void closeConnection()
-    {
+        // Since we are properly closing the connection, ensure that the GC won't enqueue our guard (or that if by
+        // some strange race condition it does, that this would be harmless).
         final Connection connection = _connection;
-        if (connection == null || !_bDeleteConnection)
-        {
-            return;
-        }
+        _guard = null;
         _connection = null;
 
         try
         {
-            connection.close();
+            if (connection != null)
+            {
+                connection.close();
+            }
         }
         catch (SQLException sqle)
         {
             Debug.logWarning(sqle, "Error closing Connection", module);
+        }
+        finally
+        {
+            guard.clear();
         }
     }
 
@@ -392,14 +384,18 @@ public class SQLProcessor
             _manualTX = false;
             _commitMode = CommitMode.EXTERNAL_COMMIT;
             _connection = TransactionUtil.getLocalTransactionConnection();
+            _guard = null;
             return _connection;
         }
 
-        _manualTX = true;
+        // Seems like a good time to purge any abandoned processors...
+        ConnectionGuard.closeAbandonedProcessors();
 
+        _manualTX = true;
         try
         {
             _connection = ConnectionFactory.getConnection(helperName);
+            _guard = guard(_connection);
         }
         catch (SQLException sqle)
         {
@@ -438,10 +434,9 @@ public class SQLProcessor
                 Debug.logVerbose("Transaction isolation level set to 'Serializable'.", module);
             }
         }
-        //
-        // we need to normalise the connections autoCommit status
-        smartSetAutoCommit(_connection);
 
+        // we need to normalise the connection's autoCommit status
+        smartSetAutoCommit(_connection);
         try
         {
             if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE)
@@ -456,8 +451,13 @@ public class SQLProcessor
                     "transaction status: " + e.toString(), module);
         }
 
-        _bDeleteConnection = true;
         return _connection;
+    }
+
+    @VisibleForTesting
+    ConnectionGuard guard(Connection connection)
+    {
+        return ConnectionGuard.register(this, connection);
     }
 
     /**
@@ -544,8 +544,19 @@ public class SQLProcessor
         }
 
         final Connection connection = getConnection();
+        final ConnectionGuard guard = _guard;
         try
         {
+            // If the guard is null, then the connection we are using belongs to somebody else, so how it gets
+            // cleaned up is not our problem.  However, if we allocated the connection and then this SQLProcessor
+            // gets abandoned to GC without closing it, then we want to be able to report the last SQL that was
+            // requested on the connection, as knowing the kind of work the connection was used for may help us
+            // track down the code that leaked it.
+            if (guard != null)
+            {
+                guard.setSql(sql);
+            }
+
             _sql = sql;
             _parameterValues = new ArrayList<>();
             _ind = 1;
@@ -636,7 +647,7 @@ public class SQLProcessor
     }
 
     /**
-     * Execute a query baed ont SQL string given
+     * Execute a query based on the SQL string given
      *
      * @param sql The SQL string to be executed
      * @return The result set of the query
@@ -687,13 +698,23 @@ public class SQLProcessor
     {
         validateCommitMode();
 
-        Statement stmt = null;
-
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         List<String> emptyList = Collections.emptyList();
+
+        Statement stmt = null;
         try
         {
+            // Note: NPE if no one has called getConnection() yet!  This is inconsistent with the prepareStatement(),
+            // which will go ahead and allocate a new connection for you.
             stmt = _connection.createStatement();
+
+            // If there is a connection guard, record the SQL we are executing for debugging purposes if the
+            // connection gets leaked.
+            final ConnectionGuard guard = _guard;
+            if (guard != null)
+            {
+                guard.setSql(sql);
+            }
 
             sqlInterceptor.beforeExecution(sql, emptyList, stmt);
 
@@ -1151,22 +1172,11 @@ public class SQLProcessor
         _ind++;
     }
 
-    protected void finalize() throws Throwable
-    {
-        try
-        {
-            this.close();
-        }
-        catch (Exception e)
-        {
-            Debug.logError(e, "Error closing the result, connection, etc in finalize EntityListIterator");
-        }
-        super.finalize();
-    }
 
     @Override
     public String toString()
     {
         return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
     }
+
 }
