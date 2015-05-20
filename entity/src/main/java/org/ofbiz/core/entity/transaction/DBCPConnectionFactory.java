@@ -25,9 +25,8 @@ package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.base.Joiner;
-import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.commons.dbcp.BasicDataSourceFactory;
-import org.apache.commons.dbcp.ManagedBasicDataSourceFactory;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
@@ -45,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import javax.management.ObjectName;
 import javax.sql.DataSource;
 
 import static org.ofbiz.core.entity.util.PropertyUtils.copyOf;
@@ -61,10 +61,13 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
  */
 public class DBCPConnectionFactory {
     private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
-    private static final String DBCP_PROPERTIES = "dbcp.properties";
+
     protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
+
     private static final String PROP_JMX = "jmx";
+    private static final String DBCP_PROPERTIES = "dbcp.properties";
+    private static final String PROP_MBEANNAME = "mbeanName";
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
@@ -84,28 +87,14 @@ public class DBCPConnectionFactory {
                 }
 
                 // Sets the connection properties. At least 'user' and 'password' should be set.
-                Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
+                final Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
-                dataSource = createDataSource();
-                dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
-                dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
-                dataSource.setUrl(jdbcDatasource.getUri());
-                dataSource.setUsername(jdbcDatasource.getUsername());
-                dataSource.setPassword(jdbcDatasource.getPassword());
+                dataSource = createDataSource(jdbcDatasource);
                 dataSource.setConnectionProperties(toString(info));
-
-                if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
-                {
-                    dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
-                }
-
                 // set connection pool attributes
-                ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
-                if (poolInfo != null)
-                {
-                    initConnectionPoolSettings(dataSource, poolInfo);
-                }
+                final ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
+                initConnectionPoolSettings(dataSource, poolInfo);
 
                 dataSource.setLogWriter(Debug.getPrintWriter());
 
@@ -123,10 +112,15 @@ public class DBCPConnectionFactory {
 
     private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
     {
-        dataSource.setMaxActive(poolInfo.getMaxSize());
+        if (poolInfo == null)
+        {
+            return;
+        }
+
+        dataSource.setMaxTotal(poolInfo.getMaxSize());
         dataSource.setMinIdle(poolInfo.getMinSize());
         dataSource.setMaxIdle(poolInfo.getMaxIdle());
-        dataSource.setMaxWait(poolInfo.getMaxWait());
+        dataSource.setMaxWaitMillis(poolInfo.getMaxWait());
         dataSource.setDefaultCatalog(poolInfo.getDefaultCatalog());
 
         if (poolInfo.getInitialSize() != null)
@@ -163,7 +157,7 @@ public class DBCPConnectionFactory {
         }
         if (poolInfo.getRemoveAbandoned() != null)
         {
-            dataSource.setRemoveAbandoned(poolInfo.getRemoveAbandoned());
+            dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandoned());
             if (poolInfo.getRemoveAbandonedTimeout() != null)
             {
                 dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
@@ -183,15 +177,28 @@ public class DBCPConnectionFactory {
         }
     }
 
-    private static BasicDataSource createDataSource() throws Exception
+    private static BasicDataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
     {
-        Properties dbcpProperties = loadDbcpProperties();
-        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        final Properties dbcpProperties = loadDbcpProperties();
+
+        final BasicDataSource dataSource = BasicDataSourceFactory.createDataSource(dbcpProperties);
+        dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
+        dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
+        dataSource.setUrl(jdbcDatasource.getUri());
+        dataSource.setUsername(jdbcDatasource.getUsername());
+        dataSource.setPassword(jdbcDatasource.getPassword());
+
+        if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
         {
-            return (BasicDataSource) ManagedBasicDataSourceFactory.createDataSource(dbcpProperties);
+            dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
         }
 
-        return (BasicDataSource) BasicDataSourceFactory.createDataSource(dbcpProperties);
+        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+        {
+            dataSource.setJmxName(ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)).getCanonicalName());
+        }
+
+        return dataSource;
     }
 
     private static String toString(Properties properties)
@@ -287,7 +294,7 @@ public class DBCPConnectionFactory {
         //
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
-            String mBeanName = dbcpProperties.getProperty(ManagedBasicDataSourceFactory.PROP_MBEANNAME);
+            String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
             try
             {
                 MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
