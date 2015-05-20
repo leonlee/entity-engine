@@ -17,7 +17,7 @@ import org.ofbiz.core.util.Debug;
 /**
  * A guardian for possibly leaked {@code SQLProcessor} instances.
  * <p>
- * A {@link SQLProcessor} must be {@link SQLProcessor#close() closed} when the caller is done with, or
+ * A {@link SQLProcessor} must be {@link SQLProcessor#close() closed} when the caller is done with it, or
  * a database connection can be leaked.  This guards the {@code SQLProcessor} with a phantom reference
  * to ensure that it gets closed and an error message gets logged if this every happens.
  * </p>
@@ -42,7 +42,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
     /**
      * A reference queue for holding the phantom reference guards for the connection that were cleared by the GC
      * rather than an explicit close.  This queue should always be empty; finding a reference in it indicates
-     * a serious programming error.
+     * that the {@code SQLProcessor} was not closed properly, which is a programming error.
      */
     static final ReferenceQueue<SQLProcessor> ABANDONED = new ReferenceQueue<>();
 
@@ -81,7 +81,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
     }
 
     /**
-     * Called by {@link SQLProcessor#close()} to confirm that the guard is no longer needed.
+     * Called by {@link SQLProcessor#close()} to indicate that the guard is no longer needed.
      * <p>
      * This clears all internal references, which prevents the reference from getting cleared by the GC
      * instead.  This in turn prevents it from ever showing up in {@link #ABANDONED}, so it should only

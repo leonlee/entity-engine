@@ -324,7 +324,6 @@ public class SQLProcessor
         // Since we are properly closing the connection, ensure that the GC won't enqueue our guard (or that if by
         // some strange race condition it does, that this would be harmless).
         final Connection connection = _connection;
-        guard.clear();
         _guard = null;
         _connection = null;
 
@@ -338,6 +337,10 @@ public class SQLProcessor
         catch (SQLException sqle)
         {
             Debug.logWarning(sqle, "Error closing Connection", module);
+        }
+        finally
+        {
+            guard.clear();
         }
     }
 
@@ -701,7 +704,8 @@ public class SQLProcessor
         Statement stmt = null;
         try
         {
-            // Note: NPE if you haven't already allocated a connection...
+            // Note: NPE if no one has called getConnection() yet!  This is inconsistent with the prepareStatement(),
+            // which will go ahead and allocate a new connection for you.
             stmt = _connection.createStatement();
 
             // If there is a connection guard, record the SQL we are executing for debugging purposes if the
