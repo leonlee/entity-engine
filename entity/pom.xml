@@ -35,17 +35,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.ju-n.commons-dbcp-jmx</groupId>
-            <artifactId>commons-dbcp-jmx-jdbc4</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.weakref</groupId>
-            <artifactId>jmxutils</artifactId>
         </dependency>
         <dependency>
             <groupId>jotm</groupId>

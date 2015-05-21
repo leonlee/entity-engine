@@ -44,9 +44,7 @@
         <commons-codec.version>1.9</commons-codec.version>
         <commons-collections.version>3.2.1</commons-collections.version>
         <commons-dbcp.version>2.1</commons-dbcp.version>
-        <commons-dbcp-jmx.version>0.2</commons-dbcp-jmx.version>
         <guava.version>11.0.2</guava.version>
-        <jmxutils.version>1.8</jmxutils.version>
         <jotm.version>1.4.3</jotm.version>
         <jta.version>1.0.1</jta.version>
         <log4j.version>1.2.15</log4j.version>
@@ -85,25 +83,9 @@
                 <version>${commons-dbcp.version}</version>
             </dependency>
             <dependency>
-                <groupId>net.ju-n.commons-dbcp-jmx</groupId>
-                <artifactId>commons-dbcp-jmx-jdbc4</artifactId>
-                <version>${commons-dbcp-jmx.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-dbcp</groupId>
-                        <artifactId>commons-dbcp</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.weakref</groupId>
-                <artifactId>jmxutils</artifactId>
-                <version>${jmxutils.version}</version>
             </dependency>
             <dependency>
                 <groupId>jotm</groupId>

@@ -33,10 +33,10 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
-import org.weakref.jmx.MBeanExporter;
-
 import java.io.IOException;
+
 import java.io.InputStream;
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.DataSource;
 
@@ -284,20 +285,19 @@ public class DBCPConnectionFactory {
 
     private static void unregisterMBeanIfPresent()
     {
-        //
-        // Ideally the Apache DBCP ManagedBasicDataSourceFactory would clean up the registered JMX bean when the data source was closed
-        // however it doesnt.  So we use its facilities to do what it should for it.
-        //
-        Properties dbcpProperties = loadDbcpProperties();
-        //
-        // this is the semantics that the ManagedBasicDataSourceFactory used to create a Mbean in the first place
-        //
+        // We want to make sure mBean will be unregistered
+        final Properties dbcpProperties = loadDbcpProperties();
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
-            String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
+            final String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
             try
             {
-                MBeanExporter.withPlatformMBeanServer().unexport(mBeanName);
+                final ObjectName objectName = ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME));
+                final MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+                if (platformMBeanServer.isRegistered(objectName))
+                {
+                    platformMBeanServer.unregisterMBean(objectName);
+                }
             }
             catch (Exception e)
             {
