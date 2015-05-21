@@ -28,7 +28,7 @@ public class ConnectionPoolInfoSynthesizer
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
         // so we have to use reflection to get this to happen at runtime
         //
-        else if ("org.apache.commons.dbcp2.BasicDataSource".equals(ds.getClass().getName()))
+        else if ("org.apache.tomcat.jdbc.pool.DataSource".equals(ds.getClass().getName()))
         {
             return reflectDataSource(ds);
         }
