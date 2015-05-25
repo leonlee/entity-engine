@@ -156,26 +156,42 @@ public class DBCPConnectionFactory {
                 dataSource.setMaxOpenPreparedStatements(poolInfo.getMaxOpenPreparedStatements());
             }
         }
+
         if (poolInfo.getRemoveAbandoned() != null)
         {
+            //we set this using getRemoveAbandoned to keep backward compatibility...
             dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandoned());
+
+            //..however we can overwrite it here
+            if (poolInfo.getRemoveAbandonedOnBorrow() !=null)
+            {
+                dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandonedOnBorrow());
+            }
+            if (poolInfo.getRemoveAbandonedOnMaintanance() != null)
+            {
+                dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandonedOnMaintanance());
+            }
             if (poolInfo.getRemoveAbandonedTimeout() != null)
             {
                 dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
             }
         }
+
         if (poolInfo.getMinEvictableTimeMillis() != null)
         {
             dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
         }
+
         if (poolInfo.getNumTestsPerEvictionRun() != null)
         {
             dataSource.setNumTestsPerEvictionRun(poolInfo.getNumTestsPerEvictionRun());
         }
+
         if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
         {
             dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
         }
+
     }
 
     private static BasicDataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
