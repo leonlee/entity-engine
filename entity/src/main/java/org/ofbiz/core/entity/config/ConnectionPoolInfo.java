@@ -34,6 +34,9 @@ public class ConnectionPoolInfo
     private final Integer maxOpenPreparedStatements;
     private final Integer numTestsPerEvictionRun;
     private final Boolean poolPreparedStatements;
+    /**
+     * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
+     */
     private final Boolean removeAbandoned;
     private final Boolean removeAbandonedOnBorrow;
     private final Boolean removeAbandonedOnMaintanance;
@@ -217,6 +220,11 @@ public class ConnectionPoolInfo
     {
         return removeAbandonedOnMaintanance;
     }
+
+    /**
+     * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
+     */
+    @Deprecated
     public Boolean getRemoveAbandoned()
     {
         return removeAbandoned;
@@ -385,6 +393,10 @@ public class ConnectionPoolInfo
     public static class Builder
     {
         private Boolean poolPreparedStatements;
+        /**
+         * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
+         */
+        @Deprecated
         private Boolean removeAbandoned;
         private Boolean removeAbandonedOnBorrow;
         private Boolean removeAbandonedOnMaintenance;
@@ -521,16 +533,25 @@ public class ConnectionPoolInfo
             return this;
         }
 
+        /**
+         * @deprecated Since 1.2.x use {@link #getRemoveAbandonedOnBorrow}
+         */
+        @Deprecated
         public Boolean getRemoveAbandoned()
         {
             return removeAbandoned;
         }
 
+        /**
+         * @deprecated Since 1.2.x use {@link #setRemoveAbandonedOnBorrow}
+         */
+        @Deprecated
         public Builder setRemoveAbandoned(Boolean removeAbandoned)
         {
             this.removeAbandoned = removeAbandoned;
             return this;
         }
+
         public Boolean getRemoveAbandonedOnBorrow() { return removeAbandonedOnBorrow; }
 
         public Builder setRemoveAbandonedOnBorrow(Boolean removeAbandonedOnBorrow)
