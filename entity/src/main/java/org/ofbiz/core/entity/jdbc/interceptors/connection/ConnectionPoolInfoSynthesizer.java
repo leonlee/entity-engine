@@ -1,6 +1,6 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 
 import javax.sql.DataSource;
@@ -28,7 +28,7 @@ public class ConnectionPoolInfoSynthesizer
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
         // so we have to use reflection to get this to happen at runtime
         //
-        else if ("org.apache.tomcat.dbcp.dbcp.BasicDataSource".equals(ds.getClass().getName()))
+        else if ("org.apache.tomcat.jdbc.pool.DataSource".equals(ds.getClass().getName()))
         {
             return reflectDataSource(ds);
         }
@@ -41,7 +41,7 @@ public class ConnectionPoolInfoSynthesizer
     private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds)
     {
         return new ConnectionPoolInfo(
-                bds.getMaxActive(), bds.getMinIdle(), bds.getMaxWait(),
+                bds.getMaxTotal(), bds.getMinIdle(), bds.getMaxWaitMillis(),
                 -1, -1,
                 -1, -1,
                 bds.getValidationQuery(),
