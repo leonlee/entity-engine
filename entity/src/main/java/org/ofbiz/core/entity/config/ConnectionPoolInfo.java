@@ -34,10 +34,6 @@ public class ConnectionPoolInfo
     private final Integer maxOpenPreparedStatements;
     private final Integer numTestsPerEvictionRun;
     private final Boolean poolPreparedStatements;
-    /**
-     * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
-     */
-    private final Boolean removeAbandoned;
     private final Boolean removeAbandonedOnBorrow;
     private final Boolean removeAbandonedOnMaintanance;
     private final Integer removeAbandonedTimeout;
@@ -83,7 +79,6 @@ public class ConnectionPoolInfo
         minSize = intWithDefault(builder.getPoolMinSize(), DEFAULT_POOL_MIN_SIZE);
         numTestsPerEvictionRun = builder.getNumTestsPerEvictionRun();
         poolPreparedStatements = builder.getPoolPreparedStatements();
-        removeAbandoned = builder.getRemoveAbandoned();
         removeAbandonedTimeout = builder.getRemoveAbandonedTimeout();
         removeAbandonedOnBorrow = builder.getRemoveAbandonedOnBorrow();
         removeAbandonedOnMaintanance = builder.getRemoveAbandonedOnMaintenance();
@@ -112,7 +107,6 @@ public class ConnectionPoolInfo
                 .setPoolMinSize(nullIfDefault(minSize, DEFAULT_POOL_MIN_SIZE))
                 .setNumTestsPerEvictionRun(numTestsPerEvictionRun)
                 .setPoolPreparedStatements(poolPreparedStatements)
-                .setRemoveAbandoned(removeAbandoned)
                 .setRemoveAbandonedTimeout(removeAbandonedTimeout)
                 .setRemoveAbandonedOnBorrow(removeAbandonedOnBorrow)
                 .setRemoveAbandonedOnMaintenance(removeAbandonedOnMaintanance)
@@ -221,15 +215,6 @@ public class ConnectionPoolInfo
         return removeAbandonedOnMaintanance;
     }
 
-    /**
-     * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
-     */
-    @Deprecated
-    public Boolean getRemoveAbandoned()
-    {
-        return removeAbandoned;
-    }
-
     public Boolean getTestOnBorrow()
     {
         return testOnBorrow;
@@ -300,7 +285,6 @@ public class ConnectionPoolInfo
         sb.append(", testWhileIdle=").append(testWhileIdle);
         sb.append(", maxOpenPreparedStatements=").append(maxOpenPreparedStatements);
         sb.append(", numTestsPerEvictionRun=").append(numTestsPerEvictionRun);
-        sb.append(", removeAbandoned=").append(removeAbandoned);
         sb.append(", removeAbandonedOnBorrow=").append(removeAbandonedOnBorrow);
         sb.append(", removeAbandonedOnMaintanance=").append(removeAbandonedOnMaintanance);
         sb.append(", removeAbandonedTimeout=").append(removeAbandonedTimeout);
@@ -331,7 +315,6 @@ public class ConnectionPoolInfo
                equals(minEvictableTimeMillis, other.minEvictableTimeMillis) &&
                equals(numTestsPerEvictionRun, other.numTestsPerEvictionRun) &&
                equals(initialSize, other.initialSize) &&
-               equals(removeAbandoned, other.removeAbandoned) &&
                equals(removeAbandonedOnBorrow, other.removeAbandonedOnBorrow) &&
                equals(removeAbandonedOnMaintanance, other.removeAbandonedOnMaintanance) &&
                equals(removeAbandonedTimeout, other.removeAbandonedTimeout) &&
@@ -360,7 +343,6 @@ public class ConnectionPoolInfo
         h = hash(h, maxWait);
         h = hash(h, minSize);
         h = hash(h, sleepTime);
-        h = hash(h, removeAbandoned);
         h = hash(h, removeAbandonedOnBorrow);
         h = hash(h, removeAbandonedOnMaintanance);
         h = hash(h, removeAbandonedTimeout);
@@ -393,11 +375,6 @@ public class ConnectionPoolInfo
     public static class Builder
     {
         private Boolean poolPreparedStatements;
-        /**
-         * @deprecated Since 1.2.x use {@link #removeAbandonedOnBorrow}
-         */
-        @Deprecated
-        private Boolean removeAbandoned;
         private Boolean removeAbandonedOnBorrow;
         private Boolean removeAbandonedOnMaintenance;
         private Boolean testOnBorrow;
@@ -533,26 +510,10 @@ public class ConnectionPoolInfo
             return this;
         }
 
-        /**
-         * @deprecated Since 1.2.x use {@link #getRemoveAbandonedOnBorrow}
-         */
-        @Deprecated
-        public Boolean getRemoveAbandoned()
+        public Boolean getRemoveAbandonedOnBorrow()
         {
-            return removeAbandoned;
+            return removeAbandonedOnBorrow;
         }
-
-        /**
-         * @deprecated Since 1.2.x use {@link #setRemoveAbandonedOnBorrow}
-         */
-        @Deprecated
-        public Builder setRemoveAbandoned(Boolean removeAbandoned)
-        {
-            this.removeAbandoned = removeAbandoned;
-            return this;
-        }
-
-        public Boolean getRemoveAbandonedOnBorrow() { return removeAbandonedOnBorrow; }
 
         public Builder setRemoveAbandonedOnBorrow(Boolean removeAbandonedOnBorrow)
         {

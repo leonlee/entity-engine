@@ -157,24 +157,19 @@ public class DBCPConnectionFactory {
             }
         }
 
-        if (poolInfo.getRemoveAbandoned() != null)
+        if (poolInfo.getRemoveAbandonedOnBorrow() != null)
         {
-            //we set this using getRemoveAbandoned to keep backward compatibility...
-            dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandoned());
+            dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandonedOnBorrow());
+        }
 
-            //..however we can overwrite it here
-            if (poolInfo.getRemoveAbandonedOnBorrow() !=null)
-            {
-                dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandonedOnBorrow());
-            }
-            if (poolInfo.getRemoveAbandonedOnMaintanance() != null)
-            {
-                dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandonedOnMaintanance());
-            }
-            if (poolInfo.getRemoveAbandonedTimeout() != null)
-            {
-                dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
-            }
+        if (poolInfo.getRemoveAbandonedOnMaintanance() != null)
+        {
+            dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandonedOnMaintanance());
+        }
+
+        if (poolInfo.getRemoveAbandonedTimeout() != null)
+        {
+            dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
         }
 
         if (poolInfo.getMinEvictableTimeMillis() != null)
