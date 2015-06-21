@@ -16,8 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ConnectionTracker
 {
-    private static final String module = ConnectionTracker.class.getName();
-
     /**
      * A symbolic constant for the the ConnectionPoolInfo is now known
      */
@@ -73,15 +71,7 @@ public class ConnectionTracker
         final int count = borrowedCount.incrementAndGet();
 
         final SQLConnectionInterceptor sqlConnectionInterceptor = SQLInterceptorSupport.getNonNullSQLConnectionInterceptor(helperName);
-        try
-        {
-            sqlConnectionInterceptor.onConnectionTaken(connection,
-                    new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
-        }
-        catch (RuntimeException | LinkageError e)
-        {
-            Debug.logError(e, "Exception from SQL connection interceptor", module);
-        }
+        sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
 
         //
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
@@ -106,15 +96,7 @@ public class ConnectionTracker
         {
             super.close();
             final int count = borrowedCount.decrementAndGet();
-            try
-            {
-                sqlConnectionInterceptor.onConnectionReplaced(this,
-                        new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
-            }
-            catch (RuntimeException | LinkageError e)
-            {
-                Debug.logError(e, "Exception from SQL connection interceptor", module);
-            }
+            sqlConnectionInterceptor.onConnectionReplaced(this, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
         }
 
         public SQLInterceptor getNonNullSQLInterceptor()
