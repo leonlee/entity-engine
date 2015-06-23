@@ -1643,7 +1643,7 @@ public class GenericDAO {
         }
         catch (Exception ex)
         {
-            Debug.logError(ex, "Error closing SQLProcessor; info=[" + info + ']', module);
+            Debug.logError(ex, "Error closing " + sqlP + "; info=[" + info + ']', module);
         }
     }
 
