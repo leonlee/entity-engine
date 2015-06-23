@@ -265,9 +265,7 @@ public class SQLProcessor
         }
         finally
         {
-            _sql = null;
-            _parameterValues = null;
-
+            // Hold onto _sql and _parameterValues so we can report if somebody tries to close us again...
             closeResultSet();
             closePreparedStatement();
             closeConnection();

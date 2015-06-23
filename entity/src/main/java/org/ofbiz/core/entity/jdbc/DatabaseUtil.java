@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import org.ofbiz.core.entity.ConnectionFactory;
@@ -84,9 +85,9 @@ public class DatabaseUtil
             .put("NVARCHAR", "NTEXT")
             .build();
 
-    protected String helperName;
-    protected ModelFieldTypeReader modelFieldTypeReader;
-    protected DatasourceInfo datasourceInfo;
+    protected final String helperName;
+    protected final ModelFieldTypeReader modelFieldTypeReader;
+    protected final DatasourceInfo datasourceInfo;
 
     private final ConnectionProvider connectionProvider;
 
@@ -1488,7 +1489,8 @@ public class DatabaseUtil
      * @return the {@link ResultSet} for the IndexInfo
      * @throws SQLException direct from the jdbc call.
      */
-    private ResultSet getIndexInfo(DatabaseMetaData dbData, DatabaseType dbType, String schemaName, String tableName)
+    @VisibleForTesting
+    ResultSet getIndexInfo(DatabaseMetaData dbData, DatabaseType dbType, String schemaName, String tableName)
             throws SQLException
     {
         ResultSet rsCols;
@@ -1498,7 +1500,7 @@ public class DatabaseUtil
         // 'create table issues' will create table with name ISSUES and inside getIndexInfo 'ISSUES' must be used.
         // OFBiz does not put table names in quotes when it creates them thus for oracle they are always uppercased.
         //
-        // The same rule can be used for HSQLDB, and maybe that means it's true for H2 as well...
+        // The same rule can be used for HSQLDB and H2.
         if (DatabaseTypeFactory.ORACLE_10G == dbType
                 || DatabaseTypeFactory.ORACLE_8I == dbType
                 || DatabaseTypeFactory.HSQL == dbType
@@ -1519,6 +1521,7 @@ public class DatabaseUtil
                 // we fall back to the index info of the lower case version of the table
                 if (rsCols == null || !rsCols.next())
                 {
+                    close("empty result set from reading index info", rsCols);
                     rsCols = dbData.getIndexInfo(null, schemaName, tableName.toLowerCase(), false, true);
                 }
                 else
@@ -2777,6 +2780,22 @@ public class DatabaseUtil
                 typeName = modelFieldType.getSqlTypeAlias();
             }
             return this;
+        }
+    }
+
+    private void close(String context, ResultSet rs)
+    {
+        if (rs == null)
+        {
+            return;
+        }
+        try
+        {
+            rs.close();
+        }
+        catch (SQLException sqle)
+        {
+            Debug.logError(sqle, "Unexpected error closing result set for " + context + "; ignoring...", module);
         }
     }
 }

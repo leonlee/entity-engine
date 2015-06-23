@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.List;
 
 import org.ofbiz.core.util.Debug;
@@ -34,7 +35,7 @@ public class SafeDelegatingSqlConnectionInterceptor implements SQLConnectionInte
         }
         catch (RuntimeException | LinkageError e)
         {
-            logError(e);
+            logError(e, "onConnectionTaken", connection, connectionPoolState);
         }
     }
 
@@ -47,7 +48,7 @@ public class SafeDelegatingSqlConnectionInterceptor implements SQLConnectionInte
         }
         catch (RuntimeException | LinkageError e)
         {
-            logError(e);
+            logError(e, "onConnectionReplaced", connection, connectionPoolState);
         }
     }
 
@@ -60,7 +61,7 @@ public class SafeDelegatingSqlConnectionInterceptor implements SQLConnectionInte
         }
         catch (RuntimeException | LinkageError e)
         {
-            logError(e);
+            logError(e, "beforeExecution", sqlString, parameterValues, statement);
         }
     }
 
@@ -73,7 +74,7 @@ public class SafeDelegatingSqlConnectionInterceptor implements SQLConnectionInte
         }
         catch (RuntimeException | LinkageError e)
         {
-            logError(e);
+            logError(e, "afterSuccessfulExecution", sqlString, parameterValues, statement, resultSet, rowsUpdated);
         }
     }
 
@@ -86,14 +87,15 @@ public class SafeDelegatingSqlConnectionInterceptor implements SQLConnectionInte
         }
         catch (RuntimeException | LinkageError e)
         {
-            logError(e);
+            logError(e, "onException", sqlString, parameterValues, statement, sqlException);
         }
     }
 
 
 
-    private static void logError(Throwable e)
+    private static void logError(Throwable e, String fn, Object... args)
     {
-        Debug.logError(e, "Unexpected exception from SQL connection interceptor callback", MODULE);
+        Debug.logError(e, "Unexpected exception from SQL connection interceptor callback: " + fn + '(' +
+                Arrays.deepToString(args) + ')', MODULE);
     }
 }
