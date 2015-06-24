@@ -3,6 +3,7 @@ package org.ofbiz.core.entity.jdbc.interceptors.connection;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.jdbc.SQLInterceptorSupport;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
+import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -10,8 +11,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A class to track information about {@link Connection}s that come from connection pool.  It also will invoke {@link
- * SQLConnectionInterceptor}s with information about the Connection as it is used.
+ * A class to track information about {@link Connection}s that come from the connection pool.
+ * It also will invoke {@link SQLConnectionInterceptor}s with information about the Connection as it is used.
  */
 public class ConnectionTracker
 {
@@ -71,6 +72,7 @@ public class ConnectionTracker
 
         final SQLConnectionInterceptor sqlConnectionInterceptor = SQLInterceptorSupport.getNonNullSQLConnectionInterceptor(helperName);
         sqlConnectionInterceptor.onConnectionTaken(connection, new ConnectionPoolStateImpl(timeTakenNanos, count, connectionPoolInfo));
+
         //
         // We wrap the connection to that we can know when the connection is closed and hence returned to the pool.
         //
@@ -100,6 +102,13 @@ public class ConnectionTracker
         public SQLInterceptor getNonNullSQLInterceptor()
         {
             return sqlConnectionInterceptor;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "DelegatingConnectionImpl[connectionPoolInfo=" + connectionPoolInfo +
+                    ",sqlConnectionInterceptor=" + sqlConnectionInterceptor + ']';
         }
     }
 
@@ -134,6 +143,14 @@ public class ConnectionTracker
         public ConnectionPoolInfo getConnectionPoolInfo()
         {
             return connectionPoolInfo;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "ConnectionPoolStateImpl[timeToBorrowNanos=" + timeToBorrowNanos +
+                    ",borrowCount=" + borrowCount +
+                    ",connectionPoolInfo=" + connectionPoolInfo + ']';
         }
     }
 

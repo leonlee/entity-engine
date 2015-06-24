@@ -5,6 +5,7 @@ import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolState;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.SQLConnectionInterceptor;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.SafeDelegatingSqlConnectionInterceptor;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.Debug;
 
@@ -77,7 +78,12 @@ public class SQLInterceptorSupport
      */
     public static SQLConnectionInterceptor getNonNullSQLConnectionInterceptor(String ofbizHelperName)
     {
-        SQLInterceptor sqlInterceptor = getNonNullSQLInterceptor(ofbizHelperName);
+        return new SafeDelegatingSqlConnectionInterceptor(getNonNullDelegate(ofbizHelperName));
+    }
+
+    private static SQLConnectionInterceptor getNonNullDelegate(String ofbizHelperName)
+    {
+        final SQLInterceptor sqlInterceptor = getNonNullSQLInterceptor(ofbizHelperName);
         if (sqlInterceptor instanceof SQLConnectionInterceptor) {
             return (SQLConnectionInterceptor) sqlInterceptor;
         }
@@ -97,21 +103,10 @@ public class SQLInterceptorSupport
                 if (SQLInterceptorFactory.class.isAssignableFrom(interceptorFactoryClass))
                 {
                     // create a new instance
-                    try
-                    {
-                        interceptorFactory = (SQLInterceptorFactory) interceptorFactoryClass.newInstance();
-                    }
-                    catch (InstantiationException e)
-                    {
-                        Debug.logError(e, "Unable to load SQLInterceptorFactory class. " + className);
-                    }
-                    catch (IllegalAccessException e)
-                    {
-                        Debug.logError(e, "Unable to load SQLInterceptorFactory class. " + className);
-                    }
+                    interceptorFactory = (SQLInterceptorFactory) interceptorFactoryClass.newInstance();
                 }
             }
-            catch (ClassNotFoundException e)
+            catch (ClassNotFoundException | InstantiationException | IllegalAccessException e)
             {
                 Debug.logError(e, "Unable to load SQLInterceptorFactory class. " + className);
             }

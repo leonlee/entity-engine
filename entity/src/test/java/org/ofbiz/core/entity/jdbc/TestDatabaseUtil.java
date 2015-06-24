@@ -18,12 +18,16 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.Test;
+import org.mockito.InOrder;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelIndex;
@@ -31,22 +35,27 @@ import org.ofbiz.core.entity.model.ModelIndex;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link org.ofbiz.core.entity.jdbc.DatabaseUtil}.
- * <p/>
+ * <p>
  * Baby steps...
  */
 public class TestDatabaseUtil {
@@ -75,6 +84,95 @@ public class TestDatabaseUtil {
         final String mesg = du.createDeclaredIndices(modelEntity);
         assertNull("unexpected error", mesg);
         verify(statement).executeUpdate("CREATE INDEX  ON TESTABLE (nicecolumn)");
+    }
+
+    @Test
+    public void testGetIndexInfoUsesUpperCaseForOracleHsqlAndH2() throws Exception
+    {
+        final List<DatabaseType> databaseTypes = ImmutableList.of(
+                DatabaseTypeFactory.ORACLE_8I,
+                DatabaseTypeFactory.ORACLE_10G,
+                DatabaseTypeFactory.HSQL,
+                DatabaseTypeFactory.H2);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        for (DatabaseType databaseType : databaseTypes)
+        {
+            final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+            final ResultSet rs = mock(ResultSet.class);
+            when(metaData.getIndexInfo(null, "schema", "NAME", false, true)).thenReturn(rs);
+
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+
+            verifyZeroInteractions(rs);
+        }
+    }
+
+    @Test
+    public void testGetIndexInfoUsesOriginalCaseForMysqlAndMssql() throws Exception
+    {
+        final List<DatabaseType> databaseTypes = ImmutableList.of(
+                DatabaseTypeFactory.MYSQL,
+                DatabaseTypeFactory.MSSQL);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        for (DatabaseType databaseType : databaseTypes)
+        {
+            final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+            final ResultSet rs = mock(ResultSet.class);
+            when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
+
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+
+            verifyZeroInteractions(rs);
+        }
+    }
+
+    @Test
+    public void testGetIndexInfoUsesOriginalCaseForPostgresAsLongAsItHasResults() throws Exception
+    {
+        final List<DatabaseType> databaseTypes = ImmutableList.of(
+                DatabaseTypeFactory.POSTGRES,
+                DatabaseTypeFactory.POSTGRES_7_2,
+                DatabaseTypeFactory.POSTGRES_7_3);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        for (DatabaseType databaseType : databaseTypes)
+        {
+            final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+            final ResultSet rs = mock(ResultSet.class);
+            when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
+            when(rs.next()).thenReturn(true);
+
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+
+            final InOrder inOrder = inOrder(rs);
+            inOrder.verify(rs).next();
+            inOrder.verify(rs).beforeFirst();
+            inOrder.verifyNoMoreInteractions();
+        }
+    }
+
+    @Test
+    public void testGetIndexInfoUsesLowerCaseForPostgresIfTheOriginalCaseFails() throws Exception
+    {
+        final List<DatabaseType> databaseTypes = ImmutableList.of(
+                DatabaseTypeFactory.POSTGRES,
+                DatabaseTypeFactory.POSTGRES_7_2,
+                DatabaseTypeFactory.POSTGRES_7_3);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        for (DatabaseType databaseType : databaseTypes)
+        {
+            final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+            final ResultSet rs1 = mock(ResultSet.class);
+            final ResultSet rs2 = mock(ResultSet.class);
+            when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs1);
+            when(metaData.getIndexInfo(null, "schema", "name", false, true)).thenReturn(rs2);
+
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs2));
+
+            final InOrder inOrder = inOrder(rs1, rs2);
+            inOrder.verify(rs1).next();
+            inOrder.verify(rs1).close();
+            inOrder.verifyNoMoreInteractions();
+        }
     }
 
     /**
