@@ -123,9 +123,9 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
         {
             connection.close();
         }
-        catch (SQLException sqle)
+        catch (SQLException | RuntimeException | LinkageError e)
         {
-            Debug.logError(sqle, "ConnectionGuard.close() failed", SQLProcessor.module);
+            Debug.logError(e, "ConnectionGuard.close() failed", SQLProcessor.module);
         }
     }
 

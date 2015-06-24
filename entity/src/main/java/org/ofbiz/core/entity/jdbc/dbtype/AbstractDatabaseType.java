@@ -197,9 +197,9 @@ public abstract class AbstractDatabaseType implements DatabaseType {
                 .replaceAll("\\{indexName}", indexName);
     }
 
-    private String appendDotIfNotEmpty(final String schemaName)
+    private static String appendDotIfNotEmpty(final String schemaName)
     {
-        return schemaName != null && !schemaName.isEmpty() ? schemaName + "." : "";
+        return schemaName != null && !schemaName.isEmpty() ? schemaName + '.' : "";
     }
 }
 
