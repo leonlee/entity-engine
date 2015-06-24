@@ -1174,7 +1174,8 @@ public class SQLProcessor
     @Override
     public String toString()
     {
-        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
+        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql +
+                ",parameters=" + _parameterValues + ']';
     }
 
 }
