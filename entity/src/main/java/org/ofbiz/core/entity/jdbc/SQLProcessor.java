@@ -265,9 +265,7 @@ public class SQLProcessor
         }
         finally
         {
-            _sql = null;
-            _parameterValues = null;
-
+            // Hold onto _sql and _parameterValues so we can report if somebody tries to close us again...
             closeResultSet();
             closePreparedStatement();
             closeConnection();
@@ -1176,7 +1174,8 @@ public class SQLProcessor
     @Override
     public String toString()
     {
-        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql + ']';
+        return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql +
+                ",parameters=" + _parameterValues + ']';
     }
 
 }
