@@ -28,6 +28,10 @@ public class ConnectionPoolInfoSynthesizer
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
         // so we have to use reflection to get this to happen at runtime
         //
+        else if ("org.apache.tomcat.dbcp.dbcp2.BasicDataSource".equals(ds.getClass().getName()))
+        {
+            return reflectDataSourceTomcatDbcp2(ds);
+        }
         else if ("org.apache.tomcat.dbcp.dbcp.BasicDataSource".equals(ds.getClass().getName()))
         {
             return reflectDataSource(ds);
@@ -46,6 +50,17 @@ public class ConnectionPoolInfoSynthesizer
                 -1, -1,
                 bds.getValidationQuery(),
                 bds.getMinEvictableIdleTimeMillis(), bds.getTimeBetweenEvictionRunsMillis()
+        );
+    }
+
+    private static ConnectionPoolInfo reflectDataSourceTomcatDbcp2(DataSource ds)
+    {
+        return new ConnectionPoolInfo(
+                getInt(ds, "getMaxTotal"), getInt(ds, "getMinIdle"), getLong(ds, "getMaxWaitMillis"),
+                -1, -1,
+                -1, -1,
+                getStr(ds, "getValidationQuery"),
+                getLong(ds, "getMinEvictableIdleTimeMillis"), getLong(ds, "getTimeBetweenEvictionRunsMillis")
         );
     }
 
