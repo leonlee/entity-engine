@@ -38,6 +38,7 @@ import org.ofbiz.core.entity.config.*;
 import org.ofbiz.core.config.*;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolInfoSynthesizer;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
+import org.ofbiz.core.entity.util.TenantInfo;
 import org.ofbiz.core.util.*;
 
 /**
@@ -135,7 +136,19 @@ public class JNDIFactory implements TransactionFactoryInterface {
     }
     
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+
+        // Check if there is a tenant datasource and configure it for use.
+        DatasourceInfo datasourceInfo = TenantInfo.getTenantDatasource();
+        if (datasourceInfo != null) {
+            System.out.println(">>> tenant datasource info:" + datasourceInfo);
+            System.out.println(">>> setting helper name to:" + datasourceInfo.getName());
+            helperName = datasourceInfo.getName();
+
+        // Otherwise, fall back to the basic helper.
+        } else {
+            System.out.println(">>> falling back to helper datasource:" + helperName);
+            datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        }
 
         if (datasourceInfo.getJndiDatasource() != null) {
             JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();

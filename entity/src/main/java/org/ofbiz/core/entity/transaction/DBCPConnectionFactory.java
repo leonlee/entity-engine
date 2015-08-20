@@ -87,7 +87,7 @@ public class DBCPConnectionFactory {
                 Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
-                dataSource = createDataSource();
+                dataSource = createDataSource(jdbcDatasource.getConnectionProperties());
                 dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
                 dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
                 dataSource.setUrl(jdbcDatasource.getUri());
@@ -183,9 +183,14 @@ public class DBCPConnectionFactory {
         }
     }
 
-    private static BasicDataSource createDataSource() throws Exception
+    private static BasicDataSource createDataSource(Properties jdbcProperties) throws Exception
     {
         Properties dbcpProperties = loadDbcpProperties();
+        if (jdbcProperties != null)
+        {
+            dbcpProperties.putAll(jdbcProperties);
+        }
+
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
         {
             return (BasicDataSource) ManagedBasicDataSourceFactory.createDataSource(dbcpProperties);
