@@ -146,7 +146,6 @@ public class JNDIFactory implements TransactionFactoryInterface {
 
         // Otherwise, fall back to the basic helper.
         } else {
-            System.out.println(">>> falling back to helper datasource:" + helperName);
             datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         }
 
