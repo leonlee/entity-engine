@@ -871,6 +871,24 @@ public class GenericDelegator implements DelegatorInterface {
      * @param fields     the names and values of the fields by which to query (can be null)
      * @param orderBy    The fields of the named entity to order the query by;
      *                   optionally add a " ASC" for ascending or " DESC" for descending
+     * @return an iterator of GenericValue instances that match the query
+     */
+    public EntityListIterator findListIteratorByAnd(
+            final String entityName, final Map<String, ?> fields, final List<String> orderBy)
+            throws GenericEntityException {
+        checkIfLocked();
+        final ModelEntity modelEntity = getModelReader().getModelEntity(entityName);
+        return findListIteratorByAnd(modelEntity, fields, orderBy);
+    }
+
+    /**
+     * Finds Generic Entity records by all of the specified fields (i.e.
+     * combined using AND).
+     *
+     * @param entityName The Name of the Entity as defined in the entity XML file
+     * @param fields     the names and values of the fields by which to query (can be null)
+     * @param orderBy    The fields of the named entity to order the query by;
+     *                   optionally add a " ASC" for ascending or " DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     public List<GenericValue> findByAnd(
@@ -903,6 +921,30 @@ public class GenericDelegator implements DelegatorInterface {
         final List<GenericValue> list = helper.findByAnd(modelEntity, fields, orderBy);
         absorbList(list);
         return list;
+    }
+
+    /**
+     * Finds any entities matching the given criteria.
+     *
+     * @param modelEntity the type of entity to find (required)
+     * @param fields      the names and values of the fields by which to query (can be null)
+     * @param orderBy     the names of fields by which to sort the results (can be null)
+     * @return an iterator of any matching entities
+     * @throws GenericEntityException
+     */
+    public EntityListIterator findListIteratorByAnd(
+            final ModelEntity modelEntity, final Map<String, ?> fields, final List<String> orderBy)
+            throws GenericEntityException {
+        checkIfLocked();
+        final GenericHelper helper = getEntityHelper(modelEntity);
+
+        if (fields != null && !modelEntity.areFields(fields.keySet())) {
+            throw new GenericModelException("At least one of the passed fields is not valid: " + fields.keySet());
+        }
+
+        EntityListIterator result = helper.findListIteratorByAnd(modelEntity, fields, orderBy);
+        result.setDelegator(this);
+        return result;
     }
 
     /**
@@ -1430,6 +1472,21 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     /**
+     * Get the named Related Entity for the GenericValue from the persistent store, using an EntityListIterator instead of a List.
+     *
+     * @param relationName String containing the relation name which is the
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param value        GenericValue instance containing the entity
+     * @return an iterator of GenericValue instances as specified in the relation definition
+     */
+    public EntityListIterator getRelatedListIterator(final String relationName, final GenericValue value)
+            throws GenericEntityException {
+        checkIfLocked();
+        return getRelatedListIterator(relationName, null, null, value);
+    }
+
+    /**
      * Get the named Related Entity for the GenericValue from the persistent store.
      *
      * @param relationName String containing the relation name which is the
@@ -1497,6 +1554,42 @@ public class GenericDelegator implements DelegatorInterface {
         }
 
         return findByAnd(relation.getRelEntityName(), fields, orderBy);
+    }
+
+    /**
+     * Get the named Related Entity for the GenericValue from the persistent store.
+     *
+     * @param relationName String containing the relation name which is the
+     *                     combination of relation.title and relation.rel-entity-name as
+     *                     specified in the entity XML definition file
+     * @param byAndFields  the fields that must equal in order to keep; may be null
+     * @param orderBy      The fields of the named entity to order the query by; may be null;
+     *                     optionally add a " ASC" for ascending or " DESC" for descending
+     * @param value        GenericValue instance containing the entity
+     * @return an iterator of GenericValue instances as specified in the relation definition
+     */
+    public EntityListIterator getRelatedListIterator(final String relationName, final Map<String, ?> byAndFields,
+                                         final List<String> orderBy, final GenericValue value)
+            throws GenericEntityException {
+        checkIfLocked();
+        ModelEntity modelEntity = value.getModelEntity();
+        ModelRelation relation = modelEntity.getRelation(relationName);
+
+        if (relation == null) {
+            throw new GenericModelException(
+                    "Could not find relation for relationName: " + relationName + " for value " + value);
+        }
+
+        // put the byAndFields (if not null) into the hash map first,
+        // they will be overridden by value's fields if over-specified this is important for security and cleanliness
+        final Map<String, Object> fields = byAndFields == null ?
+                new HashMap<String, Object>() : new HashMap<String, Object>(byAndFields);
+        for (int i = 0; i < relation.getKeyMapsSize(); i++) {
+            ModelKeyMap keyMap = relation.getKeyMap(i);
+            fields.put(keyMap.getRelFieldName(), value.get(keyMap.getFieldName()));
+        }
+
+        return findListIteratorByAnd(relation.getRelEntityName(), fields, orderBy);
     }
 
     /**

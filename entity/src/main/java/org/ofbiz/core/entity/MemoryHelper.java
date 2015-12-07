@@ -336,6 +336,11 @@ public class MemoryHelper implements GenericHelper {
         return result;
     }
 
+    public EntityListIterator findListIteratorByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
+        //since this is only being used for unit testing, we don't need to worry about the cost of loading everything into memory
+        return createMockIterator(modelEntity, findByAnd(modelEntity, fields, orderBy).listIterator());
+    }
+
     public List<GenericValue> findByAnd(ModelEntity modelEntity, List<? extends EntityCondition> expressions, List<String> orderBy) throws GenericEntityException {
         return null;
     }

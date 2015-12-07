@@ -97,6 +97,18 @@ public interface GenericHelper {
             throws GenericEntityException;
 
     /**
+     * Finds Generic Entity records by all of the specified fields (ie: combined using AND)
+     *
+     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
+     * DESC" for descending
+     * @return an iterator of GenericValue instances that match the query
+     */
+    EntityListIterator findListIteratorByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy)
+            throws GenericEntityException;
+
+    /**
      * Finds Generic Entity records by all of the specified fields (ie: combined using OR)
      *
      * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
