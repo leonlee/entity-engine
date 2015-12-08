@@ -463,8 +463,13 @@ public class MemoryHelper implements GenericHelper {
     public EntityListIterator findListIteratorByCondition(ModelEntity modelEntity, EntityCondition whereEntityCondition,
                                                           EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
             throws GenericEntityException {
-        final Iterator<GenericValue> entities = (new ArrayList<GenericValue>(findByCondition(modelEntity, whereEntityCondition, fieldsToSelect, orderBy))).iterator();
+        return createMockIterator(modelEntity, (new ArrayList<GenericValue>(findByCondition(modelEntity, whereEntityCondition, fieldsToSelect, orderBy))).iterator());
+    }
 
+    /**
+     * Create a basic, mock EntityListIterator to facilitate testing.
+     */
+    private EntityListIterator createMockIterator(ModelEntity modelEntity, final Iterator<GenericValue> entities){
         // hack in the minimum that we can for this.
         return new EntityListIterator(new ReadOnlySQLProcessor(null), modelEntity, null, modelFieldTypeReader)
         {
