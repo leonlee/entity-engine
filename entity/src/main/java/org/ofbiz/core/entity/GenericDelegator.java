@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -1850,7 +1851,24 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     /**
-     * Store the Entities from the List GenericValue instances to the persistent store.
+     * Store the Entities from the iterator of GenericValue instances to the persistent store.
+     * <br>This is different than the normal store method in that the store method only does
+     * an update, while the storeAll method checks to see if each entity exists, then
+     * either does an insert or an update as appropriate.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions. This is just like to othersToStore feature
+     * of the GenericEntity on a create or store.
+     *
+     * @param values List of GenericValue instances containing the entities to store
+     * @return int representing number of rows affected by this operation
+     */
+    public int storeAll(final ListIterator<? extends GenericValue> values) throws GenericEntityException {
+        checkIfLocked();
+        return storeAll(values, true);
+    }
+
+    /**
+     * Store the Entities from the iterator of GenericValue instances to the persistent store.
      * <br>This is different than the normal store method in that the store method only does
      * an update, while the storeAll method checks to see if each entity exists, then
      * either does an insert or an update as appropriate.
@@ -1865,17 +1883,34 @@ public class GenericDelegator implements DelegatorInterface {
     public int storeAll(final List<? extends GenericValue> values, final boolean doCacheClear)
             throws GenericEntityException {
         checkIfLocked();
+        return (values == null) ? 0 : storeAll(values.listIterator(), doCacheClear);
+    }
+
+    /**
+     * Store the Entities from the iterator of GenericValue instances to the persistent store.
+     * <br>This is different than the normal store method in that the store method only does
+     * an update, while the storeAll method checks to see if each entity exists, then
+     * either does an insert or an update as appropriate.
+     * <br>These updates all happen in one transaction, so they will either all succeed or all fail,
+     * if the data source supports transactions. This is just like to othersToStore feature
+     * of the GenericEntity on a create or store.
+     *
+     * @param values       List of GenericValue instances containing the entities to store
+     * @param doCacheClear whether to automatically clear cache entries related to this operation
+     * @return int representing number of rows affected by this operation
+     */
+    public int storeAll(final ListIterator<? extends GenericValue> values, final boolean doCacheClear)
+            throws GenericEntityException {
+        checkIfLocked();
         if (values == null) {
             return 0;
         }
-
         // from the delegator level this is complicated because different GenericValue
         // objects in the list may correspond to different helpers
         Map<String, List<GenericValue>> valuesPerHelper = new HashMap<String, List<GenericValue>>();
-        Iterator<? extends GenericValue> viter = values.iterator();
 
-        while (viter.hasNext()) {
-            GenericValue value = viter.next();
+        while (values.hasNext()) {
+            GenericValue value = values.next();
             String helperName = getEntityHelperName(value.getEntityName());
             List<GenericValue> helperValues = valuesPerHelper.get(helperName);
             if (helperValues == null) {
@@ -1921,10 +1956,9 @@ public class GenericDelegator implements DelegatorInterface {
             throw e;
         }
 
-        // Refresh the valueObjects to get the new version
-        viter = values.iterator();
-        while (viter.hasNext()) {
-            GenericValue value = viter.next();
+        // Since we can't reset the iterator, we just iterate over it backwards
+        while (values.hasPrevious()) {
+            GenericValue value = values.previous();
             if (value.lockEnabled()) {
                 refresh(value);
             }

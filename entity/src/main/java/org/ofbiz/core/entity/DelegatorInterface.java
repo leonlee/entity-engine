@@ -32,6 +32,7 @@ import org.ofbiz.core.util.UtilCache;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -203,6 +204,10 @@ public interface DelegatorInterface {
     int storeAll(List<? extends GenericValue> values) throws GenericEntityException;
 
     int storeAll(List<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException;
+
+    int storeAll(ListIterator<? extends GenericValue> values) throws GenericEntityException;
+
+    int storeAll(ListIterator<? extends GenericValue> values, boolean doCacheClear) throws GenericEntityException;
 
     int removeAll(List<? extends GenericEntity> dummyPKs) throws GenericEntityException;
 
