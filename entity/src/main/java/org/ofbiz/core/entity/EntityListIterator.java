@@ -141,7 +141,7 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Sets the cursor position to last result; if result set is empty returns false */
+    /** Sets the cursor position to first result; if result set is empty returns false */
     public boolean first() throws GenericEntityException {
         try {
             return resultSet.first();
