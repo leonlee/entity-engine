@@ -33,12 +33,17 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
+import org.vibur.dbcp.ViburDBCPDataSource;
+import org.vibur.dbcp.hook.ConnectionHook;
+import org.vibur.dbcp.util.SqlUtils;
+
 import java.io.IOException;
 
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +68,7 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 public class DBCPConnectionFactory {
     private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
 
-    protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
+    protected static final Map<String, ViburDBCPDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
     private static final String PROP_JMX = "jmx";
@@ -73,7 +78,7 @@ public class DBCPConnectionFactory {
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
         // the DataSource implementation
-        BasicDataSource dataSource = dsCache.get(helperName);
+        ViburDBCPDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null) {
             return trackConnection(helperName,dataSource);
         }
@@ -88,16 +93,19 @@ public class DBCPConnectionFactory {
                 }
 
                 // Sets the connection properties. At least 'user' and 'password' should be set.
+                // todo...
                 final Properties info = jdbcDatasource.getConnectionProperties() != null ? copyOf(jdbcDatasource.getConnectionProperties()) : new Properties();
 
                 // Use the BasicDataSourceFactory so we can use all the DBCP properties as per http://commons.apache.org/dbcp/configuration.html
                 dataSource = createDataSource(jdbcDatasource);
-                dataSource.setConnectionProperties(toString(info));
+//                dataSource.setConnectionProperties(toString(info));
+
                 // set connection pool attributes
                 final ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
                 initConnectionPoolSettings(dataSource, poolInfo);
 
                 dataSource.setLogWriter(Debug.getPrintWriter());
+                dataSource.start();
 
                 dsCache.put(helperName, dataSource);
                 trackerCache.put(helperName,new ConnectionTracker(poolInfo));
@@ -111,104 +119,87 @@ public class DBCPConnectionFactory {
         return null;
     }
 
-    private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
+    private static void initConnectionPoolSettings(final ViburDBCPDataSource dataSource, final ConnectionPoolInfo poolInfo)
     {
         if (poolInfo == null)
         {
             return;
         }
 
-        dataSource.setMaxTotal(poolInfo.getMaxSize());
-        dataSource.setMinIdle(poolInfo.getMinSize());
-        dataSource.setMaxIdle(poolInfo.getMaxIdle());
-        dataSource.setMaxWaitMillis(poolInfo.getMaxWait());
+        dataSource.setPoolMaxSize(poolInfo.getMaxSize());
+        dataSource.setConnectionTimeoutInMs(poolInfo.getMaxWait());
         dataSource.setDefaultCatalog(poolInfo.getDefaultCatalog());
 
         if (poolInfo.getInitialSize() != null)
         {
-            dataSource.setInitialSize(poolInfo.getInitialSize());
+            dataSource.setPoolInitialSize(poolInfo.getInitialSize());
         }
 
         if (isNotEmpty(poolInfo.getValidationQuery()))
         {
-            // testOnBorrow defaults to true when this is set, but can still be forced to false
-            dataSource.setTestOnBorrow(poolInfo.getTestOnBorrow() == null || poolInfo.getTestOnBorrow());
-            if (poolInfo.getTestOnReturn() != null)
-            {
-                dataSource.setTestOnReturn(poolInfo.getTestOnReturn());
-            }
-            if (poolInfo.getTestWhileIdle() != null)
-            {
-                dataSource.setTestWhileIdle(poolInfo.getTestWhileIdle());
-            }
-            dataSource.setValidationQuery(poolInfo.getValidationQuery());
+            dataSource.setTestConnectionQuery(poolInfo.getValidationQuery());
             if (poolInfo.getValidationQueryTimeout() != null)
             {
-                dataSource.setValidationQueryTimeout(poolInfo.getValidationQueryTimeout());
+                dataSource.setValidateTimeoutInSeconds(poolInfo.getValidationQueryTimeout());
             }
         }
 
         if (poolInfo.getPoolPreparedStatements() != null)
         {
-            dataSource.setPoolPreparedStatements(poolInfo.getPoolPreparedStatements());
-            if (dataSource.isPoolPreparedStatements() && poolInfo.getMaxOpenPreparedStatements() != null)
+            if (poolInfo.getPoolPreparedStatements() != null && poolInfo.getPoolPreparedStatements()
+                    && poolInfo.getMaxOpenPreparedStatements() != null && poolInfo.getMaxOpenPreparedStatements() >= 0)
             {
-                dataSource.setMaxOpenPreparedStatements(poolInfo.getMaxOpenPreparedStatements());
+                // todo...
+//                dataSource.setStatementCacheMaxSize(poolInfo.getMaxOpenPreparedStatements());
             }
-        }
-
-        if (poolInfo.getRemoveAbandonedOnBorrow() != null)
-        {
-            dataSource.setRemoveAbandonedOnBorrow(poolInfo.getRemoveAbandonedOnBorrow());
-        }
-
-        if (poolInfo.getRemoveAbandonedOnMaintanance() != null)
-        {
-            dataSource.setRemoveAbandonedOnMaintenance(poolInfo.getRemoveAbandonedOnMaintanance());
-        }
-
-        if (poolInfo.getRemoveAbandonedTimeout() != null)
-        {
-            dataSource.setRemoveAbandonedTimeout(poolInfo.getRemoveAbandonedTimeout());
-        }
-
-        if (poolInfo.getMinEvictableTimeMillis() != null)
-        {
-            dataSource.setMinEvictableIdleTimeMillis(poolInfo.getMinEvictableTimeMillis());
-        }
-
-        if (poolInfo.getNumTestsPerEvictionRun() != null)
-        {
-            dataSource.setNumTestsPerEvictionRun(poolInfo.getNumTestsPerEvictionRun());
-        }
-
-        if (poolInfo.getTimeBetweenEvictionRunsMillis() != null)
-        {
-            dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
         }
 
     }
 
-    private static BasicDataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
+    private static ViburDBCPDataSource createDataSource(JdbcDatasourceInfo jdbcDatasource) throws Exception
     {
-        final Properties dbcpProperties = loadDbcpProperties();
+//        final Properties dbcpProperties = loadDbcpProperties();
 
-        final BasicDataSource dataSource = BasicDataSourceFactory.createDataSource(dbcpProperties);
-        dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
+        final ViburDBCPDataSource dataSource = new ViburDBCPDataSource();
+//        dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
         dataSource.setDriverClassName(jdbcDatasource.getDriverClassName());
-        dataSource.setUrl(jdbcDatasource.getUri());
+        dataSource.setJdbcUrl(jdbcDatasource.getUri());
         dataSource.setUsername(jdbcDatasource.getUsername());
         dataSource.setPassword(jdbcDatasource.getPassword());
 
         if (isNotEmpty(jdbcDatasource.getIsolationLevel()))
         {
-            dataSource.setDefaultTransactionIsolation(TransactionIsolations.fromString(jdbcDatasource.getIsolationLevel()));
+            dataSource.setDefaultTransactionIsolation(jdbcDatasource.getIsolationLevel());
         }
 
-        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
-        {
-            dataSource.setJmxName(ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)).getCanonicalName());
-        }
+//        dataSource.setConnectionHook(new ConnectionHook() {
+//            @Override
+//            public void on(Connection rawConnection) throws SQLException {
+//                Statement statement = null;
+//                try {
+//                    statement = rawConnection.createStatement();
+//                    statement.addBatch("RESET ROLE");
+//                    statement.addBatch("SET ROLE jmake_user_1");
+//                    statement.addBatch("SET search_path TO jira_1");
+//                    statement.executeBatch();
+//                } finally {
+//                    SqlUtils.closeStatement(statement); // ..?
+//                }
+//            }
+//        });
+        dataSource.setCloseHook(new ConnectionHook() {
+            @Override
+            public void on(Connection rawConnection) throws SQLException {
+                boolean autocommit = rawConnection.getAutoCommit();
+                if (!autocommit)
+                    rawConnection.commit();
+            }
+        });
+
+//        if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX)))
+//        {
+//            dataSource.setJmxName(ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME)).getCanonicalName());
+//        }
 
         return dataSource;
     }
@@ -275,12 +266,12 @@ public class DBCPConnectionFactory {
      */
     public synchronized static void removeDatasource(String helperName)
     {
-        BasicDataSource dataSource = dsCache.get(helperName);
+        ViburDBCPDataSource dataSource = dsCache.get(helperName);
         if (dataSource != null)
         {
             try
             {
-                dataSource.close();
+                dataSource.terminate();
                 unregisterMBeanIfPresent();
             }
             catch (Exception e)

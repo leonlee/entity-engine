@@ -9,7 +9,7 @@
 
     <groupId>com.atlassian.ofbiz</groupId>
     <artifactId>entityengine-parent</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.1-poc001</version>
     <packaging>pom</packaging>
 
     <name>Atlassian OFBiz Fork</name>
@@ -44,6 +44,7 @@
         <commons-codec.version>1.9</commons-codec.version>
         <commons-collections.version>3.2.1</commons-collections.version>
         <commons-dbcp.version>2.1</commons-dbcp.version>
+        <vibur-dbcp.version>6.0-SNAPSHOT</vibur-dbcp.version>
         <guava.version>11.0.2</guava.version>
         <jotm.version>1.4.3</jotm.version>
         <jta.version>1.0.1</jta.version>
@@ -81,6 +82,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-dbcp2</artifactId>
                 <version>${commons-dbcp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.vibur</groupId>
+                <artifactId>vibur-dbcp</artifactId>
+                <version>${vibur-dbcp.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>

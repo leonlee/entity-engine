@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.atlassian.ofbiz</groupId>
         <artifactId>entityengine-parent</artifactId>
-        <version>1.2.1</version>
+        <version>1.2.1-poc001</version>
     </parent>
 
     <artifactId>entityengine</artifactId>
@@ -33,6 +33,10 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.vibur</groupId>
+            <artifactId>vibur-dbcp</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
