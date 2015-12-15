@@ -157,7 +157,13 @@ public class GenericHelperDAO implements GenericHelper {
      *@return an iterator of GenericValue instances that match the query
      */
     public EntityListIterator findListIteratorByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
-        return genericDAO.selectListIteratorByAnd(modelEntity, fields, orderBy);
+        EntityCondition entityCondition = null;
+
+        if (fields != null) {
+            entityCondition = new EntityFieldMap(fields, EntityOperator.AND);
+        }
+
+        return genericDAO.selectListIteratorByCondition(modelEntity, entityCondition, null, null, orderBy, null);
     }
 
     /* tentatively removing by clause methods, unless there are really big complaints... because it is a kludge

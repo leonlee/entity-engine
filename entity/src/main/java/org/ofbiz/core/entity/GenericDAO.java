@@ -736,20 +736,6 @@ public class GenericDAO {
         }
     }
 
-    public EntityListIterator selectListIteratorByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
-        if (modelEntity == null) {
-            return null;
-        }
-
-        EntityCondition entityCondition = null;
-
-        if (fields != null) {
-            entityCondition = new EntityFieldMap(fields, EntityOperator.AND);
-        }
-
-        return selectListIteratorByCondition(modelEntity, entityCondition, null, null, orderBy, null);
-    }
-
     public List<GenericValue> selectByOr(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException {
         if (modelEntity == null) {
             return null;
