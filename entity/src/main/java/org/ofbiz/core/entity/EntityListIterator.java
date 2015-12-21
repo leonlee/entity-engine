@@ -42,6 +42,9 @@ import java.util.ListIterator;
 /**
  * Generic Entity Cursor List Iterator for Handling Cursored DB Results
  *
+ * Note that you should *not* rely on this for streaming large datasets, as the backing ResultSet will pull the entire
+ * dataset into memory anyway. For more information, see <a href="https://extranet.atlassian.com/display/JIRADEV/2015/08/04/PSA%3A+OfBizListIterator+Is+Not+Good+Enough">PSA: OfBizListIterator is not good enough</a>
+ *
  *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
  *@created    July 12, 2002
  *@version    1.0
