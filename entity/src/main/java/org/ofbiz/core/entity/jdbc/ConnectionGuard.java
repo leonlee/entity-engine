@@ -93,10 +93,10 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
     @Override
     public void clear()
     {
-        GUARDS.remove(this);
         connectionRef.set(null);
-        sql = null;
         super.clear();
+        GUARDS.remove(this);
+        sql = null;
     }
 
     /**
