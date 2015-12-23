@@ -73,7 +73,7 @@ public class SQLProcessorTest
             };
         }
 
-        TestThread.runTest(thds);
+        TestThread.runTest(30000L, thds);
         assertThat("Abandoned connection event count", ConnectionGuard.ABANDONED_COUNTER.get(), is(0));
     }
 
