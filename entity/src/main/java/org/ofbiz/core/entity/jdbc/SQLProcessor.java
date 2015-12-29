@@ -319,12 +319,10 @@ public class SQLProcessor
             return;
         }
 
-        // Since we are properly closing the connection, ensure that the GC won't enqueue our guard (or that if by
-        // some strange race condition it does, that this would be harmless).
-        final Connection connection = _connection;
-        _guard = null;
-        _connection = null;
+        // JDEV-35590: Ensure that guard gets cleared before we let go of the reference to the connection.
+        guard.clear();
 
+        final Connection connection = _connection;
         try
         {
             if (connection != null)
@@ -338,7 +336,8 @@ public class SQLProcessor
         }
         finally
         {
-            guard.clear();
+            _guard = null;
+            _connection = null;
         }
     }
 
