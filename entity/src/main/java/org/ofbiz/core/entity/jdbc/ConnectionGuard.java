@@ -1,6 +1,5 @@
 package org.ofbiz.core.entity.jdbc;
 
-import java.io.Closeable;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -8,6 +7,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -45,6 +45,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * that the {@code SQLProcessor} was not closed properly, which is a programming error.
      */
     static final ReferenceQueue<SQLProcessor> ABANDONED = new ReferenceQueue<>();
+    static final AtomicInteger ABANDONED_COUNTER = new AtomicInteger();
 
     private final AtomicReference<Connection> connectionRef;
     private volatile String sql;
@@ -92,10 +93,10 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
     @Override
     public void clear()
     {
-        GUARDS.remove(this);
         connectionRef.set(null);
-        sql = null;
         super.clear();
+        GUARDS.remove(this);
+        sql = null;
     }
 
     /**
@@ -115,6 +116,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
 
     private void closeAbandonedConnection(Connection connection)
     {
+        ABANDONED_COUNTER.incrementAndGet();
         Debug.logError("!!! ABANDONED SQLProcessor DETECTED !!!" +
                 "\n\tThis probably means that somebody forgot to close an EntityListIterator." +
                 "\n\tConnection: " + connection +
