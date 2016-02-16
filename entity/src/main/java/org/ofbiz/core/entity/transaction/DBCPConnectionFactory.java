@@ -25,6 +25,7 @@ package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.log4j.Logger;
@@ -33,6 +34,7 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
+
 import java.io.IOException;
 
 import java.io.InputStream;
@@ -105,10 +107,37 @@ public class DBCPConnectionFactory {
                 return trackConnection(helperName, dataSource);
             }
         } catch (Exception e) {
+
+            if(checkIfProblemMayBeCausedByIsValidMethod(dataSource, e)) {
+                log.warn("*********************************************** IMPORTANT  ***********************************************");
+                log.warn("                                                                                                          ");
+                log.warn("  We found that you may experience problems with database connectivity because your database driver       ");
+                log.warn("  is not JDBC 4 compatible. In order to solve this problem, please add validation query:                \n");
+                log.warn("        for PostgreSQL, MySQL and MS SQL:   <validation-query>select 1</validation-query>               \n");
+                log.warn("                 for Oracle   <validation-query>select 1 from dual</validation-query>                   \n");
+                log.warn("  to your JIRA_HOME/dbconfig.xml or update your database driver to newer version which supports JDBC 4.   ");
+                log.warn("  More information about this problem can be found here: https://jira.atlassian.com/browse/JRA-59768      ");
+                log.warn("                                                                                                          ");
+                log.warn("**********************************************************************************************************");
+            }
+
             Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
         }
 
         return null;
+    }
+
+    private static boolean checkIfProblemMayBeCausedByIsValidMethod(final BasicDataSource dataSource, final Exception e) {
+        final String validationQuery = dataSource.getValidationQuery();
+        if (validationQuery == null || validationQuery.isEmpty()) {
+            final List<StackTraceElement> stackTraceElements = Lists.newArrayList(e.getCause().getStackTrace());
+            for (StackTraceElement element : stackTraceElements) {
+                if (element.getMethodName().contains("isValid")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo)
