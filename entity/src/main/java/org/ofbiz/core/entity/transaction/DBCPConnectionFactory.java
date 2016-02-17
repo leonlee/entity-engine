@@ -24,6 +24,7 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -35,8 +36,10 @@ import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.sql.DataSource;
 import java.io.IOException;
-
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
@@ -46,9 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.sql.DataSource;
 
 import static org.ofbiz.core.entity.util.PropertyUtils.copyOf;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
@@ -71,6 +71,7 @@ public class DBCPConnectionFactory {
     private static final String PROP_JMX = "jmx";
     private static final String DBCP_PROPERTIES = "dbcp.properties";
     private static final String PROP_MBEANNAME = "mbeanName";
+    public static final String VALIDATION_QUERY = "select 1";
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException
     {
@@ -107,30 +108,55 @@ public class DBCPConnectionFactory {
                 return trackConnection(helperName, dataSource);
             }
         } catch (Exception e) {
+            Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
+        } catch (AbstractMethodError err) {
+            if (checkIfProblemMayBeCausedByIsValidMethod(dataSource, err)) {
 
-            if(checkIfProblemMayBeCausedByIsValidMethod(dataSource, e)) {
+                unregisterDatasourceFromJmx(dataSource);
+
                 log.warn("*********************************************** IMPORTANT  ***********************************************");
                 log.warn("                                                                                                          ");
                 log.warn("  We found that you may experience problems with database connectivity because your database driver       ");
-                log.warn("  is not JDBC 4 compatible. In order to solve this problem, please add validation query:                \n");
-                log.warn("        for PostgreSQL, MySQL and MS SQL:   <validation-query>select 1</validation-query>               \n");
-                log.warn("                 for Oracle   <validation-query>select 1 from dual</validation-query>                   \n");
-                log.warn("  to your JIRA_HOME/dbconfig.xml or update your database driver to newer version which supports JDBC 4.   ");
+                log.warn("  is not fully JDBC 4 compatible. As a workaround of this problem a validation query was added to your    ");
+                log.warn("  runtime configuration. Please add a line with validation query:                                       \n");
+                log.warn("                          <validation-query>select 1</validation-query>                                 \n");
+                log.warn("  to your JIRA_HOME/dbconfig.xml or update your database driver to version which fully supports JDBC 4.   ");
                 log.warn("  More information about this problem can be found here: https://jira.atlassian.com/browse/JRA-59768      ");
                 log.warn("                                                                                                          ");
                 log.warn("**********************************************************************************************************");
-            }
 
-            Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
+                return getConnection(helperName, getUpdatedJdbcDatasource(jdbcDatasource));
+            }
         }
 
         return null;
     }
 
-    private static boolean checkIfProblemMayBeCausedByIsValidMethod(final BasicDataSource dataSource, final Exception e) {
+    private static void unregisterDatasourceFromJmx(BasicDataSource dataSource) {
+        final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        try {
+            mbs.unregisterMBean(ObjectName.getInstance(dataSource.getJmxName()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @VisibleForTesting
+    static JdbcDatasourceInfo getUpdatedJdbcDatasource(JdbcDatasourceInfo jdbcDatasource) {
+
+        final ConnectionPoolInfo cpi = jdbcDatasource.getConnectionPoolInfo();
+        final ConnectionPoolInfo newConnectionPoolInfo = new ConnectionPoolInfo(cpi.getMaxSize(), cpi.getMinSize(), cpi.getMaxWait(), cpi.getSleepTime(), cpi.getLifeTime(), cpi.getDeadLockMaxWait(),
+                cpi.getDeadLockRetryWait(), VALIDATION_QUERY, cpi.getMinEvictableTimeMillis(), cpi.getTimeBetweenEvictionRunsMillis());
+
+        return new JdbcDatasourceInfo(jdbcDatasource.getUri(), jdbcDatasource.getDriverClassName(), jdbcDatasource.getUsername(), jdbcDatasource.getPassword(), jdbcDatasource.getIsolationLevel(),
+                jdbcDatasource.getConnectionProperties(), newConnectionPoolInfo);
+    }
+
+    @VisibleForTesting
+    static boolean checkIfProblemMayBeCausedByIsValidMethod(final BasicDataSource dataSource, final AbstractMethodError error) {
         final String validationQuery = dataSource.getValidationQuery();
         if (validationQuery == null || validationQuery.isEmpty()) {
-            final List<StackTraceElement> stackTraceElements = Lists.newArrayList(e.getCause().getStackTrace());
+            final List<StackTraceElement> stackTraceElements = Lists.newArrayList(error.getStackTrace());
             for (StackTraceElement element : stackTraceElements) {
                 if (element.getMethodName().contains("isValid")) {
                     return true;
