@@ -33,6 +33,7 @@ import javax.sql.*;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.*;
 import org.ofbiz.core.entity.config.*;
 import org.ofbiz.core.config.*;
@@ -48,6 +49,8 @@ import org.ofbiz.core.util.*;
  * @since      2.0
  */
 public class JNDIFactory implements TransactionFactoryInterface {
+
+    private static final Logger log = Logger.getLogger(JNDIFactory.class);
     
     // Debug module name
     public static final String module = JNDIFactory.class.getName();
@@ -139,7 +142,22 @@ public class JNDIFactory implements TransactionFactoryInterface {
 
         if (datasourceInfo.getJndiDatasource() != null) {
             JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();
-            Connection con = getJndiConnection(helperName, jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
+            Connection con = null;
+            try {
+                con = getJndiConnection(helperName, jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
+            } catch (AbstractMethodError err) {
+
+                log.warn("*********************************************** IMPORTANT  ************************************************");
+                log.warn("                                                                                                           ");
+                log.warn("  We found that you may experience problems with database connectivity because your database driver        ");
+                log.warn("  is not fully JDBC 4 compatible. As a workaround of this problem we suggest adding a validation query     ");
+                log.warn("  to your database resource configuration in Tomcat's server.xml file:\n");
+                log.warn("                           validationQuery=\"select 1;\"                                         \n");
+                log.warn("  or to update your database driver to version which fully supports JDBC 4.                                  ");
+                log.warn("  More information about this problem can be found here: https://jira.atlassian.com/browse/JRA-59768       ");
+                log.warn("                                                                                                           ");
+                log.warn("***********************************************************************************************************");
+            }
             if (con != null) return con;
         }
         if (datasourceInfo.getJdbcDatasource() != null) {
