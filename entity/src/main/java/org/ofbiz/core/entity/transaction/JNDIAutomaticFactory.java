@@ -104,13 +104,13 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
     /**
      * A method for getting properties from the configuration file. Uses the default value passed in
      * if the key as read from the property file was null.
+     *
      * @param propertyKey
      * @param defaultValue
-     * @return
      */
     private static String getNonNullProperty(String propertyKey, String defaultValue) {
         String fieldValue = CONFIGURATION.getProperty(propertyKey);
-        if(fieldValue != null) {
+        if (fieldValue != null) {
             return fieldValue;
         } else {
             Debug.logError(propertyKey + " not set in the ofbiz-database.properties file. Using default value: " + defaultValue);
@@ -133,7 +133,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
 
         list.add(str.substring(currentPosition));
 
-       return list.toArray(new String[list.size()]);
+        return list.toArray(new String[list.size()]);
     }
 
 
@@ -150,9 +150,9 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                             // if (Debug.verboseOn()) Debug.logVerbose("[JNDIFactory.getTransactionManager] Trying JNDI name " + jndiName, module);
 
                             // Use the given JNDI name unless the user has asked for us to auto-configure this parameter
-                            String [] guessList = {jndiName};
+                            String[] guessList = {jndiName};
 
-                            if(AUTO_CONFIGURE_TRANS_MGR.equals(jndiName)){
+                            if (AUTO_CONFIGURE_TRANS_MGR.equals(jndiName)) {
                                 guessList = TRANSMGR_NAME_GUESS;
                             }
 
@@ -168,7 +168,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         return transactionManager;
     }
 
-       public UserTransaction getUserTransaction() {
+    public UserTransaction getUserTransaction() {
         if (userTransaction == null) {
             synchronized (JNDIFactory.class) {
                 // try again inside the synch just in case someone when through while we were waiting
@@ -181,9 +181,9 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                             // if (Debug.verboseOn()) Debug.logVerbose("[JNDIFactory.getTransactionManager] Trying JNDI name " + jndiName, module);
 
                             // Use the given JNDI name unless the user has asked for us to auto-configure this parameter
-                            String [] guessList = {jndiName};
+                            String[] guessList = {jndiName};
 
-                            if(AUTO_CONFIGURE_TRANS_MGR.equals(jndiName)){
+                            if (AUTO_CONFIGURE_TRANS_MGR.equals(jndiName)) {
                                 guessList = USR_TRANSMGR_NAME_GUESS;
                             }
 
@@ -199,7 +199,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         return userTransaction;
     }
 
-    private Object retrieveJNDIObject (String jndiServerName, String[] jndiNameGuesses) throws GeneralException {
+    private Object retrieveJNDIObject(String jndiServerName, String[] jndiNameGuesses) throws GeneralException {
 
         for (String jndiNameGuess : jndiNameGuesses) {
             try {
@@ -226,8 +226,8 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         StringBuilder buff = new StringBuilder();
 
         buff.append("{");
-        if(arr != null) {
-            for (int i = 0; i < arr.length - 1; i ++) {
+        if (arr != null) {
+            for (int i = 0; i < arr.length - 1; i++) {
                 buff.append(arr[i] + ",");
             }
             buff.append(arr[arr.length - 1]);
@@ -311,11 +311,11 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
             if (ds instanceof XADataSource) {
                 XADataSource xads = (XADataSource) ds;
 
-                return trackConnection(helperName,xads);
+                return trackConnection(helperName, xads);
             } else {
                 DataSource nds = (DataSource) ds;
 
-                return trackConnection(helperName,nds);
+                return trackConnection(helperName, nds);
             }
         }
 
@@ -329,7 +329,7 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                 } else {
                     DataSource nds = (DataSource) ds;
 
-                    return trackConnection(helperName,nds);
+                    return trackConnection(helperName, nds);
                 }
             }
 
@@ -351,14 +351,14 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                         if (Debug.infoOn()) Debug.logInfo("Got XADataSource for name " + jndiName, module);
                         XADataSource xads = (XADataSource) ds;
 
-                        trackerCache.put(helperName,new ConnectionTracker());
-                        return trackConnection(helperName,xads);
+                        trackerCache.put(helperName, new ConnectionTracker());
+                        return trackConnection(helperName, xads);
                     } else {
                         if (Debug.infoOn()) Debug.logInfo("Got DataSource for name " + jndiName, module);
                         DataSource nds = (DataSource) ds;
 
-                        trackerCache.put(helperName,new ConnectionTracker(ConnectionPoolInfoSynthesizer.synthesizeConnectionPoolInfo(nds)));
-                        return trackConnection(helperName,nds);
+                        trackerCache.put(helperName, new ConnectionTracker(ConnectionPoolInfoSynthesizer.synthesizeConnectionPoolInfo(nds)));
+                        return trackConnection(helperName, nds);
                     }
                 } else {
                     Debug.logError("Datasource returned was NULL.", module);
@@ -372,37 +372,28 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
         return null;
     }
 
-    private static Connection trackConnection(final String helperName, final XADataSource xads)
-    {
+    private static Connection trackConnection(final String helperName, final XADataSource xads) {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return TransactionUtil.enlistConnection(xads.getXAConnection());
             }
         });
     }
 
-    private static Connection trackConnection(final String helperName, final DataSource nds)
-    {
+    private static Connection trackConnection(final String helperName, final DataSource nds) {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return nds.getConnection();
             }
         });
     }
 
 
-
-    public void removeDatasource(final String helperName)
-    {
+    public void removeDatasource(final String helperName) {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
-        if (datasourceInfo.getJndiDatasource() == null && datasourceInfo.getJdbcDatasource() != null)
-        {
+        if (datasourceInfo.getJndiDatasource() == null && datasourceInfo.getJdbcDatasource() != null) {
             // If a JDBC connection was configured, then there may be one here
             ConnectionFactory.removeDatasource(helperName);
         }

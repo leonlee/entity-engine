@@ -36,16 +36,17 @@ import java.util.Map;
 /**
  * Encapsulates simple expressions used for specifying queries
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityFieldMap extends EntityCondition {
 
     protected Map<String, ?> fieldMap;
     protected EntityOperator operator;
 
-    protected EntityFieldMap() {}
+    protected EntityFieldMap() {
+    }
 
     public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator) {
         this.fieldMap = fieldMap;
@@ -59,19 +60,19 @@ public class EntityFieldMap extends EntityCondition {
     public Object getField(String name) {
         return this.fieldMap.get(name);
     }
-    
+
     public boolean containsField(String name) {
         return this.fieldMap.containsKey(name);
     }
-    
+
     public Iterator<String> getFieldKeyIterator() {
         return this.fieldMap.keySet().iterator();
     }
-    
+
     public Iterator<? extends Map.Entry<String, ?>> getFieldEntryIterator() {
         return this.fieldMap.entrySet().iterator();
     }
-    
+
     public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         List<ModelField> whereFields = new ArrayList<ModelField>();

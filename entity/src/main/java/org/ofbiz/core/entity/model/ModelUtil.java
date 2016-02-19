@@ -23,21 +23,22 @@
  */
 package org.ofbiz.core.entity.model;
 
-import java.io.*;
+import org.ofbiz.core.util.StringUtil;
 
-import org.ofbiz.core.util.*;
+import java.io.File;
 
 /**
  * Generic Entity - General Utilities
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelUtil {
 
-    /** 
+    /**
      * Changes the first letter of the passed String to upper case.
+     *
      * @param string The passed String
      * @return A String with an upper case first letter
      */
@@ -50,7 +51,7 @@ public class ModelUtil {
         return sb.toString();
     }
 
-    /** 
+    /**
      * Changes the first letter of the passed String to lower case.
      *
      * @param string The passed String
@@ -65,14 +66,16 @@ public class ModelUtil {
         return sb.toString();
     }
 
-    /** Converts a database name to a Java class name.
-     * The naming conventions used to allow for this are as follows: a database name (table or 
-     * column) is in all capital letters, and the words are separated by an underscore 
-     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all 
-     * lower case letters, except the letter at the beginning of each word (for example: 
-     * NeatEntityName or RandomFieldName). The convention of using a capital letter at 
-     * the beginning of a class name in Java, or a lower-case letter for the beginning of a 
+    /**
+     * Converts a database name to a Java class name.
+     * The naming conventions used to allow for this are as follows: a database name (table or
+     * column) is in all capital letters, and the words are separated by an underscore
+     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all
+     * lower case letters, except the letter at the beginning of each word (for example:
+     * NeatEntityName or RandomFieldName). The convention of using a capital letter at
+     * the beginning of a class name in Java, or a lower-case letter for the beginning of a
      * variable name in Java is also used along with the Java name convention above.
+     *
      * @param columnName The database name
      * @return The Java class name
      */
@@ -80,14 +83,16 @@ public class ModelUtil {
         return upperFirstChar(dbNameToVarName(columnName));
     }
 
-    /** Converts a database name to a Java variable name.
-     * The naming conventions used to allow for this are as follows: a database name (table or 
-     * column) is in all capital letters, and the words are separated by an underscore 
-     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all 
-     * lower case letters, except the letter at the beginning of each word (for example: 
-     * NeatEntityName or RandomFieldName). The convention of using a capital letter at 
-     * the beginning of a class name in Java, or a lower-case letter for the beginning of a 
+    /**
+     * Converts a database name to a Java variable name.
+     * The naming conventions used to allow for this are as follows: a database name (table or
+     * column) is in all capital letters, and the words are separated by an underscore
+     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all
+     * lower case letters, except the letter at the beginning of each word (for example:
+     * NeatEntityName or RandomFieldName). The convention of using a capital letter at
+     * the beginning of a class name in Java, or a lower-case letter for the beginning of a
      * variable name in Java is also used along with the Java name convention above.
+     *
      * @param columnName The database name
      * @return The Java variable name
      */
@@ -97,7 +102,7 @@ public class ModelUtil {
         StringBuilder fieldName = new StringBuilder(columnName.length());
 
         boolean toUpper = false;
-        for (int i=0; i < columnName.length(); i++) {
+        for (int i = 0; i < columnName.length(); i++) {
             char ch = columnName.charAt(i);
             if (ch == '_') {
                 toUpper = true;
@@ -112,15 +117,16 @@ public class ModelUtil {
         return fieldName.toString();
     }
 
-    /** 
+    /**
      * Converts a Java variable name to a database name.
-     * The naming conventions used to allow for this are as follows: a database name (table or 
-     * column) is in all capital letters, and the words are separated by an underscore 
-     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all 
-     * lower case letters, except the letter at the beginning of each word (for example: 
-     * NeatEntityName or RandomFieldName). The convention of using a capital letter at 
-     * the beginning of a class name in Java, or a lower-case letter for the beginning of a 
+     * The naming conventions used to allow for this are as follows: a database name (table or
+     * column) is in all capital letters, and the words are separated by an underscore
+     * (for example: NEAT_ENTITY_NAME or RANDOM_FIELD_NAME); a Java name (ejb or field) is in all
+     * lower case letters, except the letter at the beginning of each word (for example:
+     * NeatEntityName or RandomFieldName). The convention of using a capital letter at
+     * the beginning of a class name in Java, or a lower-case letter for the beginning of a
      * variable name in Java is also used along with the Java name convention above.
+     *
      * @param javaName The Java variable name
      * @return The database name
      */
@@ -143,9 +149,10 @@ public class ModelUtil {
         return dbName.toString();
     }
 
-    /** 
-     * Converts a package name to a path by replacing all '.' characters with the File.separatorChar character. 
-     *  Is therefore platform independent.
+    /**
+     * Converts a package name to a path by replacing all '.' characters with the File.separatorChar character.
+     * Is therefore platform independent.
+     *
      * @param The package name.
      * @return The path name corresponding to the specified package name.
      */
@@ -154,11 +161,12 @@ public class ModelUtil {
         return packageName.replace('.', File.separatorChar);
     }
 
-    /** 
+    /**
      * Replaces all occurances of oldString in mainString with newString
+     *
      * @param mainString The original string
-     * @param oldString The string to replace
-     * @param newString The string to insert in place of the old
+     * @param oldString  The string to replace
+     * @param newString  The string to insert in place of the old
      * @return mainString with all occurances of oldString replaced by newString
      */
     public static String replaceString(String mainString, String oldString, String newString) {

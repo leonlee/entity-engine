@@ -32,85 +32,132 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Generic Entity - Entity model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.3 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.3 $
+ * @since 2.0
  */
 public class ModelEntity implements Comparable<ModelEntity> {
-    
+
     public static final String module = ModelEntity.class.getName();
 
-    /** The name of the time stamp field for locking/syncronization */
+    /**
+     * The name of the time stamp field for locking/syncronization
+     */
     public static final String STAMP_FIELD = "lastUpdatedStamp";
 
-    /** The ModelReader that created this Entity */
+    /**
+     * The ModelReader that created this Entity
+     */
     protected ModelReader modelReader = null;
 
-    /** The entity-name of the Entity */
+    /**
+     * The entity-name of the Entity
+     */
     protected String entityName = "";
 
-    /** The table-name of the Entity */
+    /**
+     * The table-name of the Entity
+     */
     protected String tableName = "";
 
-    /** The package-name of the Entity */
+    /**
+     * The package-name of the Entity
+     */
     protected String packageName = "";
 
-    /** The entity-name of the Entity that this Entity is dependent on, if empty then no dependency */
+    /**
+     * The entity-name of the Entity that this Entity is dependent on, if empty then no dependency
+     */
     protected String dependentOn = "";
 
     // Strings to go in the comment header.
-    /** The title for documentation purposes */
+    /**
+     * The title for documentation purposes
+     */
     protected String title = "";
 
-    /** The description for documentation purposes */
+    /**
+     * The description for documentation purposes
+     */
     protected String description = "";
 
-    /** The copyright for documentation purposes */
+    /**
+     * The copyright for documentation purposes
+     */
     protected String copyright = "";
 
-    /** The author for documentation purposes */
+    /**
+     * The author for documentation purposes
+     */
     protected String author = "";
 
-    /** The version for documentation purposes */
+    /**
+     * The version for documentation purposes
+     */
     protected String version = "";
 
-    /** A List of the Field objects for the Entity */
+    /**
+     * A List of the Field objects for the Entity
+     */
     protected List<ModelField> fields = new ArrayList<ModelField>();
     // Eagerly build the fields map to avoid - JRA-5507
     protected Map<String, ModelField> fieldsMap = new HashMap<String, ModelField>();
 
-    /** A List of the Field objects for the Entity, one for each Primary Key */
+    /**
+     * A List of the Field objects for the Entity, one for each Primary Key
+     */
     protected List<ModelField> pks = new ArrayList<ModelField>();
 
-    /** A List of the Field objects for the Entity, one for each NON Primary Key */
+    /**
+     * A List of the Field objects for the Entity, one for each NON Primary Key
+     */
     protected List<ModelField> nopks = new ArrayList<ModelField>();
 
-    /** relations defining relationships between this entity and other entities */
+    /**
+     * relations defining relationships between this entity and other entities
+     */
     protected List<ModelRelation> relations = new ArrayList<ModelRelation>();
 
-    /** indexes on fields/columns in this entity */
+    /**
+     * indexes on fields/columns in this entity
+     */
     protected List<ModelIndex> indexes = new ArrayList<ModelIndex>();
 
-    /** An indicator to specify if this entity requires locking for updates */
+    /**
+     * An indicator to specify if this entity requires locking for updates
+     */
     protected boolean doLock = false;
 
-    /** An indicator to specify if this entity is never cached. 
-     * If true causes the delegator to not clear caches on write and to not get 
-     * from cache on read showing a warning messages to that effect 
+    /**
+     * An indicator to specify if this entity is never cached.
+     * If true causes the delegator to not clear caches on write and to not get
+     * from cache on read showing a warning messages to that effect
      */
     protected boolean neverCache = false;
 
     // ===== CONSTRUCTORS =====
-    /** Default Constructor */
-    public ModelEntity() {}
 
-    /** XML Constructor */
+    /**
+     * Default Constructor
+     */
+    public ModelEntity() {
+    }
+
+    /**
+     * XML Constructor
+     */
     public ModelEntity(ModelReader reader, Element entityElement, Element docElement, UtilTimer utilTimer, Hashtable<String, String> docElementValues) {
         this.modelReader = reader;
 
@@ -141,7 +188,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
                 field.isPk = true;
             } else {
                 Debug.logError("[ModelReader.createModelEntity] ERROR: Could not find field \"" +
-                    ((Element) pkList.item(i)).getAttribute("field") + "\" specified in a prim-key", module);
+                        ((Element) pkList.item(i)).getAttribute("field") + "\" specified in a prim-key", module);
             }
         }
 
@@ -156,7 +203,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.populateIndexes(entityElement);
     }
 
-    /** DB Names Constructor */
+    /**
+     * DB Names Constructor
+     */
     public ModelEntity(String tableName, List<DatabaseUtil.ColumnCheckInfo> colList, ModelFieldTypeReader modelFieldTypeReader) {
         this.tableName = tableName.toUpperCase();
         this.entityName = ModelUtil.dbNameToClassName(this.tableName);
@@ -186,11 +235,16 @@ public class ModelEntity implements Comparable<ModelEntity> {
             this.author = UtilXml.checkEmpty(entityElement.getAttribute("author"), UtilXml.childElementValue(docElement, "author"), "None");
             this.version = UtilXml.checkEmpty(entityElement.getAttribute("version"), UtilXml.childElementValue(docElement, "version"), "1.0");
         } else {
-            if (!docElementValues.containsKey("title")) docElementValues.put("title", UtilXml.childElementValue(docElement, "title"));
-            if (!docElementValues.containsKey("description")) docElementValues.put("description", UtilXml.childElementValue(docElement, "description"));
-            if (!docElementValues.containsKey("copyright")) docElementValues.put("copyright", UtilXml.childElementValue(docElement, "copyright"));
-            if (!docElementValues.containsKey("author")) docElementValues.put("author", UtilXml.childElementValue(docElement, "author"));
-            if (!docElementValues.containsKey("version")) docElementValues.put("version", UtilXml.childElementValue(docElement, "version"));
+            if (!docElementValues.containsKey("title"))
+                docElementValues.put("title", UtilXml.childElementValue(docElement, "title"));
+            if (!docElementValues.containsKey("description"))
+                docElementValues.put("description", UtilXml.childElementValue(docElement, "description"));
+            if (!docElementValues.containsKey("copyright"))
+                docElementValues.put("copyright", UtilXml.childElementValue(docElement, "copyright"));
+            if (!docElementValues.containsKey("author"))
+                docElementValues.put("author", UtilXml.childElementValue(docElement, "author"));
+            if (!docElementValues.containsKey("version"))
+                docElementValues.put("version", UtilXml.childElementValue(docElement, "version"));
             this.title = UtilXml.checkEmpty(entityElement.getAttribute("title"), docElementValues.get("title"), "None");
             this.description = UtilXml.checkEmpty(UtilXml.childElementValue(entityElement, "description"), docElementValues.get("description"), "None");
             this.copyright = UtilXml.checkEmpty(entityElement.getAttribute("copyright"), docElementValues.get("copyright"), "Copyright (c) 2001 The Open For Business Project - www.ofbiz.org");
@@ -227,7 +281,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return modelReader;
     }
 
-    /** The entity-name of the Entity */
+    /**
+     * The entity-name of the Entity
+     */
     public String getEntityName() {
         return this.entityName;
     }
@@ -236,17 +292,23 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.entityName = entityName;
     }
 
-    /** The plain table-name of the Entity without a schema name prefix */
+    /**
+     * The plain table-name of the Entity without a schema name prefix
+     */
     public String getPlainTableName() {
         return this.tableName;
     }
 
-    /** The table-name of the Entity including a Schema name if specified in the datasource config */
+    /**
+     * The table-name of the Entity including a Schema name if specified in the datasource config
+     */
     public String getTableName(String helperName) {
         return getTableName(EntityConfigUtil.getInstance().getDatasourceInfo(helperName));
     }
 
-    /** The table-name of the Entity including a Schema name if specified in the datasource config */
+    /**
+     * The table-name of the Entity including a Schema name if specified in the datasource config
+     */
     public String getTableName(DatasourceInfo datasourceInfo) {
         if (datasourceInfo != null && datasourceInfo.getSchemaName() != null && datasourceInfo.getSchemaName().length() > 0) {
             return datasourceInfo.getSchemaName() + "." + this.tableName;
@@ -259,7 +321,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.tableName = tableName;
     }
 
-    /** The package-name of the Entity */
+    /**
+     * The package-name of the Entity
+     */
     public String getPackageName() {
         return this.packageName;
     }
@@ -268,7 +332,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.packageName = packageName;
     }
 
-    /** The entity-name of the Entity that this Entity is dependent on, if empty then no dependency */
+    /**
+     * The entity-name of the Entity that this Entity is dependent on, if empty then no dependency
+     */
     public String getDependentOn() {
         return this.dependentOn;
     }
@@ -278,7 +344,10 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     // Strings to go in the comment header.
-    /** The title for documentation purposes */
+
+    /**
+     * The title for documentation purposes
+     */
     public String getTitle() {
         return this.title;
     }
@@ -287,7 +356,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.title = title;
     }
 
-    /** The description for documentation purposes */
+    /**
+     * The description for documentation purposes
+     */
     public String getDescription() {
         return this.description;
     }
@@ -296,7 +367,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.description = description;
     }
 
-    /** The copyright for documentation purposes */
+    /**
+     * The copyright for documentation purposes
+     */
     public String getCopyright() {
         return this.copyright;
     }
@@ -305,7 +378,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.copyright = copyright;
     }
 
-    /** The author for documentation purposes */
+    /**
+     * The author for documentation purposes
+     */
     public String getAuthor() {
         return this.author;
     }
@@ -314,7 +389,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.author = author;
     }
 
-    /** The version for documentation purposes */
+    /**
+     * The version for documentation purposes
+     */
     public String getVersion() {
         return this.version;
     }
@@ -323,9 +400,10 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.version = version;
     }
 
-    /** An indicator to specify if this entity is never cached. 
-     * If true causes the delegator to not clear caches on write and to not get 
-     * from cache on read showing a warning messages to that effect 
+    /**
+     * An indicator to specify if this entity is never cached.
+     * If true causes the delegator to not clear caches on write and to not get
+     * from cache on read showing a warning messages to that effect
      */
     public boolean getNeverCache() {
         return this.neverCache;
@@ -335,7 +413,9 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.neverCache = neverCache;
     }
 
-    /** An indicator to specify if this entity requires locking for updates */
+    /**
+     * An indicator to specify if this entity requires locking for updates
+     */
     public boolean getDoLock() {
         return this.doLock;
     }

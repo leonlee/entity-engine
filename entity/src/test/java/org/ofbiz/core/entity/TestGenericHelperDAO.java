@@ -20,7 +20,8 @@ public class TestGenericHelperDAO {
     private static final String HELPER_NAME = "myHelper";
 
     private GenericHelperDAO dao;
-    @Mock private GenericDAO mockGenericDao;
+    @Mock
+    private GenericDAO mockGenericDao;
 
     @Before
     public void setUp() {

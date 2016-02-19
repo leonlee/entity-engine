@@ -35,9 +35,9 @@ import java.util.List;
 /**
  * Encapsulates simple expressions used for specifying queries
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityExpr extends EntityCondition {
 
@@ -47,7 +47,8 @@ public class EntityExpr extends EntityCondition {
     private Object rhs;
     private boolean rightUpper = false;
 
-    protected EntityExpr() {}
+    protected EntityExpr() {
+    }
 
     public EntityExpr(String lhs, EntityOperator operator, Object rhs) {
         if (lhs == null) {
@@ -222,12 +223,12 @@ public class EntityExpr extends EntityCondition {
                 if (this.getRhs() != null) {
                     // treat the IN operator as a special case, especially with a Collection rhs
                     if (EntityOperator.IN.equals(this.getOperator())) {
-                       if (rhs instanceof Collection) {
-                           parameterCount += ((Collection<?>)rhs).size();
+                        if (rhs instanceof Collection) {
+                            parameterCount += ((Collection<?>) rhs).size();
                         } else if (rhs instanceof EntityWhereString) {
-                           parameterCount += ((EntityWhereString)rhs).getParameterCount(modelEntity);
+                            parameterCount += ((EntityWhereString) rhs).getParameterCount(modelEntity);
                         } else {
-                           parameterCount++;
+                            parameterCount++;
                         }
                     } else {
                         parameterCount++;
@@ -238,8 +239,8 @@ public class EntityExpr extends EntityCondition {
             }
         } else if (lhs instanceof EntityCondition) {
             // then rhs MUST also be an EntityCondition
-            EntityCondition lhsCondition = (EntityCondition)lhs;
-            EntityCondition rhsCondition = (EntityCondition)rhs;
+            EntityCondition lhsCondition = (EntityCondition) lhs;
+            EntityCondition rhsCondition = (EntityCondition) rhs;
             parameterCount += lhsCondition.getParameterCount(modelEntity);
             parameterCount += rhsCondition.getParameterCount(modelEntity);
         }

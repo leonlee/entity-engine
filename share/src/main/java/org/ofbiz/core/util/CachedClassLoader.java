@@ -33,9 +33,9 @@ import java.util.Map;
 /**
  * Caching Class Loader
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.1
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.1
  */
 public class CachedClassLoader extends URLClassLoader {
     private String contextName;
@@ -59,7 +59,7 @@ public class CachedClassLoader extends URLClassLoader {
 
         globalClassNameClassMap.put("String", java.lang.String.class);
         globalClassNameClassMap.put("java.lang.String", java.lang.String.class);
-        
+
         globalClassNameClassMap.put("Boolean", java.lang.Boolean.class);
         globalClassNameClassMap.put("java.lang.Boolean", java.lang.Boolean.class);
 
@@ -81,7 +81,7 @@ public class CachedClassLoader extends URLClassLoader {
 
         globalClassNameClassMap.put("Locale", java.util.Locale.class);
         globalClassNameClassMap.put("java.util.Locale", java.util.Locale.class);
-        
+
         globalClassNameClassMap.put("java.util.Date", java.util.Date.class);
         globalClassNameClassMap.put("Collection", java.util.Collection.class);
         globalClassNameClassMap.put("java.util.Collection", java.util.Collection.class);
@@ -108,24 +108,24 @@ public class CachedClassLoader extends URLClassLoader {
             Debug.logError(e, "Could not pre-initialize dynamically loaded class: ");
         }
     }
-    
+
     public CachedClassLoader(ClassLoader parent, String contextName) {
-        super (new URL[0], parent);
+        super(new URL[0], parent);
         this.contextName = contextName;
     }
-    
+
     public String toString() {
         return "org.ofbiz.core.util.CachedClassLoader(" + contextName + ") / " + getParent().toString();
     }
-    
+
     public Class<?> loadClass(String name) throws ClassNotFoundException {
         return loadClass(name, false);
     }
-    
+
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         //check glocal common classes, ie for all instances
         Class<?> theClass = globalClassNameClassMap.get(name);
-        
+
         //check local classes, ie for this instance
         if (theClass == null) theClass = localClassNameClassMap.get(name);
 
@@ -136,10 +136,10 @@ public class CachedClassLoader extends URLClassLoader {
                 throw new ClassNotFoundException("Cached loader got a known bad class name: " + name);
             }
         }
-        
+
         if (theClass == null) {
             if (Debug.verboseOn()) Debug.logVerbose("Cached loader cache miss for class name: [" + name + "]");
-            
+
             synchronized (this) {
                 theClass = localClassNameClassMap.get(name);
                 if (theClass == null) {
@@ -165,11 +165,11 @@ public class CachedClassLoader extends URLClassLoader {
         }
         return theClass;
     }
-    
+
     public URL getResource(String name) {
         //check glocal common resources, ie for all instances
         URL theResource = globalResourceMap.get(name);
-        
+
         //check local resources, ie for this instance
         if (theResource == null) theResource = localResourceMap.get(name);
 
@@ -180,11 +180,11 @@ public class CachedClassLoader extends URLClassLoader {
                 return null;
             }
         }
-        
+
         if (theResource == null) {
             //if (Debug.verboseOn()) Debug.logVerbose("Cached loader cache miss for resource name: [" + name + "]");
             Debug.logInfo("Cached loader cache miss for resource name: [" + name + "]");
-            
+
             synchronized (this) {
                 theResource = localResourceMap.get(name);
                 if (theResource == null) {
@@ -209,7 +209,7 @@ public class CachedClassLoader extends URLClassLoader {
         }
         return theResource;
     }
-    
+
     protected boolean isGlobalPath(String name) {
         if (name.startsWith("java.") || name.startsWith("java/") || name.startsWith("/java/")) return true;
         if (name.startsWith("javax.") || name.startsWith("javax/") || name.startsWith("/javax/")) return true;

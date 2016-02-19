@@ -41,9 +41,9 @@ import java.util.List;
 /**
  * SAX XML Parser Content Handler for Entity Engine XML files
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler {
 
@@ -62,7 +62,8 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
 
     protected List<GenericValue> valuesToWrite = new ArrayList<GenericValue>(valuesPerWrite);
 
-    protected EntitySaxReader() {}
+    protected EntitySaxReader() {
+    }
 
     public EntitySaxReader(GenericDelegator delegator) {
         this.delegator = delegator;
@@ -177,7 +178,8 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
         }
     }
 
-    public void endDocument() throws org.xml.sax.SAXException {}
+    public void endDocument() throws org.xml.sax.SAXException {
+    }
 
     public void endElement(String namespaceURI, String localName, String fullName) throws org.xml.sax.SAXException {
         // Debug.logInfo("endElement: localName=" + localName + ", fullName=" + fullName + ", numberRead=" + numberRead);
@@ -210,22 +212,26 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
         }
     }
 
-    public void endPrefixMapping(String prefix) throws org.xml.sax.SAXException {}
+    public void endPrefixMapping(String prefix) throws org.xml.sax.SAXException {
+    }
 
     public void ignorableWhitespace(char[] values, int offset, int count) throws org.xml.sax.SAXException {
         String value = new String(values, offset, count);
         // Debug.logInfo("ignorableWhitespace: value=" + value);
     }
 
-    public void processingInstruction(String target, String instruction) throws org.xml.sax.SAXException {}
+    public void processingInstruction(String target, String instruction) throws org.xml.sax.SAXException {
+    }
 
     public void setDocumentLocator(org.xml.sax.Locator locator) {
         this.locator = locator;
     }
 
-    public void skippedEntity(String name) throws org.xml.sax.SAXException {}
+    public void skippedEntity(String name) throws org.xml.sax.SAXException {
+    }
 
-    public void startDocument() throws org.xml.sax.SAXException {}
+    public void startDocument() throws org.xml.sax.SAXException {
+    }
 
     public void startElement(String namepsaceURI, String localName, String fullName, org.xml.sax.Attributes attributes) throws org.xml.sax.SAXException {
         // Debug.logInfo("startElement: localName=" + localName + ", fullName=" + fullName + ", attributes=" + attributes);
@@ -248,7 +254,8 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
 
             try {
                 currentValue = delegator.makeValue(entityName, null);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
 
             if (currentValue != null) {
                 int length = attributes.getLength();
@@ -273,7 +280,8 @@ public class EntitySaxReader implements org.xml.sax.ContentHandler, ErrorHandler
         }
     }
 
-    public void startPrefixMapping(String prefix, String uri) throws org.xml.sax.SAXException {}
+    public void startPrefixMapping(String prefix, String uri) throws org.xml.sax.SAXException {
+    }
 
     // ======== ErrorHandler interface implementations ========
 

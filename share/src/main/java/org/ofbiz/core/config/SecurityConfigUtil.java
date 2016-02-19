@@ -44,12 +44,14 @@ import java.util.Map;
  *
  * The setup of custom security implementations can be customized in the security.xml file.
  *
- * @author     <a href="mailto:hermanns@aixcept.de">Rainer Hermanns</a>
- * @version    $Revision: 1.1 $
+ * @author <a href="mailto:hermanns@aixcept.de">Rainer Hermanns</a>
+ * @version $Revision: 1.1 $
  */
 public class SecurityConfigUtil {
 
-    /** The security config filename */
+    /**
+     * The security config filename
+     */
     public static final String SECURITY_CONFIG_XML_FILENAME = "security.xml";
 
     protected static Map<String, SecurityInfo> securityInfos = new HashMap<String, SecurityInfo>();
@@ -57,7 +59,6 @@ public class SecurityConfigUtil {
     /**
      * Returns the XmlRootElement for the security config
      *
-     * @return
      * @throws GenericConfigException
      */
     public static Element getXmlRootElement() throws GenericConfigException {
@@ -67,7 +68,6 @@ public class SecurityConfigUtil {
     /**
      * Returns the XmlDocument for the security config
      *
-     * @return
      * @throws GenericConfigException
      */
     public static Document getXmlDocument() throws GenericConfigException {
@@ -99,7 +99,8 @@ public class SecurityConfigUtil {
             Element curElement = elementIter.next();
             SecurityConfigUtil.SecurityInfo securityInfo = new SecurityConfigUtil.SecurityInfo(curElement);
 
-            if (Debug.verboseOn()) Debug.logVerbose("LOADED SECURITY CONFIG FROM XML -  NAME: " + securityInfo.name + " ClassName: " + securityInfo.className);
+            if (Debug.verboseOn())
+                Debug.logVerbose("LOADED SECURITY CONFIG FROM XML -  NAME: " + securityInfo.name + " ClassName: " + securityInfo.className);
             SecurityConfigUtil.securityInfos.put(securityInfo.name, securityInfo);
         }
     }
@@ -108,7 +109,6 @@ public class SecurityConfigUtil {
      * Returns the security config for a given name
      *
      * @param name
-     * @return
      */
     public static SecurityConfigUtil.SecurityInfo getSecurityInfo(String name) {
         return securityInfos.get(name);

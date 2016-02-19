@@ -32,16 +32,17 @@ import java.util.List;
 /**
  * Encapsulates a list of EntityConditions to be used as a single EntityCondition combined as specified
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityConditionList extends EntityCondition {
 
     protected List<? extends EntityCondition> conditionList;
     protected EntityOperator operator;
 
-    protected EntityConditionList() {}
+    protected EntityConditionList() {
+    }
 
     public EntityConditionList(List<? extends EntityCondition> conditionList, EntityOperator operator) {
         this.conditionList = conditionList;
@@ -55,15 +56,15 @@ public class EntityConditionList extends EntityCondition {
     public EntityCondition getCondition(int index) {
         return this.conditionList.get(index);
     }
-    
+
     public int getConditionListSize() {
         return this.conditionList.size();
     }
-    
+
     public Iterator<? extends EntityCondition> getConditionIterator() {
         return this.conditionList.iterator();
     }
-    
+
     public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuilder whereStringBuilder = new StringBuilder();

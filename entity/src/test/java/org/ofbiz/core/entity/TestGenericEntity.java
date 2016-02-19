@@ -18,8 +18,10 @@ import static org.mockito.Mockito.when;
 
 public class TestGenericEntity {
 
-    @Mock private GenericDelegator mockGenericDelegator;
-    @Mock private ModelEntity mockModelEntity;
+    @Mock
+    private GenericDelegator mockGenericDelegator;
+    @Mock
+    private ModelEntity mockModelEntity;
     private GenericEntity entity;
 
     @Before
@@ -127,8 +129,7 @@ public class TestGenericEntity {
 
     private void assertSetFieldToBooleanValue(
             final Boolean newBooleanValue, final Object expectedFieldValue, final Class<?> fieldJavaType)
-        throws Exception
-    {
+            throws Exception {
         // Set up
         final String modifiedField = "modifiedField";
         final String previousValue = "previousValue";

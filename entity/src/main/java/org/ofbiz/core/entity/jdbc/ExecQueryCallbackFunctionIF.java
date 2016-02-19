@@ -28,7 +28,8 @@ package org.ofbiz.core.entity.jdbc;
 /**
  * <p>Title: </p>
  * <p>Description: </p>
- * @author  <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
+ *
+ * @author <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
  * @version 1.0
  */
 

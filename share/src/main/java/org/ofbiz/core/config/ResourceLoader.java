@@ -42,9 +42,9 @@ import java.util.Map;
 /**
  * Loads resources using dynamically specified resource loader classes
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@created    March 1, 2002
- *@version    1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
+ * @created March 1, 2002
  */
 public abstract class ResourceLoader {
     protected static UtilCache<String, ResourceLoader> loaderCache = new UtilCache<String, ResourceLoader>("resource.ResourceLoaders", 0, 0);
@@ -57,7 +57,8 @@ public abstract class ResourceLoader {
     public static InputStream loadResource(String xmlFilename, String location, String loaderName) throws GenericConfigException {
         ResourceLoader loader = getLoader(xmlFilename, loaderName);
 
-        if (loader == null) throw new IllegalArgumentException("ResourceLoader not found with name [" + loaderName + "] in " + xmlFilename);
+        if (loader == null)
+            throw new IllegalArgumentException("ResourceLoader not found with name [" + loaderName + "] in " + xmlFilename);
         return loader.loadResource(location);
     }
 
@@ -170,7 +171,8 @@ public abstract class ResourceLoader {
         return loader;
     }
 
-    protected ResourceLoader() {}
+    protected ResourceLoader() {
+    }
 
     public void init(String name, String prefix, String envName) {
         this.name = name;
@@ -178,7 +180,9 @@ public abstract class ResourceLoader {
         this.envName = envName;
     }
 
-    /** Just a utility method to be used in loadResource by the implementing class */
+    /**
+     * Just a utility method to be used in loadResource by the implementing class
+     */
     public String fullLocation(String location) {
         StringBuilder buf = new StringBuilder();
 

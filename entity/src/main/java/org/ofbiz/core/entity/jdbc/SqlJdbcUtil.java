@@ -42,6 +42,8 @@ import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,8 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import static org.ofbiz.core.entity.jdbc.SerializationUtil.deserialize;
 
@@ -71,13 +71,13 @@ import static org.ofbiz.core.entity.jdbc.SerializationUtil.deserialize;
 /**
  * GenericDAO Utility methods for general tasks
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @author     <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
- * @author     <a href="mailto:peterm@miraculum.com">Peter Moon</a>
- * @version    $Revision: 1.2 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @author <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
+ * @author <a href="mailto:peterm@miraculum.com">Peter Moon</a>
+ * @version $Revision: 1.2 $
+ * @since 2.0
  */
 public class SqlJdbcUtil {
 
@@ -95,7 +95,9 @@ public class SqlJdbcUtil {
         return FieldType.BOOLEAN.matches(fieldType);
     }
 
-    /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
+    /**
+     * Makes the FROM clause and when necessary the JOIN clause(s) as well
+     */
     public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
         StringBuilder sql = new StringBuilder(" FROM ");
 
@@ -259,27 +261,23 @@ public class SqlJdbcUtil {
      *
      * @param modelFields the fields to include in the WHERE string (can be null)
      * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
-     * @param operator the operator to insert between each column condition in the returned WHERE string (typically
-     * "AND" or "OR")
+     * @param operator    the operator to insert between each column condition in the returned WHERE string (typically
+     *                    "AND" or "OR")
      * @return an empty string if the given list of fields is null or empty, otherwise a string like
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(
-            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator)
-    {
+            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator) {
         return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
     }
 
-    public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues)
-    {
-        if (modelFields == null || modelFields.isEmpty())
-        {
+    public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues) {
+        if (modelFields == null || modelFields.isEmpty()) {
             return 0;
         }
 
         int parameterCount = 0;
-        for (ModelField modelField : modelFields)
-        {
+        for (ModelField modelField : modelFields) {
             final Object fieldValue = fieldValues.get(modelField.getName());
             if (fieldValue != null) //null fieldValue -> ... IS NULL
             {
@@ -294,17 +292,16 @@ public class SqlJdbcUtil {
      * Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS NULL" if null, all separated by the
      * given operator.
      *
-     * @param modelFields the fields to include in the WHERE string (can be null)
-     * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
-     * @param operator the operator to insert between each column
-     * condition in the returned WHERE string (typically "AND" or "OR")
+     * @param modelFields           the fields to include in the WHERE string (can be null)
+     * @param fieldValues           any field values to be checked against non-null values; keys are field (not column) names
+     * @param operator              the operator to insert between each column
+     *                              condition in the returned WHERE string (typically "AND" or "OR")
      * @param entityConditionParams if not null, an element will be added to this list
      * @return an empty string if the given list of fieldValues is null or empty, otherwise a string like
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues,
-            final String operator, final List<? super EntityConditionParam> entityConditionParams)
-    {
+                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams) {
         if (modelFields == null || modelFields.isEmpty()) {
             return "";
         }
@@ -423,7 +420,7 @@ public class SqlJdbcUtil {
                         whereString.append(viewLink.getRelEntityAlias());
                         whereString.append('.');
                         whereString.append(filterColName(relLinkField.getColName()));
-                   }
+                    }
                 }
             } else {
                 throw new GenericModelException("The join-style " + joinStyle + " is not yet supported");
@@ -513,7 +510,7 @@ public class SqlJdbcUtil {
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo));
             sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
-            ModelViewEntity modelViewEntity = (ModelViewEntity)modelEntity;
+            ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
             String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
             if (UtilValidate.isNotEmpty(groupByString)) {
                 sql.append(" GROUP BY ");
@@ -528,7 +525,7 @@ public class SqlJdbcUtil {
     }
 
     public static String filterColName(String colName) {
-        return colName.replace('.', '_').replace('(','_').replace(')','_');
+        return colName.replace('.', '_').replace('(', '_').replace(')', '_');
     }
 
     /* ====================================================================== */
@@ -536,8 +533,8 @@ public class SqlJdbcUtil {
     /* ====================================================================== */
 
     /**
-     *  The elements (ModelFields) of the list are bound to an SQL statement
-     *  (SQL-Processor)
+     * The elements (ModelFields) of the list are bound to an SQL statement
+     * (SQL-Processor)
      *
      * @param sqlP
      * @param list
@@ -546,17 +543,16 @@ public class SqlJdbcUtil {
      * @throws GenericEntityException
      */
     public static void setValues(final SQLProcessor sqlP, final List<ModelField> list, final GenericEntity entity,
-            final ModelFieldTypeReader modelFieldTypeReader)
-        throws GenericEntityException
-    {
+                                 final ModelFieldTypeReader modelFieldTypeReader)
+            throws GenericEntityException {
         for (final ModelField curField : list) {
             setValue(sqlP, curField, entity, modelFieldTypeReader);
         }
     }
 
     /**
-     *  The elements (ModelFields) of the list are bound to an SQL statement
-     *  (SQL-Processor), but values must not be null.
+     * The elements (ModelFields) of the list are bound to an SQL statement
+     * (SQL-Processor), but values must not be null.
      *
      * @param sqlP
      * @param list
@@ -565,9 +561,8 @@ public class SqlJdbcUtil {
      * @throws GenericEntityException
      */
     public static void setValuesWhereClause(final SQLProcessor sqlP, final List<ModelField> list,
-            final GenericValue dummyValue, final ModelFieldTypeReader modelFieldTypeReader)
-        throws GenericEntityException
-    {
+                                            final GenericValue dummyValue, final ModelFieldTypeReader modelFieldTypeReader)
+            throws GenericEntityException {
         for (final ModelField curField : list) {
             // for where clause variables only setValue if not null...
             if (dummyValue.get(curField.getName()) != null) {
@@ -577,8 +572,8 @@ public class SqlJdbcUtil {
     }
 
     /**
-     *  Get all primary keys from the model entity and bind their values
-     *  to the an SQL statement (SQL-Processor)
+     * Get all primary keys from the model entity and bind their values
+     * to the an SQL statement (SQL-Processor)
      *
      * @param sqlP
      * @param modelEntity
@@ -610,8 +605,7 @@ public class SqlJdbcUtil {
             // checking to see if the object is null is really only necessary for the numbers
             FieldType type = getFieldType(fieldType);
 
-            switch (type)
-            {
+            switch (type) {
                 case STRING:
                     entity.dangerousSetNoCheckButFast(curField, rs.getString(ind));
                     break;
@@ -709,16 +703,14 @@ public class SqlJdbcUtil {
 
     @Nullable
     private static Object getByteArrayAsObject(final ResultSet rs, final int ind)
-            throws SQLException, GenericDataSourceException
-    {
+            throws SQLException, GenericDataSourceException {
         final byte[] bytes = rs.getBytes(ind);
         return (bytes != null && bytes.length > 0) ? deserialize(new ByteArrayInputStream(bytes)) : null;
     }
 
     @Nullable
     private static Object getBlobAsObject(final ResultSet rs, final int ind)
-            throws SQLException, GenericDataSourceException
-    {
+            throws SQLException, GenericDataSourceException {
         final Blob blob = rs.getBlob(ind);
         if (blob == null || blob.length() <= 0L) {
             return null;
@@ -736,27 +728,23 @@ public class SqlJdbcUtil {
     }
 
     @Nullable
-    private static byte[] getBlobAsByteArray(final ResultSet rs, final int ind) throws SQLException
-    {
+    private static byte[] getBlobAsByteArray(final ResultSet rs, final int ind) throws SQLException {
         final Blob blob = rs.getBlob(ind);
-        if (blob == null)
-        {
+        if (blob == null) {
             return null;
         }
 
         final long len = blob.length();
-        if (len <= 0L)
-        {
+        if (len <= 0L) {
             return null;
         }
 
-        if (blob.length() > Integer.MAX_VALUE)
-        {
+        if (blob.length() > Integer.MAX_VALUE) {
             throw new SQLException("BLOB exceeds Integer.MAX_VALUE in length; cannot be retrieved as byte array");
         }
 
         // Yes, the starting position really is 1L.  Because JDBC.  *sigh*
-        return blob.getBytes(1L, (int)len);
+        return blob.getBytes(1L, (int) len);
     }
 
     public static void setValue(SQLProcessor sqlP, ModelField modelField, GenericEntity entity, ModelFieldTypeReader modelFieldTypeReader) throws GenericEntityException {
@@ -796,89 +784,75 @@ public class SqlJdbcUtil {
             FieldType type = getFieldType(fieldType);
 
             switch (type) {
-            case STRING:
-                sqlP.setValue((String) fieldValue);
-                break;
+                case STRING:
+                    sqlP.setValue((String) fieldValue);
+                    break;
 
-            case TIMESTAMP:
-                sqlP.setValue((Timestamp) fieldValue);
-                break;
+                case TIMESTAMP:
+                    sqlP.setValue((Timestamp) fieldValue);
+                    break;
 
-            case TIME:
-                sqlP.setValue((Time) fieldValue);
-                break;
+                case TIME:
+                    sqlP.setValue((Time) fieldValue);
+                    break;
 
-            case DATE:
-                sqlP.setValue((Date) fieldValue);
-                break;
+                case DATE:
+                    sqlP.setValue((Date) fieldValue);
+                    break;
 
-            case INTEGER:
-                sqlP.setValue((Integer) fieldValue);
-                break;
+                case INTEGER:
+                    sqlP.setValue((Integer) fieldValue);
+                    break;
 
-            case LONG:
-                sqlP.setValue((Long) fieldValue);
-                break;
+                case LONG:
+                    sqlP.setValue((Long) fieldValue);
+                    break;
 
-            case FLOAT:
-                sqlP.setValue((Float) fieldValue);
-                break;
+                case FLOAT:
+                    sqlP.setValue((Float) fieldValue);
+                    break;
 
-            case DOUBLE:
-                sqlP.setValue((Double) fieldValue);
-                break;
+                case DOUBLE:
+                    sqlP.setValue((Double) fieldValue);
+                    break;
 
-            case BOOLEAN:
-                sqlP.setValue((Boolean) fieldValue);
-                break;
+                case BOOLEAN:
+                    sqlP.setValue((Boolean) fieldValue);
+                    break;
 
-            case OBJECT:
-                if (isByteArrayType(mft))
-                {
-                    sqlP.setByteArrayData(fieldValue);
-                }
-                else
-                {
-                    sqlP.setBinaryStream(fieldValue);
-                }
-                break;
+                case OBJECT:
+                    if (isByteArrayType(mft)) {
+                        sqlP.setByteArrayData(fieldValue);
+                    } else {
+                        sqlP.setBinaryStream(fieldValue);
+                    }
+                    break;
 
-            case BLOB:
-                if (fieldValue == null && isByteArrayType(mft))
-                {
-                    sqlP.setByteArrayData(null);
-                }
-                else if (fieldValue instanceof Blob)
-                {
-                    sqlP.setValue((Blob)fieldValue);
-                }
-                else
-                {
-                    sqlP.setBlob((byte[])fieldValue);
-                }
-                break;
+                case BLOB:
+                    if (fieldValue == null && isByteArrayType(mft)) {
+                        sqlP.setByteArrayData(null);
+                    } else if (fieldValue instanceof Blob) {
+                        sqlP.setValue((Blob) fieldValue);
+                    } else {
+                        sqlP.setBlob((byte[]) fieldValue);
+                    }
+                    break;
 
-            case CLOB:
-                if (fieldValue instanceof Clob)
-                {
-                    sqlP.setValue((Clob)fieldValue);
-                }
-                else
-                {
-                    sqlP.setValue((String)fieldValue);
-                }
-                break;
+                case CLOB:
+                    if (fieldValue instanceof Clob) {
+                        sqlP.setValue((Clob) fieldValue);
+                    } else {
+                        sqlP.setValue((String) fieldValue);
+                    }
+                    break;
 
-            case BYTE_ARRAY:
-                if (isByteArrayType(mft))
-                {
-                    sqlP.setByteArray((byte[]) fieldValue);
-                }
-                else
-                {
-                    sqlP.setBlob((byte[]) fieldValue);
-                }
-                break;
+                case BYTE_ARRAY:
+                    if (isByteArrayType(mft)) {
+                        sqlP.setByteArray((byte[]) fieldValue);
+                    } else {
+                        sqlP.setBlob((byte[]) fieldValue);
+                    }
+                    break;
 
             }
         } catch (SQLException sqle) {
@@ -886,8 +860,7 @@ public class SqlJdbcUtil {
         }
     }
 
-    private static boolean isByteArrayType(ModelFieldType mft)
-    {
+    private static boolean isByteArrayType(ModelFieldType mft) {
         final String type = mft.getSqlType();
         return "BYTEA".equals(type)
                 || "IMAGE".equals(type)
@@ -959,8 +932,7 @@ public class SqlJdbcUtil {
      *
      * @since 1.1.0
      */
-    public enum FieldType
-    {
+    public enum FieldType {
         /**
          * The underlying field type is something like VARCHAR or TEXT that can hold variable-length
          * character data.
@@ -1044,8 +1016,7 @@ public class SqlJdbcUtil {
 
         // The array never escapes this class, so the warning is meaningless
         @SuppressWarnings("AssignmentToCollectionOrArrayFieldFromParameter")
-        FieldType(final int oldTypeNumber, String... javaTypes)
-        {
+        FieldType(final int oldTypeNumber, String... javaTypes) {
             this.oldTypeNumber = oldTypeNumber;
             this.javaTypes = javaTypes;
         }
@@ -1060,8 +1031,7 @@ public class SqlJdbcUtil {
          *
          * @return the old hardcoded type number that is associated with this field type.
          */
-        public int getOldTypeNumber()
-        {
+        public int getOldTypeNumber() {
             return oldTypeNumber;
         }
 
@@ -1073,33 +1043,26 @@ public class SqlJdbcUtil {
          * @param javaType the proposed java type
          * @return {@code true} if the specified java type corresponds to this field type; {@code false} otherwise.
          */
-        public boolean matches(final String javaType)
-        {
-            for (String myJavaType : javaTypes)
-            {
-                if (myJavaType.equals(javaType))
-                {
+        public boolean matches(final String javaType) {
+            for (String myJavaType : javaTypes) {
+                if (myJavaType.equals(javaType)) {
                     return true;
                 }
             }
             return false;
         }
 
-        static Map<String,FieldType> buildJavaTypeMap()
-        {
-            final Map<Integer,FieldType> typeNumberMapping = new HashMap<Integer, FieldType>(64);
+        static Map<String, FieldType> buildJavaTypeMap() {
+            final Map<Integer, FieldType> typeNumberMapping = new HashMap<Integer, FieldType>(64);
             final ImmutableMap.Builder<String, FieldType> map = ImmutableMap.builder();
-            for (FieldType fieldType : FieldType.values())
-            {
+            for (FieldType fieldType : FieldType.values()) {
                 final FieldType collision = typeNumberMapping.put(fieldType.oldTypeNumber, fieldType);
-                if (collision != null)
-                {
+                if (collision != null) {
                     throw new IllegalStateException("FieldType '" + fieldType + "' uses the same value that '" +
                             collision + "' uses for its old type number: " + fieldType.oldTypeNumber);
                 }
 
-                for (String javaType : fieldType.javaTypes)
-                {
+                for (String javaType : fieldType.javaTypes) {
                     map.put(javaType, fieldType);
                 }
             }

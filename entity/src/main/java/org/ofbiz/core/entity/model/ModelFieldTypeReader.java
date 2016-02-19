@@ -42,9 +42,9 @@ import java.util.Map;
 /**
  * Generic Entity - Field Type Definition Reader
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @version    $Revision: 1.2 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.2 $
+ * @since 2.0
  */
 public class ModelFieldTypeReader {
 
@@ -149,7 +149,8 @@ public class ModelFieldTypeReader {
                                 if (fieldType != null) {
                                     fieldTypeCache.put(fieldTypeName, fieldType);
                                     // utilTimer.timerString("  After fieldTypeCache.put -- " + i + " --");
-                                    if (Debug.verboseOn()) Debug.logVerbose("-- getModelFieldType: #" + i + " Created fieldType: " + fieldTypeName, module);
+                                    if (Debug.verboseOn())
+                                        Debug.logVerbose("-- getModelFieldType: #" + i + " Created fieldType: " + fieldTypeName, module);
                                 } else {
                                     Debug.logWarning("-- -- ENTITYGEN ERROR:getModelFieldType: Could not create fieldType for fieldTypeName: " + fieldTypeName, module);
                                 }
@@ -165,7 +166,9 @@ public class ModelFieldTypeReader {
         return fieldTypeCache;
     }
 
-    /** Creates a Collection with all of the ModelFieldType names
+    /**
+     * Creates a Collection with all of the ModelFieldType names
+     *
      * @return A Collection of ModelFieldType names
      */
     public Collection<String> getFieldTypeNames() {
@@ -173,14 +176,18 @@ public class ModelFieldTypeReader {
         return getFieldTypeCache().keySet();
     }
 
-    /** Creates a Collection with all of the ModelFieldTypes
+    /**
+     * Creates a Collection with all of the ModelFieldTypes
+     *
      * @return A Collection of ModelFieldTypes
      */
     public Collection<ModelFieldType> getFieldTypes() {
         return getFieldTypeCache().values();
     }
 
-    /** Gets an FieldType object based on a definition from the specified XML FieldType descriptor file.
+    /**
+     * Gets an FieldType object based on a definition from the specified XML FieldType descriptor file.
+     *
      * @param fieldTypeName The fieldTypeName of the FieldType definition to use.
      * @return An FieldType object describing the specified fieldType of the specified descriptor file.
      */

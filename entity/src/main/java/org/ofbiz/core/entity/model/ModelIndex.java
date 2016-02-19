@@ -34,31 +34,43 @@ import java.util.List;
 /**
  * Generic Entity - Relation model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelIndex {
 
-    /** reference to the entity this index refers to */
+    /**
+     * reference to the entity this index refers to
+     */
     protected ModelEntity mainEntity;
 
-    /** the index name, used for the database index name */
+    /**
+     * the index name, used for the database index name
+     */
     protected String name;
 
-    /** specifies whether or not this index should include the unique constraint */
+    /**
+     * specifies whether or not this index should include the unique constraint
+     */
     protected boolean unique;
 
-    /** list of the field names included in this index */
+    /**
+     * list of the field names included in this index
+     */
     protected List<String> fieldNames = new ArrayList<String>();
 
-    /** Default Constructor */
+    /**
+     * Default Constructor
+     */
     public ModelIndex() {
         name = "";
         unique = false;
     }
 
-    /** XML Constructor */
+    /**
+     * XML Constructor
+     */
     public ModelIndex(ModelEntity mainEntity, Element indexElement) {
         this.mainEntity = mainEntity;
 
@@ -71,11 +83,14 @@ public class ModelIndex {
 
             if (indexFieldElement.getParentNode() == indexElement) {
                 String fieldName = indexFieldElement.getAttribute("name");
-                this.fieldNames.add(fieldName);            }
+                this.fieldNames.add(fieldName);
+            }
         }
     }
 
-    /** the index name, used for the database index name */
+    /**
+     * the index name, used for the database index name
+     */
     public String getName() {
         return this.name;
     }
@@ -84,7 +99,9 @@ public class ModelIndex {
         this.name = name;
     }
 
-    /** specifies whether or not this index should include the unique constraint */
+    /**
+     * specifies whether or not this index should include the unique constraint
+     */
     public boolean getUnique() {
         return this.unique;
     }
@@ -93,7 +110,9 @@ public class ModelIndex {
         this.unique = unique;
     }
 
-    /** the main entity of this relation */
+    /**
+     * the main entity of this relation
+     */
     public ModelEntity getMainEntity() {
         return this.mainEntity;
     }

@@ -25,8 +25,6 @@ package org.ofbiz.core.entity;
 
 import org.ofbiz.core.util.Debug;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import javax.sql.XAConnection;
 import javax.transaction.HeuristicMixedException;
 import javax.transaction.HeuristicRollbackException;
@@ -37,14 +35,16 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
 import javax.transaction.xa.XAResource;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * <p>Transaction Utility to help with some common transaction tasks
  * <p>Provides a wrapper around the transaction objects to allow for changes in underlying implementations in the future.
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.5 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.5 $
+ * @since 2.0
  */
 public class TransactionUtil implements javax.transaction.Status {
     // Debug module name
@@ -52,7 +52,8 @@ public class TransactionUtil implements javax.transaction.Status {
 
     public static final ThreadLocal<LocalTransaction> localTransaction = new ThreadLocal<>();
 
-    /** Begins a transaction in the current thread IF transactions are available; only
+    /**
+     * Begins a transaction in the current thread IF transactions are available; only
      * tries if the current transaction status is ACTIVE, if not active it returns false.
      * If and on only if it begins a transaction it will return true. In other words, if
      * a transaction is already in place it will return false and do nothing.
@@ -82,8 +83,10 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Gets the status of the transaction in the current thread IF
-     * transactions are available, otherwise returns STATUS_NO_TRANSACTION */
+    /**
+     * Gets the status of the transaction in the current thread IF
+     * transactions are available, otherwise returns STATUS_NO_TRANSACTION
+     */
     public static int getStatus() throws GenericTransactionException {
         UserTransaction ut = TransactionFactory.getUserTransaction();
 
@@ -98,15 +101,18 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Commits the transaction in the current thread IF transactions are available
-     *  AND if beganTransaction is true
+    /**
+     * Commits the transaction in the current thread IF transactions are available
+     * AND if beganTransaction is true
      */
     public static void commit(boolean beganTransaction) throws GenericTransactionException {
         if (beganTransaction)
             TransactionUtil.commit();
     }
 
-    /** Commits the transaction in the current thread IF transactions are available */
+    /**
+     * Commits the transaction in the current thread IF transactions are available
+     */
     public static void commit() throws GenericTransactionException {
         UserTransaction ut = TransactionFactory.getUserTransaction();
 
@@ -138,9 +144,10 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Rolls back transaction in the current thread IF transactions are available
-     *  AND if beganTransaction is true; if beganTransaction is not true,
-     *  setRollbackOnly is called to insure that the transaction will be rolled back
+    /**
+     * Rolls back transaction in the current thread IF transactions are available
+     * AND if beganTransaction is true; if beganTransaction is not true,
+     * setRollbackOnly is called to insure that the transaction will be rolled back
      */
     public static void rollback(boolean beganTransaction) throws GenericTransactionException {
         if (beganTransaction) {
@@ -150,7 +157,9 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Rolls back transaction in the current thread IF transactions are available */
+    /**
+     * Rolls back transaction in the current thread IF transactions are available
+     */
     public static void rollback() throws GenericTransactionException {
         UserTransaction ut = TransactionFactory.getUserTransaction();
 
@@ -173,7 +182,9 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Makes a roll back the only possible outcome of the transaction in the current thread IF transactions are available */
+    /**
+     * Makes a roll back the only possible outcome of the transaction in the current thread IF transactions are available
+     */
     public static void setRollbackOnly() throws GenericTransactionException {
         UserTransaction ut = TransactionFactory.getUserTransaction();
 
@@ -196,7 +207,9 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Sets the timeout of the transaction in the current thread IF transactions are available */
+    /**
+     * Sets the timeout of the transaction in the current thread IF transactions are available
+     */
     public static void setTransactionTimeout(int seconds) throws GenericTransactionException {
         UserTransaction ut = TransactionFactory.getUserTransaction();
 
@@ -209,7 +222,9 @@ public class TransactionUtil implements javax.transaction.Status {
         }
     }
 
-    /** Enlists the given XAConnection and if a transaction is active in the current thread, returns a plain JDBC Connection */
+    /**
+     * Enlists the given XAConnection and if a transaction is active in the current thread, returns a plain JDBC Connection
+     */
     public static Connection enlistConnection(XAConnection xacon) throws GenericTransactionException {
         if (xacon == null)
             return null;
@@ -250,44 +265,36 @@ public class TransactionUtil implements javax.transaction.Status {
     /**
      * Starts a transaction if one does not exist already.
      *
-     * @param helperName the OfBiz helperName that is registered within
-     * <code>entityengine.xml</code>. The helperName is used to retrieve the
-     * connection from the com.atlassian.core.ofbiz.CoreFactory object.
+     * @param helperName                the OfBiz helperName that is registered within
+     *                                  <code>entityengine.xml</code>. The helperName is used to retrieve the
+     *                                  connection from the com.atlassian.core.ofbiz.CoreFactory object.
      * @param transactionIsolationLevel the transaction isolation level to set
-     * on the connection if the transaction is started, see
-     * {@link Connection#setTransactionIsolation(int)}. Negative means do not set anything.
-     * (the connection's default level will be used)
+     *                                  on the connection if the transaction is started, see
+     *                                  {@link Connection#setTransactionIsolation(int)}. Negative means do not set anything.
+     *                                  (the connection's default level will be used)
      * @return true if the transaction was started, false if one was active already
      * @throws GenericTransactionException if something goes wrong. See the
-     * getNested() method of the exception for the underlying exception.
+     *                                     getNested() method of the exception for the underlying exception.
      */
     public static boolean beginLocalTransaction(final String helperName, final int transactionIsolationLevel)
-            throws GenericTransactionException
-    {
-        try
-        {
-            if (isTransactionActive())
-            {
+            throws GenericTransactionException {
+        try {
+            if (isTransactionActive()) {
                 Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction already started so not starting transaction.", module);
                 return false;
             }
             Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction not started so starting transaction.", module);
             final Connection connection = ConnectionFactory.getConnection(helperName);
-            if (transactionIsolationLevel >= 0)
-            {
+            if (transactionIsolationLevel >= 0) {
                 connection.setTransactionIsolation(transactionIsolationLevel);
             }
             connection.setAutoCommit(false);
             localTransaction.set(new LocalTransaction(connection));
             Debug.logInfo("[TransactionUtil.beginLocalTransaction] Transaction started.", module);
             return true;
-        }
-        catch (SQLException e)
-        {
+        } catch (SQLException e) {
             throw new GenericTransactionException("Error occurred while starting transaction.", e);
-        }
-        catch (GenericEntityException e)
-        {
+        } catch (GenericEntityException e) {
             throw new GenericTransactionException("Error occurred while starting transaction.", e);
         }
     }
@@ -295,18 +302,17 @@ public class TransactionUtil implements javax.transaction.Status {
     /**
      * @return the {@link Connection} that has an active connection for the current thread.
      */
-    public static Connection getLocalTransactionConnection()
-    {
+    public static Connection getLocalTransactionConnection() {
         LocalTransaction transaction = localTransaction.get();
         return transaction == null ? null : transaction.getConnection();
     }
 
     /**
      * Checks if there is a {@link Connection} with a transaction for the current thread.
+     *
      * @return true if there is an active transaction for the current thread
      */
-    public static boolean isTransactionActive()
-    {
+    public static boolean isTransactionActive() {
         return (getLocalTransactionConnection() != null);
     }
 
@@ -320,48 +326,36 @@ public class TransactionUtil implements javax.transaction.Status {
      * ...
      * TransactionUtil.commitLocalTransaction(started);
      * </pre>
+     *
      * @param beganTransaction whether the transaction was started
-     * @throws GenericTransactionException  if something goes wrong. See the getNested() method of the exception
-     * for the underlying exception.
+     * @throws GenericTransactionException if something goes wrong. See the getNested() method of the exception
+     *                                     for the underlying exception.
      */
-    public static void commitLocalTransaction(boolean beganTransaction) throws GenericTransactionException
-    {
-        if (!beganTransaction)
-        {
+    public static void commitLocalTransaction(boolean beganTransaction) throws GenericTransactionException {
+        if (!beganTransaction) {
             Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction not started so not committing transaction.", module);
             return;
         }
 
-        if (isTransactionActive())
-        {
+        if (isTransactionActive()) {
             LocalTransaction transaction = localTransaction.get();
-            if (transaction.isRollbackRequired())
-            {
+            if (transaction.isRollbackRequired()) {
                 Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started but rollback required is set.", module);
                 rollbackLocalTransaction(true);
                 throw new GenericTransactionException("Commit failed, rollback previously requested by nested transaction.");
-            }
-            else
-            {
-                try
-                {
+            } else {
+                try {
                     Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction started and active so committing transaction.", module);
                     getLocalTransactionConnection().commit();
                     Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction committed.", module);
 
-                }
-                catch (SQLException e)
-                {
+                } catch (SQLException e) {
                     throw new GenericTransactionException("Error occurred while committing transaction.", e);
-                }
-                finally
-                {
+                } finally {
                     closeAndClearThreadLocalConnection();
                 }
             }
-        }
-        else
-        {
+        } else {
             Debug.logInfo("[TransactionUtil.commitLocalTransaction] Transaction not active so not committing transaction.", module);
         }
     }
@@ -376,39 +370,28 @@ public class TransactionUtil implements javax.transaction.Status {
      * ...
      * TransactionUtil.rollbackLocalTransaction(started);
      * </pre>
+     *
      * @param beganTransaction whether the transaction was started
-     * @throws GenericTransactionException  if something goes wrong. See the getNested() method of the exception
-     * for the underlying exception.
+     * @throws GenericTransactionException if something goes wrong. See the getNested() method of the exception
+     *                                     for the underlying exception.
      */
-    public static void rollbackLocalTransaction(boolean beganTransaction) throws GenericTransactionException
-    {
-        if (isTransactionActive())
-        {
-            if (beganTransaction)
-            {
-                try
-                {
+    public static void rollbackLocalTransaction(boolean beganTransaction) throws GenericTransactionException {
+        if (isTransactionActive()) {
+            if (beganTransaction) {
+                try {
                     Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction started and active so rolling back.", module);
                     getLocalTransactionConnection().rollback();
                     Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction rolled back.", module);
-                }
-                catch (SQLException e)
-                {
+                } catch (SQLException e) {
                     throw new GenericTransactionException("Error occurred while rolling back transaction.", e);
-                }
-                finally
-                {
+                } finally {
                     closeAndClearThreadLocalConnection();
                 }
-            }
-            else
-            {
+            } else {
                 Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not started, setting rollback required.", module);
                 localTransaction.get().setRollbackRequired();
             }
-        }
-        else
-        {
+        } else {
             Debug.logInfo("[TransactionUtil.rollbackLocalTransaction] Transaction not active so not rolling back.", module);
         }
     }
@@ -416,10 +399,8 @@ public class TransactionUtil implements javax.transaction.Status {
     /**
      * Makes a rollback the only possible outcome of the transaction in the current thread IF transactions are available.
      */
-    public static void rollbackRequiredLocalTransaction(boolean beganTransaction) throws GenericTransactionException
-    {
-        if (isTransactionActive())
-        {
+    public static void rollbackRequiredLocalTransaction(boolean beganTransaction) throws GenericTransactionException {
+        if (isTransactionActive()) {
             localTransaction.get().setRollbackRequired();
         }
     }
@@ -427,24 +408,17 @@ public class TransactionUtil implements javax.transaction.Status {
     /**
      * If a connection exists in the thread local close it. Clear the thread local no matter what.
      */
-    public static void closeAndClearThreadLocalConnection()
-    {
+    public static void closeAndClearThreadLocalConnection() {
         Connection connection = getLocalTransactionConnection();
 
-        try
-        {
-            if (connection != null)
-            {
+        try {
+            if (connection != null) {
                 connection.close();
                 Debug.logInfo("Connection closed.", module);
             }
-        }
-        catch(SQLException se)
-        {
+        } catch (SQLException se) {
             Debug.logInfo(se, "Exception occurred while closing connection after transaction commit. Ignoring the exception.", module);
-        }
-        finally
-        {
+        } finally {
             // No matter what happens reset the thread local.
             clearTransactionThreadLocal();
         }
@@ -454,34 +428,28 @@ public class TransactionUtil implements javax.transaction.Status {
      * A method that ensures the connection is cleared. This is useful to call from within a servlet filter to ensure that
      * connections are not leaked anywhere.
      */
-    public static void clearTransactionThreadLocal()
-    {
+    public static void clearTransactionThreadLocal() {
         localTransaction.remove();
         Debug.logInfo("Thread local cleared.", module);
     }
 
-    private static class LocalTransaction
-    {
+    private static class LocalTransaction {
         private final Connection connection;
         private volatile boolean rollbackRequired;
 
-        private LocalTransaction(final Connection connection)
-        {
+        private LocalTransaction(final Connection connection) {
             this.connection = connection;
         }
 
-        public Connection getConnection()
-        {
+        public Connection getConnection() {
             return connection;
         }
 
-        public boolean isRollbackRequired()
-        {
+        public boolean isRollbackRequired() {
             return rollbackRequired;
         }
 
-        public void setRollbackRequired()
-        {
+        public void setRollbackRequired() {
             this.rollbackRequired = true;
         }
     }

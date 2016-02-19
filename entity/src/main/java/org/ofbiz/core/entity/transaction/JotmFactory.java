@@ -32,28 +32,29 @@ import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.util.Debug;
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import javax.naming.NamingException;
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * JotmFactory - Central source for JOTM JTA objects
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.1
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.1
  */
 public class JotmFactory implements TransactionFactoryInterface {
 
-    public static final String module = JotmFactory.class.getName();        
-    
+    public static final String module = JotmFactory.class.getName();
+
     private static TMService jotm;
-    static {    
+
+    static {
         try {
             // creates an instance of JOTM with a local transaction factory which is not bound to a registry            
-            jotm = new Jotm(true, false);         
+            jotm = new Jotm(true, false);
         } catch (NamingException ne) {
             Debug.logError(ne, "Problems creating JOTM instance", module);
         }
@@ -62,9 +63,9 @@ public class JotmFactory implements TransactionFactoryInterface {
     /*
      * @see org.ofbiz.core.entity.transaction.TransactionFactoryInterface#getTransactionManager()
      */
-    public TransactionManager getTransactionManager() {  
-        if (jotm != null) {                     
-         return jotm.getTransactionManager();
+    public TransactionManager getTransactionManager() {
+        if (jotm != null) {
+            return jotm.getTransactionManager();
         } else {
             Debug.logError("Cannot get TransactionManager, JOTM object is null", module);
             return null;
@@ -74,19 +75,19 @@ public class JotmFactory implements TransactionFactoryInterface {
     /*
      * @see org.ofbiz.core.entity.transaction.TransactionFactoryInterface#getUserTransaction()
      */
-    public UserTransaction getUserTransaction() {  
-        if (jotm != null) {           
+    public UserTransaction getUserTransaction() {
+        if (jotm != null) {
             return jotm.getUserTransaction();
         } else {
             Debug.logError("Cannot get UserTransaction, JOTM object is null", module);
             return null;
         }
-    }                
-    
+    }
+
     public String getTxMgrName() {
         return "jotm";
     }
-    
+
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
@@ -98,7 +99,7 @@ public class JotmFactory implements TransactionFactoryInterface {
             } catch (Exception ex) {
                 Debug.logError(ex, "JOTM is the configured transaction manager but there was an error getting a database Connection through JOTM for the " + helperName + " datasource. Please check your configuration, class path, etc.");
             }
-        
+
             Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
         } else {
@@ -107,14 +108,10 @@ public class JotmFactory implements TransactionFactoryInterface {
         }
     }
 
-    public void removeDatasource(final String helperName)
-    {
-        try
-        {
+    public void removeDatasource(final String helperName) {
+        try {
             JotmConnectionFactory.removeDatasource(helperName);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             Debug.logError(ex, "Error shutting down the JOTM " + helperName + " datasource. Please check your configuration, class path, etc.");
             // If no JOTM datasource was found, then the generic connection factory would have been used
             ConnectionFactory.removeDatasource(helperName);

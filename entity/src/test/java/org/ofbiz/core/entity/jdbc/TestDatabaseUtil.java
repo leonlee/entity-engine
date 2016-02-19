@@ -1,5 +1,18 @@
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import org.junit.Test;
+import org.mockito.InOrder;
+import org.ofbiz.core.entity.ConnectionProvider;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelIndex;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -18,30 +31,15 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-
-import org.junit.Test;
-import org.mockito.InOrder;
-import org.ofbiz.core.entity.ConnectionProvider;
-import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.config.DatasourceInfo;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
-import org.ofbiz.core.entity.model.ModelEntity;
-import org.ofbiz.core.entity.model.ModelField;
-import org.ofbiz.core.entity.model.ModelIndex;
-
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -49,7 +47,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -87,16 +84,14 @@ public class TestDatabaseUtil {
     }
 
     @Test
-    public void testGetIndexInfoUsesUpperCaseForOracleHsqlAndH2() throws Exception
-    {
+    public void testGetIndexInfoUsesUpperCaseForOracleHsqlAndH2() throws Exception {
         final List<DatabaseType> databaseTypes = ImmutableList.of(
                 DatabaseTypeFactory.ORACLE_8I,
                 DatabaseTypeFactory.ORACLE_10G,
                 DatabaseTypeFactory.HSQL,
                 DatabaseTypeFactory.H2);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
-        for (DatabaseType databaseType : databaseTypes)
-        {
+        for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
             when(metaData.getIndexInfo(null, "schema", "NAME", false, true)).thenReturn(rs);
@@ -108,14 +103,12 @@ public class TestDatabaseUtil {
     }
 
     @Test
-    public void testGetIndexInfoUsesOriginalCaseForMysqlAndMssql() throws Exception
-    {
+    public void testGetIndexInfoUsesOriginalCaseForMysqlAndMssql() throws Exception {
         final List<DatabaseType> databaseTypes = ImmutableList.of(
                 DatabaseTypeFactory.MYSQL,
                 DatabaseTypeFactory.MSSQL);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
-        for (DatabaseType databaseType : databaseTypes)
-        {
+        for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
             when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
@@ -127,15 +120,13 @@ public class TestDatabaseUtil {
     }
 
     @Test
-    public void testGetIndexInfoUsesOriginalCaseForPostgresAsLongAsItHasResults() throws Exception
-    {
+    public void testGetIndexInfoUsesOriginalCaseForPostgresAsLongAsItHasResults() throws Exception {
         final List<DatabaseType> databaseTypes = ImmutableList.of(
                 DatabaseTypeFactory.POSTGRES,
                 DatabaseTypeFactory.POSTGRES_7_2,
                 DatabaseTypeFactory.POSTGRES_7_3);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
-        for (DatabaseType databaseType : databaseTypes)
-        {
+        for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
             when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
@@ -151,15 +142,13 @@ public class TestDatabaseUtil {
     }
 
     @Test
-    public void testGetIndexInfoUsesLowerCaseForPostgresIfTheOriginalCaseFails() throws Exception
-    {
+    public void testGetIndexInfoUsesLowerCaseForPostgresIfTheOriginalCaseFails() throws Exception {
         final List<DatabaseType> databaseTypes = ImmutableList.of(
                 DatabaseTypeFactory.POSTGRES,
                 DatabaseTypeFactory.POSTGRES_7_2,
                 DatabaseTypeFactory.POSTGRES_7_3);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
-        for (DatabaseType databaseType : databaseTypes)
-        {
+        for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs1 = mock(ResultSet.class);
             final ResultSet rs2 = mock(ResultSet.class);
@@ -222,8 +211,7 @@ public class TestDatabaseUtil {
 
             @Override
             void checkFieldType(ModelEntity entity, ModelField field, ColumnCheckInfo ccInfo, Collection<String> messages,
-					boolean promote, boolean widen)
-            {
+                                boolean promote, boolean widen) {
                 // do nothing... we're not testing field types here
             }
         };
@@ -336,11 +324,9 @@ public class TestDatabaseUtil {
     /**
      * Test JRA-28526 ensure that tables are fetched from data base with the same schema
      * as they are created. Problem was occurring when no schema was provided for mssql or postgres database.
-     *
      */
     @Test
-    public void testGetTables() throws Exception
-    {
+    public void testGetTables() throws Exception {
         //with
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
@@ -350,11 +336,11 @@ public class TestDatabaseUtil {
         final ResultSet rightResultSet = mock(ResultSet.class);
         final String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
 
-        when(dbData.getTables(null,null,null, types)).thenReturn(rightResultSet);
+        when(dbData.getTables(null, null, null, types)).thenReturn(rightResultSet);
 
         //use this as to be sure that no schema user is used
         final ResultSet emptyResult = mock(ResultSet.class);
-        when(dbData.getTables(null,"user",null, types)).thenReturn(emptyResult);
+        when(dbData.getTables(null, "user", null, types)).thenReturn(emptyResult);
         final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
 
@@ -367,17 +353,16 @@ public class TestDatabaseUtil {
         final Set<String> tableNames = du.getTableNames(messages);
 
         //then
-        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"),tableNames);
+        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"), tableNames);
 
     }
+
     /**
      * Test JRA-28526 ensure that tables are fetched from data base with the same schema
      * as they are created. For the Oracle db it is the user schema name
-     *
      */
     @Test
-    public void testGetTablesForOracle() throws Exception
-    {
+    public void testGetTablesForOracle() throws Exception {
         //with
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
@@ -389,9 +374,9 @@ public class TestDatabaseUtil {
 
         final ResultSet emptyResult = mock(ResultSet.class);
         //use this as to be sure that user as schema is used
-        when(dbData.getTables(null,null,null, types)).thenReturn(emptyResult);
+        when(dbData.getTables(null, null, null, types)).thenReturn(emptyResult);
 
-        when(dbData.getTables(null,"user",null, types)).thenReturn(rightResultSet);
+        when(dbData.getTables(null, "user", null, types)).thenReturn(rightResultSet);
         final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
         when(dbData.getDatabaseProductName()).thenReturn("Oracle");
 
@@ -406,9 +391,10 @@ public class TestDatabaseUtil {
         final Set<String> tableNames = du.getTableNames(messages);
 
         //then
-        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"),tableNames);
+        assertEquals(ImmutableSet.of("TABLE1", "TABLE2"), tableNames);
 
     }
+
     @Test
     public void testMissingIndices() {
 

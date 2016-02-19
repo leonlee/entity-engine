@@ -25,22 +25,29 @@ package org.ofbiz.core.util;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 /**
  * Misc String Utility Functions
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class StringUtil {
 
-    /** 
+    /**
      * Replaces all occurances of oldString in mainString with newString
+     *
      * @param mainString The original string
-     * @param oldString The string to replace
-     * @param newString The string to insert in place of the old
+     * @param oldString  The string to replace
+     * @param newString  The string to insert in place of the old
      * @return mainString with all occurances of oldString replaced by newString
      */
     public static String replaceString(String mainString, String oldString, String newString) {
@@ -69,7 +76,8 @@ public class StringUtil {
 
     /**
      * Creates a single string from a List of strings seperated by a delimiter.
-     * @param list a list of strings to join
+     *
+     * @param list  a list of strings to join
      * @param delim the delimiter character(s) to use. (null value will join with no delimiter)
      * @return a String of all values in the list seperated by the delimiter
      * @deprecated Use {@code com.google.common.base.Joiner} instead
@@ -90,7 +98,8 @@ public class StringUtil {
 
     /**
      * Splits a String on a delimiter into a List of Strings.
-     * @param str the String to split
+     *
+     * @param str   the String to split
      * @param delim the delimiter character(s) to join on (null will split on whitespace)
      * @return a list of Strings
      */
@@ -117,6 +126,7 @@ public class StringUtil {
 
     /**
      * Encloses each of a List of Strings in quotes.
+     *
      * @param list List of String(s) to quote.
      */
     public static List<String> quoteStrList(List<String> list) {
@@ -135,6 +145,7 @@ public class StringUtil {
 
     /**
      * Creates a Map from an encoded name/value pair string
+     *
      * @param str The string to decode and format
      * @return a Map of name/value pairs
      */
@@ -158,6 +169,7 @@ public class StringUtil {
 
     /**
      * Creates an encoded String from a Map of name/value pairs (MUST BE STRINGS!)
+     *
      * @param map The Map of name/value pairs
      * @return String The encoded String
      */
@@ -189,7 +201,9 @@ public class StringUtil {
         return buf.toString();
     }
 
-    /** Make sure the string starts with a forward slash but does not end with one; converts back-slashes to forward-slashes; if in String is null or empty, returns zero length string. */
+    /**
+     * Make sure the string starts with a forward slash but does not end with one; converts back-slashes to forward-slashes; if in String is null or empty, returns zero length string.
+     */
     public static String cleanUpPathPrefix(String prefix) {
         if (prefix == null || prefix.length() == 0) return "";
 
@@ -203,14 +217,16 @@ public class StringUtil {
         }
         return cppBuff.toString();
     }
-    
-    /** Removes all spaces from a string */
+
+    /**
+     * Removes all spaces from a string
+     */
     public static String removeSpaces(String str) {
         StringBuilder newString = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             if (str.charAt(i) != ' ')
                 newString.append(str.charAt(i));
         }
-        return newString.toString();        
+        return newString.toString();
     }
 }

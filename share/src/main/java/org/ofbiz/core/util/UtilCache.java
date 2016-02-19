@@ -31,59 +31,79 @@ import java.util.ResourceBundle;
 
 /**
  * <p> Generalized caching utility. Provides a number of caching features:
- *   <ul>
- *    <li>Limited or unlimited element capacity
- *    <li>If limited, removes elements with the LRU (Least Recently Used) algorithm
- *    <li>Keeps track of when each element was loaded into the cache
- *    <li>Using the expireTime can report whether a given element has expired
- *    <li>Counts misses and hits
- *   </ul>
+ * <ul>
+ * <li>Limited or unlimited element capacity
+ * <li>If limited, removes elements with the LRU (Least Recently Used) algorithm
+ * <li>Keeps track of when each element was loaded into the cache
+ * <li>Using the expireTime can report whether a given element has expired
+ * <li>Counts misses and hits
+ * </ul>
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class UtilCache<K, V> {
 
-    /** A static Map to keep track of all of the UtilCache instances. */
+    /**
+     * A static Map to keep track of all of the UtilCache instances.
+     */
     public static Map<String, UtilCache<?, ?>> utilCacheTable = new HashMap<String, UtilCache<?, ?>>();
 
-    /** An index number appended to utilCacheTable names when there are conflicts. */
+    /**
+     * An index number appended to utilCacheTable names when there are conflicts.
+     */
     protected static Map<String, Integer> defaultIndices = new HashMap<String, Integer>();
 
-    /** The name of the UtilCache instance, is also the key for the instance in utilCacheTable. */
+    /**
+     * The name of the UtilCache instance, is also the key for the instance in utilCacheTable.
+     */
     protected String name;
 
-    /** A list of the elements order by Least Recent Use */
+    /**
+     * A list of the elements order by Least Recent Use
+     */
     public LinkedList<K> keyLRUList = new LinkedList<K>();
 
-    /** A hashtable containing a CacheLine object with a value and a loadTime for each element. */
+    /**
+     * A hashtable containing a CacheLine object with a value and a loadTime for each element.
+     */
     public Map<K, CacheLine<V>> cacheLineTable = new HashMap<K, CacheLine<V>>();
 
-    /** A count of the number of cache hits */
+    /**
+     * A count of the number of cache hits
+     */
     protected long hitCount = 0;
 
-    /** A count of the number of cache misses */
+    /**
+     * A count of the number of cache misses
+     */
     protected long missCount = 0;
 
-    /** The maximum number of elements in the cache.
+    /**
+     * The maximum number of elements in the cache.
      * If set to 0, there will be no limit on the number of elements in the cache.
      */
     protected long maxSize = 0;
 
-    /** Specifies the amount of time since initial loading before an element will be reported as expired.
+    /**
+     * Specifies the amount of time since initial loading before an element will be reported as expired.
      * If set to 0, elements will never expire.
      */
     protected long expireTime = 0;
 
-    /** Specifies whether or not to use soft references for this cache, defaults to false */
+    /**
+     * Specifies whether or not to use soft references for this cache, defaults to false
+     */
     protected boolean useSoftReference = false;
 
-    /** Constructor which specifies the cacheName as well as the maxSize, expireTime and useSoftReference.
+    /**
+     * Constructor which specifies the cacheName as well as the maxSize, expireTime and useSoftReference.
      * The passed maxSize, expireTime and useSoftReference will be overridden by values from cache.properties if found.
-     * @param maxSize The maxSize member is set to this value
-     * @param expireTime The expireTime member is set to this value
-     * @param cacheName The name of the cache.
+     *
+     * @param maxSize          The maxSize member is set to this value
+     * @param expireTime       The expireTime member is set to this value
+     * @param cacheName        The name of the cache.
      * @param useSoftReference Specifies whether or not to use soft references for this cache.
      */
     public UtilCache(String cacheName, long maxSize, long expireTime, boolean useSoftReference) {
@@ -96,18 +116,22 @@ public class UtilCache<K, V> {
         utilCacheTable.put(name, this);
     }
 
-    /** Constructor which specifies the cacheName as well as the maxSize and expireTime.
+    /**
+     * Constructor which specifies the cacheName as well as the maxSize and expireTime.
      * The passed maxSize and expireTime will be overridden by values from cache.properties if found.
-     * @param maxSize The maxSize member is set to this value
+     *
+     * @param maxSize    The maxSize member is set to this value
      * @param expireTime The expireTime member is set to this value
-     * @param cacheName The name of the cache.
+     * @param cacheName  The name of the cache.
      */
     public UtilCache(String cacheName, long maxSize, long expireTime) {
         this(cacheName, maxSize, expireTime, false);
     }
 
-    /** Constructor which specifies the maxSize and expireTime.
-     * @param maxSize The maxSize member is set to this value
+    /**
+     * Constructor which specifies the maxSize and expireTime.
+     *
+     * @param maxSize    The maxSize member is set to this value
      * @param expireTime The expireTime member is set to this value
      */
     public UtilCache(long maxSize, long expireTime) {
@@ -120,8 +144,10 @@ public class UtilCache<K, V> {
         utilCacheTable.put(name, this);
     }
 
-    /** This constructor takes a name for the cache, puts itself in the utilCacheTable.
+    /**
+     * This constructor takes a name for the cache, puts itself in the utilCacheTable.
      * It also uses the cacheName to lookup the initialization parameters from cache.properties.
+     *
      * @param cacheName The name of the cache.
      */
     public UtilCache(String cacheName) {
@@ -132,7 +158,9 @@ public class UtilCache<K, V> {
         utilCacheTable.put(name, this);
     }
 
-    /** Default constructor, all members stay at default values as defined in cache.properties, or the defaults in this file if cache.properties is not found, or there are no 'default' entries in it. */
+    /**
+     * Default constructor, all members stay at default values as defined in cache.properties, or the defaults in this file if cache.properties is not found, or there are no 'default' entries in it.
+     */
     public UtilCache() {
         setPropertiesParams("default");
 
@@ -163,7 +191,8 @@ public class UtilCache<K, V> {
                 if (longValue != null) {
                     maxSize = longValue;
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
             try {
                 String value = res.getString(cacheName + ".expireTime");
                 Long longValue = new Long(value);
@@ -171,7 +200,8 @@ public class UtilCache<K, V> {
                 if (longValue != null) {
                     expireTime = longValue;
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
 
             try {
                 String value = res.getString(cacheName + ".useSoftReference");
@@ -179,12 +209,15 @@ public class UtilCache<K, V> {
                 if (value != null) {
                     useSoftReference = "true".equals(value);
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
     }
 
-    /** Puts or loads the passed element into the cache
-     * @param key The key for the element, used to reference it in the hastables and LRU linked list
+    /**
+     * Puts or loads the passed element into the cache
+     *
+     * @param key   The key for the element, used to reference it in the hastables and LRU linked list
      * @param value The value of the element
      */
     public synchronized void put(K key, V value) {
@@ -212,8 +245,10 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Gets an element from the cache according to the specified key.
+    /**
+     * Gets an element from the cache according to the specified key.
      * If the requested element hasExpired, it is removed before it is looked up which causes the function to return null.
+     *
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @return The value of the element specified by the key
      */
@@ -246,7 +281,9 @@ public class UtilCache<K, V> {
         return line.getValue();
     }
 
-    /** Removes an element from the cache according to the specified key
+    /**
+     * Removes an element from the cache according to the specified key
+     *
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @return The value of the removed element specified by the key
      */
@@ -255,7 +292,7 @@ public class UtilCache<K, V> {
             missCount++;
             return null;
         }
-        
+
         UtilCache.CacheLine<V> line = cacheLineTable.remove(key);
         if (line != null) {
             if (maxSize > 0) keyLRUList.remove(key);
@@ -266,50 +303,63 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Removes all elements from this cache */
+    /**
+     * Removes all elements from this cache
+     */
     public synchronized void clear() {
         cacheLineTable.clear();
         keyLRUList.clear();
         clearCounters();
     }
 
-    /** Removes all elements from this cache */
+    /**
+     * Removes all elements from this cache
+     */
     public static void clearAllCaches() {
         for (Map.Entry<String, UtilCache<?, ?>> entry : utilCacheTable.entrySet()) {
             entry.getValue().clear();
         }
     }
 
-    /** Getter for the name of the UtilCache instance.
+    /**
+     * Getter for the name of the UtilCache instance.
+     *
      * @return The name of the instance
      */
     public String getName() {
         return name;
     }
 
-    /** Returns the number of successful hits on the cache
+    /**
+     * Returns the number of successful hits on the cache
+     *
      * @return The number of successful cache hits
      */
     public long getHitCount() {
         return hitCount;
     }
 
-    /** Returns the number of cache misses
+    /**
+     * Returns the number of cache misses
+     *
      * @return The number of cache misses
      */
     public long getMissCount() {
         return missCount;
     }
 
-    /** Clears the hit and miss counters
+    /**
+     * Clears the hit and miss counters
      */
     public void clearCounters() {
         hitCount = 0;
         missCount = 0;
     }
 
-    /** Sets the maximum number of elements in the cache.
+    /**
+     * Sets the maximum number of elements in the cache.
      * If 0, there is no maximum.
+     *
      * @param maxSize The maximum number of elements in the cache
      */
     public void setMaxSize(long maxSize) {
@@ -334,15 +384,19 @@ public class UtilCache<K, V> {
         this.maxSize = maxSize;
     }
 
-    /** Returns the current maximum number of elements in the cache
+    /**
+     * Returns the current maximum number of elements in the cache
+     *
      * @return The maximum number of elements in the cache
      */
     public long getMaxSize() {
         return maxSize;
     }
 
-    /** Sets the expire time for the cache elements.
+    /**
+     * Sets the expire time for the cache elements.
      * If 0, elements never expire.
+     *
      * @param expireTime The expire time for the cache elements
      */
     public void setExpireTime(long expireTime) {
@@ -359,14 +413,18 @@ public class UtilCache<K, V> {
         this.expireTime = expireTime;
     }
 
-    /** return the current expire time for the cache elements
+    /**
+     * return the current expire time for the cache elements
+     *
      * @return The expire time for the cache elements
      */
     public long getExpireTime() {
         return expireTime;
     }
 
-    /** Set whether or not the cache lines should use a soft reference to the data */
+    /**
+     * Set whether or not the cache lines should use a soft reference to the data
+     */
     public void setUseSoftReference(boolean useSoftReference) {
         if (this.useSoftReference != useSoftReference) {
             this.useSoftReference = useSoftReference;
@@ -377,20 +435,26 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Return whether or not the cache lines should use a soft reference to the data */
+    /**
+     * Return whether or not the cache lines should use a soft reference to the data
+     */
     public boolean getUseSoftReference() {
         return this.useSoftReference;
     }
 
-    /** Returns the number of elements currently in the cache
+    /**
+     * Returns the number of elements currently in the cache
+     *
      * @return The number of elements currently in the cache
      */
     public long size() {
         return cacheLineTable.size();
     }
 
-    /** Returns a boolean specifying whether or not an element with the specified key is in the cache.
+    /**
+     * Returns a boolean specifying whether or not an element with the specified key is in the cache.
      * If the requested element hasExpired, it is removed before it is looked up which causes the function to return false.
+     *
      * @param key The key for the element, used to reference it in the hastables and LRU linked list
      * @return True is the cache contains an element corresponding to the specified key, otherwise false
      */
@@ -408,7 +472,8 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Returns a boolean specifying whether or not the element corresponding to the key has expired.
+    /**
+     * Returns a boolean specifying whether or not the element corresponding to the key has expired.
      * Only returns true if element is in cache and has expired. Error conditions return false, if no expireTable entry, returns true.
      * Always returns false if expireTime <= 0.
      * Also, if SoftReference in the CacheLine object has been cleared by the gc return true.
@@ -439,7 +504,9 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Clears all expired cache entries; also clear any cache entries where the SoftReference in the CacheLine object has been cleared by the gc */
+    /**
+     * Clears all expired cache entries; also clear any cache entries where the SoftReference in the CacheLine object has been cleared by the gc
+     */
     public void clearExpired() {
 
         for (K k : cacheLineTable.keySet()) {
@@ -449,15 +516,19 @@ public class UtilCache<K, V> {
         }
     }
 
-    /** Clears all expired cache entries from all caches */
+    /**
+     * Clears all expired cache entries from all caches
+     */
     public static void clearExpiredFromAllCaches() {
 
         for (Map.Entry<String, UtilCache<?, ?>> entry : utilCacheTable.entrySet()) {
             entry.getValue().clearExpired();
         }
     }
-    
-    /** Checks for a non-expired key in a specific cache */
+
+    /**
+     * Checks for a non-expired key in a specific cache
+     */
     public static boolean validKey(String cacheName, Object key) {
         UtilCache<?, ?> cache = utilCacheTable.get(cacheName);
         if (cache != null) {
@@ -466,7 +537,7 @@ public class UtilCache<K, V> {
         }
         return false;
     }
-    
+
     public static class CacheLine<T> {
         public Object valueRef = null;
         public long loadTime = 0;
@@ -500,7 +571,7 @@ public class UtilCache<K, V> {
                 synchronized (this) {
                     this.useSoftReference = useSoftReference;
                     if (useSoftReference) {
-                        this.valueRef = new SoftReference<T>((T)this.valueRef);
+                        this.valueRef = new SoftReference<T>((T) this.valueRef);
                     } else {
                         this.valueRef = ((SoftReference<T>) this.valueRef).get();
                     }

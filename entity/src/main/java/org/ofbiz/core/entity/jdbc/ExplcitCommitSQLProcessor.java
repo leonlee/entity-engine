@@ -11,10 +11,8 @@ package org.ofbiz.core.entity.jdbc;
  * @deprecated use ExplicitCommitSQLProcessor instead (fixes typo in name).  Since v1.0.41.
  */
 @Deprecated
-public class ExplcitCommitSQLProcessor extends SQLProcessor
-{
-    public ExplcitCommitSQLProcessor(String helperName)
-    {
+public class ExplcitCommitSQLProcessor extends SQLProcessor {
+    public ExplcitCommitSQLProcessor(String helperName) {
         super(helperName, CommitMode.EXPLICIT_COMMIT);
     }
 }

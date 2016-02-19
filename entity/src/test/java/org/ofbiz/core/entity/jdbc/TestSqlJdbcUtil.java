@@ -24,7 +24,7 @@ public class TestSqlJdbcUtil {
     @Test
     public void makeWhereStringFromFieldsShouldReturnEmptyStringForEmptyListOfModelFields() {
         // Set up
-        final Map<String,?> fieldConditions = singletonMap("foo", "bar");
+        final Map<String, ?> fieldConditions = singletonMap("foo", "bar");
         final List<ModelField> modelFields = emptyList();
 
         // Invoke
@@ -37,7 +37,7 @@ public class TestSqlJdbcUtil {
     @Test
     public void makeWhereStringFromFieldsShouldReturnEmptyStringForNullListOfModelFields() {
         // Set up
-        final Map<String,?> fieldConditions = singletonMap("foo", "bar");
+        final Map<String, ?> fieldConditions = singletonMap("foo", "bar");
 
         // Invoke
         final String whereString = makeWhereStringFromFields(null, fieldConditions, "anyOperator");
@@ -61,8 +61,7 @@ public class TestSqlJdbcUtil {
         assertEquals(columnName + "=?", whereString);
     }
 
-    private ModelField getMockModelField(final String fieldName, final String columnName)
-    {
+    private ModelField getMockModelField(final String fieldName, final String columnName) {
         final ModelField modelField = mock(ModelField.class);
         when(modelField.getColName()).thenReturn(columnName);
         when(modelField.getName()).thenReturn(fieldName);

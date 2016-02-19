@@ -29,24 +29,25 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import java.util.List;
 
 /**
- * <p>Encapsulates SQL expressions used for where clause snippets. 
- *  NOTE: This is UNSAFE and BREAKS the idea behind the Entity Engine where
- *  you avoid directly specifying SQL. So, KEEP IT MINIMAL and preferrably replace
- *  it when the feature you are getting at is implemented in a more automatic way for you.</p>
+ * <p>Encapsulates SQL expressions used for where clause snippets.
+ * NOTE: This is UNSAFE and BREAKS the idea behind the Entity Engine where
+ * you avoid directly specifying SQL. So, KEEP IT MINIMAL and preferrably replace
+ * it when the feature you are getting at is implemented in a more automatic way for you.</p>
  *
  * <p>By minimal I mean use this in conjunction with other EntityConditions like the
- *  EntityExpr, EntityExprList and EntityFieldMap objects which more cleanly 
- *  encapsulate where conditions and don't require you to directly write SQL.</p>
+ * EntityExpr, EntityExprList and EntityFieldMap objects which more cleanly
+ * encapsulate where conditions and don't require you to directly write SQL.</p>
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityWhereString extends EntityCondition {
 
     protected String sqlString;
 
-    protected EntityWhereString() {}
+    protected EntityWhereString() {
+    }
 
     public EntityWhereString(String sqlString) {
         this.sqlString = sqlString;

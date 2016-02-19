@@ -6,8 +6,7 @@ import org.ofbiz.core.entity.config.ConnectionPoolInfo;
  * This holds information about the state of the connection pool at the time a connection was borrowed from the
  * connection pool
  */
-public interface ConnectionPoolState
-{
+public interface ConnectionPoolState {
     /**
      * @return the time it took to borrow this connection from the pool in nano seconds
      */

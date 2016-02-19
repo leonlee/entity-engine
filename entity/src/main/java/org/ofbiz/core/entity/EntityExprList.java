@@ -32,16 +32,17 @@ import java.util.List;
 /**
  * Encapsulates simple expressions used for specifying queries
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityExprList extends EntityCondition {
 
     protected List<? extends EntityExpr> exprList;
     protected EntityOperator operator;
 
-    protected EntityExprList() {}
+    protected EntityExprList() {
+    }
 
     public EntityExprList(List<? extends EntityExpr> exprList, EntityOperator operator) {
         this.exprList = exprList;
@@ -55,15 +56,15 @@ public class EntityExprList extends EntityCondition {
     public EntityExpr getExpr(int index) {
         return this.exprList.get(index);
     }
-    
+
     public int getExprListSize() {
         return this.exprList.size();
     }
-    
+
     public Iterator<? extends EntityExpr> getExprIterator() {
         return this.exprList.iterator();
     }
-    
+
     public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuilder whereStringBuilder = new StringBuilder();

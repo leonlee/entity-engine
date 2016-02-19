@@ -24,17 +24,18 @@
  */
 package org.ofbiz.core.config;
 
-import java.io.*;
-import org.w3c.dom.*;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-import org.ofbiz.core.util.*;
+import java.io.InputStream;
 
 /**
  * Contains resource information and provides for loading data
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ResourceHandler {
 
@@ -99,8 +100,8 @@ public class ResourceHandler {
             ResourceHandler other = (ResourceHandler) obj;
 
             if (this.loaderName.equals(other.loaderName) &&
-                this.xmlFilename.equals(other.xmlFilename) &&
-                this.location.equals(other.location)) {
+                    this.xmlFilename.equals(other.xmlFilename) &&
+                    this.location.equals(other.location)) {
                 return true;
             }
         }

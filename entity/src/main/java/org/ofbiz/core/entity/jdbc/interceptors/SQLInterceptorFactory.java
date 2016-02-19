@@ -11,13 +11,12 @@ package org.ofbiz.core.entity.jdbc.interceptors;
  * factory to decide whether to allocate a new one, re-use them or make them stateless.  But remember that new gen
  * allocation is blindingly fast, so the suggestion is to allocate a new one every time.
  */
-public interface SQLInterceptorFactory
-{
+public interface SQLInterceptorFactory {
     /**
      * This is called to generate a new {@link SQLInterceptor} ready to be called back when SQL statements are executed.
      *
      * @param ofbizHelperName the name of the OFBIZ entity helper eg a named {@link
-     * org.ofbiz.core.entity.GenericHelper}
+     *                        org.ofbiz.core.entity.GenericHelper}
      * @return an SQLInterceptor to use.  If null is returned, then no interception is possible.
      */
     SQLInterceptor newSQLInterceptor(String ofbizHelperName);

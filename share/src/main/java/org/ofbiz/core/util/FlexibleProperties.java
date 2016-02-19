@@ -36,8 +36,8 @@ import java.util.Properties;
 /**
  * Simple Class for flexibly working with properties files
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@version    1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
  */
 public class FlexibleProperties extends Properties {
 

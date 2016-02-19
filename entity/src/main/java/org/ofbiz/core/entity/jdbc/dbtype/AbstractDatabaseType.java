@@ -1,8 +1,8 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.text.MessageFormat;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
@@ -58,13 +58,11 @@ public abstract class AbstractDatabaseType implements DatabaseType {
         return name;
     }
 
-    public String getSchemaName(Connection con)
-    {
+    public String getSchemaName(Connection con) {
         return null;
     }
 
-    public int getConstraintNameClipLength()
-    {
+    public int getConstraintNameClipLength() {
         return constraintNameClipLength;
     }
 
@@ -72,7 +70,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
      * Checks whether the connection object passed in matches the database type represented
      * by this instance of the DatabaseType class.
      *
-     * @return  true if the Connection matches this DatabaseType instance.
+     * @return true if the Connection matches this DatabaseType instance.
      * @throws SQLException
      */
     public abstract boolean matchesConnection(Connection con) throws SQLException;
@@ -97,26 +95,20 @@ public abstract class AbstractDatabaseType implements DatabaseType {
      * @param minor2 Second minor version number for comparison
      * @return True if (major1, minor1) > (major2, minor2) otherwise false
      */
-    protected static boolean versionGreaterThanOrEqual(int major1, int minor1, int major2, int minor2)
-    {
+    protected static boolean versionGreaterThanOrEqual(int major1, int minor1, int major2, int minor2) {
         return ((major1 > major2) || ((major1 == major2) && (minor1 >= minor2)));
     }
 
-    protected static boolean productNamesMatch(String productNamePrefix, String testName)
-    {
+    protected static boolean productNamesMatch(String productNamePrefix, String testName) {
         return ((testName != null) &&
                 (testName.length() >= productNamePrefix.length()) &&
                 (testName.substring(0, productNamePrefix.length()).equalsIgnoreCase(productNamePrefix)));
     }
 
-    protected static boolean isProductNameInPrefixList(String[] productNamePrefixes, String productName)
-    {
-        if (productName != null)
-        {
-            for (final String productNamePrefix : productNamePrefixes)
-            {
-                if (productNamesMatch(productNamePrefix, productName))
-                {
+    protected static boolean isProductNameInPrefixList(String[] productNamePrefixes, String productName) {
+        if (productName != null) {
+            for (final String productNamePrefix : productNamePrefixes) {
+                if (productNamesMatch(productNamePrefix, productName)) {
                     return true;
                 }
             }
@@ -124,36 +116,27 @@ public abstract class AbstractDatabaseType implements DatabaseType {
         return false;
     }
 
-    protected boolean productNameMatches(Connection con) throws SQLException
-    {
+    protected boolean productNameMatches(Connection con) throws SQLException {
         String productName = con.getMetaData().getDatabaseProductName();
         return productName != null && isProductNameInPrefixList(productNamePrefix, productName.trim());
     }
 
-    protected boolean versionGreaterThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException
-    {
-        try
-        {
+    protected boolean versionGreaterThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException {
+        try {
             DatabaseMetaData metaData = con.getMetaData();
             return versionGreaterThanOrEqual(metaData.getDatabaseMajorVersion(), metaData.getDatabaseMinorVersion(), majorVersion, minorVersion);
-        }
-        catch (AbstractMethodError ame)
-        {
+        } catch (AbstractMethodError ame) {
             // if this exception is thrown then it means that the wrong version of the
             // database driver was used
             return false;
         }
     }
 
-    protected boolean versionLessThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException
-    {
-        try
-        {
+    protected boolean versionLessThanOrEqual(Connection con, int majorVersion, int minorVersion) throws SQLException {
+        try {
             DatabaseMetaData metaData = con.getMetaData();
             return versionGreaterThanOrEqual(majorVersion, minorVersion, metaData.getDatabaseMajorVersion(), metaData.getDatabaseMinorVersion());
-        }
-        catch (AbstractMethodError ame)
-        {
+        } catch (AbstractMethodError ame) {
             // if this exception is thrown then it means that the wrong version of the
             // database driver was used
             return false;
@@ -172,8 +155,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     /**
      * {@inheritDoc}
      */
-    public final String getChangeColumnTypeSQL(final String tableName, final String columnName, final String targetSqlType)
-    {
+    public final String getChangeColumnTypeSQL(final String tableName, final String columnName, final String targetSqlType) {
         final String clauseStructure = getChangeColumnTypeStructure();
         return clauseStructure == null ? null : MessageFormat.format(clauseStructure, tableName, columnName, targetSqlType);
     }
@@ -181,24 +163,21 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     /**
      * @return a format string to compose an SQL query to drop index in DB.
      */
-    public String getDropIndexStructure()
-    {
+    public String getDropIndexStructure() {
         return DROP_INDEX_SCHEMA_DOT_TABLE_DOT_INDEX;
     }
 
     /**
      * {@inheritDoc}
      */
-    public String getDropIndexSQL(final String schemaName, final String tableName, final String indexName)
-    {
+    public String getDropIndexSQL(final String schemaName, final String tableName, final String indexName) {
         return getDropIndexStructure()
                 .replaceAll("\\{schemaName_with_dot}", appendDotIfNotEmpty(schemaName))
                 .replaceAll("\\{tableName}", tableName)
                 .replaceAll("\\{indexName}", indexName);
     }
 
-    private static String appendDotIfNotEmpty(final String schemaName)
-    {
+    private static String appendDotIfNotEmpty(final String schemaName) {
         return schemaName != null && !schemaName.isEmpty() ? schemaName + '.' : "";
     }
 }

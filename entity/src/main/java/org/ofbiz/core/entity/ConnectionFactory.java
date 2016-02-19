@@ -35,10 +35,10 @@ import java.sql.SQLException;
 /**
  * ConnectionFactory - central source for JDBC connections
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ConnectionFactory {
     // Debug module name
@@ -96,8 +96,7 @@ public class ConnectionFactory {
      *
      * @param helperName The datasource to remove
      */
-    public static void removeDatasource(String helperName)
-    {
+    public static void removeDatasource(String helperName) {
         // Try and remove it from DBCP
         DBCPConnectionFactory.removeDatasource(helperName);
     }

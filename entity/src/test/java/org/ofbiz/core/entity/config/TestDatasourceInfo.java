@@ -3,20 +3,18 @@ package org.ofbiz.core.entity.config;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
-import java.util.Properties;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
  */
-public class TestDatasourceInfo
-{
+public class TestDatasourceInfo {
     @Test
-    public void testFullJdbcConfig() throws Exception
-    {
+    public void testFullJdbcConfig() throws Exception {
         DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-fullJdbcConfig.xml");
         assertEquals("default", datasourceInfo.getName());
         assertEquals("postgres72", datasourceInfo.getFieldTypeName());
@@ -48,8 +46,7 @@ public class TestDatasourceInfo
     }
 
     @Test
-    public void testPartialJdbcConfig() throws Exception
-    {
+    public void testPartialJdbcConfig() throws Exception {
         DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-partialJdbcConfig.xml");
         assertEquals("default", datasourceInfo.getName());
         assertEquals("postgres72", datasourceInfo.getFieldTypeName());
@@ -72,8 +69,7 @@ public class TestDatasourceInfo
     }
 
     @Test
-    public void testJndiConfig() throws Exception
-    {
+    public void testJndiConfig() throws Exception {
         DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-jndiConfig.xml");
         assertEquals("default", datasourceInfo.getName());
         assertEquals("postgres72", datasourceInfo.getFieldTypeName());
@@ -82,28 +78,26 @@ public class TestDatasourceInfo
         assertEquals("default", jndiInfo.getJndiServerName());
         assertEquals("java:comp/env/jdbc/JiraDS", jndiInfo.getJndiName());
     }
-    
+
     @Test
-    public void testConnectionPoolInfoToBuilder() throws Exception
-    {
+    public void testConnectionPoolInfoToBuilder() throws Exception {
         DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-fullJdbcConfig.xml");
         ConnectionPoolInfo.Builder poolInfo = datasourceInfo.getJdbcDatasource().getConnectionPoolInfo().toBuilder();
-        assertEquals((Object)20, poolInfo.getPoolMaxSize());
-        assertEquals((Object)15, poolInfo.getPoolMaxIdle());
-        assertEquals((Object)10, poolInfo.getPoolMinSize());
-        assertEquals((Object)66L, poolInfo.getPoolMaxWait());
-        assertEquals((Object)10000L, poolInfo.getPoolSleepTime());
-        assertEquals((Object)20000L, poolInfo.getPoolLifeTime());
-        assertEquals((Object)30000L, poolInfo.getDeadLockMaxWait());
-        assertEquals((Object)40000L, poolInfo.getDeadLockRetryWait());
+        assertEquals((Object) 20, poolInfo.getPoolMaxSize());
+        assertEquals((Object) 15, poolInfo.getPoolMaxIdle());
+        assertEquals((Object) 10, poolInfo.getPoolMinSize());
+        assertEquals((Object) 66L, poolInfo.getPoolMaxWait());
+        assertEquals((Object) 10000L, poolInfo.getPoolSleepTime());
+        assertEquals((Object) 20000L, poolInfo.getPoolLifeTime());
+        assertEquals((Object) 30000L, poolInfo.getDeadLockMaxWait());
+        assertEquals((Object) 40000L, poolInfo.getDeadLockRetryWait());
         assertEquals("select 1", poolInfo.getValidationQuery());
         assertEquals((Object) 4000L, poolInfo.getMinEvictableTimeMillis());
         assertEquals((Object) 5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
     }
 
 
-    private DatasourceInfo createDatasourceInfo(String filename) throws Exception
-    {
+    private DatasourceInfo createDatasourceInfo(String filename) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document doc = db.parse(getClass().getResourceAsStream(filename));

@@ -8,8 +8,7 @@ import java.util.List;
 /**
  * The {@link SQLInterceptor} is called before and after SQL is to be executed in OFBIZ.
  */
-public interface SQLInterceptor
-{
+public interface SQLInterceptor {
     /**
      * This is called before an JDBC query is run.
      *

@@ -42,9 +42,9 @@ import java.util.Map;
  * Sequence Utility to get unique sequences from named sequence banks
  * Uses a collision detection approach to safely get unique sequenced ids in banks from the database
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.4 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.4 $
+ * @since 2.0
  */
 public class SequenceUtil {
 
@@ -57,7 +57,8 @@ public class SequenceUtil {
     String nameColName;
     String idColName;
 
-    private SequenceUtil() {}
+    private SequenceUtil() {
+    }
 
     public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName) {
         this.helperName = helperName;
@@ -90,12 +91,11 @@ public class SequenceUtil {
         }
         return bank.getNextSeqId();
     }
-    
+
     /**
      * this is hit if we can't get one from the cache, must be synchronized
      */
-    private synchronized SequenceBank constructSequenceBank(String seqName)
-    {
+    private synchronized SequenceBank constructSequenceBank(String seqName) {
         // check the cache first in-case someone has already populated 
         SequenceBank bank = sequences.get(seqName);
         if (bank == null) {
@@ -175,7 +175,7 @@ public class SequenceUtil {
             } catch (GenericTransactionException e) {
                 // nevermind, don't worry about it, but print the exc anyway
                 Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] Exception was thrown trying to check " +
-                    "transaction status: " + e.toString(), module);
+                        "transaction status: " + e.toString(), module);
             }
 
             Connection connection = null;
@@ -205,10 +205,10 @@ public class SequenceUtil {
                 while (val1 + bankSize != val2) {
                     ResultSet rs1 = null;
                     ResultSet rs2 = null;
-                    try
-                    {
-                        if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Trying to get a bank of sequenced ids for " +
-                                this.seqName + "; start of loop val1=" + val1 + ", val2=" + val2 + ", bankSize=" + bankSize, module);
+                    try {
+                        if (Debug.verboseOn())
+                            Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Trying to get a bank of sequenced ids for " +
+                                    this.seqName + "; start of loop val1=" + val1 + ", val2=" + val2 + ", bankSize=" + bankSize, module);
 
                         // try 1: SELECT the next id
                         if (selectPstmt == null) {
@@ -236,7 +236,7 @@ public class SequenceUtil {
                             continue;
                         }
 
-                    // UPDATE the next id by adding bankSize
+                        // UPDATE the next id by adding bankSize
                         if (updatePstmt == null) {
                             updatePstmt = connection.prepareStatement("UPDATE " + parentUtil.tableName + " SET " + parentUtil.idColName + "=" + parentUtil.idColName + "+" + SequenceBank.bankSize + " WHERE " + parentUtil.nameColName + "=?");
                         }
@@ -261,7 +261,7 @@ public class SequenceUtil {
                             val2 = rs2.getLong(parentUtil.idColName);
                         } else {
                             Debug.logWarning("[SequenceUtil.SequenceBank.fillBank] second select failed: aborting, result " +
-                                "set was empty for sequence: " + seqName, module);
+                                    "set was empty for sequence: " + seqName, module);
                             return;
                         }
 
@@ -294,8 +294,9 @@ public class SequenceUtil {
 
                 curSeqId = val1;
                 maxSeqId = val2;
-                if (Debug.verboseOn()) Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Successfully got a bank of sequenced ids for " +
-                        this.seqName + "; curSeqId=" + curSeqId + ", maxSeqId=" + maxSeqId + ", bankSize=" + bankSize, module);
+                if (Debug.verboseOn())
+                    Debug.logVerbose("[SequenceUtil.SequenceBank.fillBank] Successfully got a bank of sequenced ids for " +
+                            this.seqName + "; curSeqId=" + curSeqId + ", maxSeqId=" + maxSeqId + ", bankSize=" + bankSize, module);
             } catch (SQLException sqle) {
                 Debug.logWarning(sqle, "[SequenceUtil.SequenceBank.fillBank] SQL Exception", module);
                 return;
@@ -326,47 +327,32 @@ public class SequenceUtil {
         }
     }
 
-    private void closeQuietly(Connection connection)
-    {
-        try
-        {
-            if (connection != null)
-            {
+    private void closeQuietly(Connection connection) {
+        try {
+            if (connection != null) {
                 connection.close();
             }
-        }
-        catch (Exception sqle)
-        {
+        } catch (Exception sqle) {
             Debug.logWarning(sqle, "Error closing connection in sequence util");
         }
     }
 
-    private void closeQuietly(PreparedStatement stmt)
-    {
-        try
-        {
-            if (stmt != null)
-            {
+    private void closeQuietly(PreparedStatement stmt) {
+        try {
+            if (stmt != null) {
                 stmt.close();
             }
-        }
-        catch (Exception sqle)
-        {
+        } catch (Exception sqle) {
             Debug.logWarning(sqle, "Error closing statement in sequence util");
         }
     }
 
-    private void closeQuietly(ResultSet rs)
-    {
-        try
-        {
-            if (rs != null)
-            {
+    private void closeQuietly(ResultSet rs) {
+        try {
+            if (rs != null) {
                 rs.close();
             }
-        }
-        catch (Exception sqle)
-        {
+        } catch (Exception sqle) {
             Debug.logWarning(sqle, "Error closing result set in sequence util");
         }
     }

@@ -12,11 +12,9 @@ import static org.junit.Assert.assertEquals;
 import static org.ofbiz.core.entity.transaction.TransactionIsolations.asString;
 import static org.ofbiz.core.entity.transaction.TransactionIsolations.fromString;
 
-public class TransactionIsolationsTest
-{
+public class TransactionIsolationsTest {
     @Test
-    public void testMappingFromStringToInt() throws Exception
-    {
+    public void testMappingFromStringToInt() throws Exception {
         assertEquals(TRANSACTION_NONE, fromString("None"));
         assertEquals(TRANSACTION_READ_UNCOMMITTED, fromString("ReadUncommitted"));
         assertEquals(TRANSACTION_READ_COMMITTED, fromString("ReadCommitted"));
@@ -25,8 +23,7 @@ public class TransactionIsolationsTest
     }
 
     @Test
-    public void testMappingFromIntToString() throws Exception
-    {
+    public void testMappingFromIntToString() throws Exception {
         assertEquals("None", asString(TRANSACTION_NONE));
         assertEquals("ReadUncommitted", asString(TRANSACTION_READ_UNCOMMITTED));
         assertEquals("ReadCommitted", asString(TRANSACTION_READ_COMMITTED));

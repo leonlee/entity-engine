@@ -34,43 +34,56 @@ import java.util.List;
 /**
  * Generic Entity - Field model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelField {
 
-    /** The name of the Field */
+    /**
+     * The name of the Field
+     */
     protected String name = "";
 
-    /** The type of the Field */
+    /**
+     * The type of the Field
+     */
     protected String type = "";
 
-    /** The col-name of the Field */
+    /**
+     * The col-name of the Field
+     */
     protected String colName = "";
 
-    /** boolean which specifies whether or not the Field is a Primary Key */
+    /**
+     * boolean which specifies whether or not the Field is a Primary Key
+     */
     protected boolean isPk = false;
 
-    /** validators to be called when an update is done */
+    /**
+     * validators to be called when an update is done
+     */
     protected List<String> validators = new ArrayList<String>();
 
-    /** Default Constructor */
-    public ModelField() {}
+    /**
+     * Default Constructor
+     */
+    public ModelField() {
+    }
 
-    public ModelField(String name, String type, String colName, boolean isPk, List<String> validators)
-    {
+    public ModelField(String name, String type, String colName, boolean isPk, List<String> validators) {
         this.name = UtilXml.checkEmpty(name);
         this.type = UtilXml.checkEmpty(type);
         this.colName = UtilXml.checkEmpty(colName, ModelUtil.javaNameToDbName(this.name));
         this.isPk = isPk;
-        if (validators != null)
-        {
+        if (validators != null) {
             this.validators.addAll(validators);
         }
     }
 
-    /** XML Constructor */
+    /**
+     * XML Constructor
+     */
     public ModelField(Element fieldElement) {
         this.type = UtilXml.checkEmpty(fieldElement.getAttribute("type"));
         this.name = UtilXml.checkEmpty(fieldElement.getAttribute("name"));
@@ -86,7 +99,9 @@ public class ModelField {
         }
     }
 
-    /** DB Names Constructor */
+    /**
+     * DB Names Constructor
+     */
     public ModelField(DatabaseUtil.ColumnCheckInfo ccInfo, ModelFieldTypeReader modelFieldTypeReader) {
         this.colName = ccInfo.columnName.toUpperCase();
         this.name = ModelUtil.dbNameToVarName(this.colName);
@@ -102,7 +117,9 @@ public class ModelField {
             this.isPk = false;
     }
 
-    /** The name of the Field */
+    /**
+     * The name of the Field
+     */
     public String getName() {
         return this.name;
     }
@@ -111,7 +128,9 @@ public class ModelField {
         this.name = name;
     }
 
-    /** The type of the Field */
+    /**
+     * The type of the Field
+     */
     public String getType() {
         return this.type;
     }
@@ -120,7 +139,9 @@ public class ModelField {
         this.type = type;
     }
 
-    /** The col-name of the Field */
+    /**
+     * The col-name of the Field
+     */
     public String getColName() {
         return this.colName;
     }
@@ -129,7 +150,9 @@ public class ModelField {
         this.colName = colName;
     }
 
-    /** boolean which specifies whether or not the Field is a Primary Key */
+    /**
+     * boolean which specifies whether or not the Field is a Primary Key
+     */
     public boolean getIsPk() {
         return this.isPk;
     }
@@ -138,7 +161,9 @@ public class ModelField {
         this.isPk = isPk;
     }
 
-    /** validators to be called when an update is done */
+    /**
+     * validators to be called when an update is done
+     */
     public String getValidator(int index) {
         return this.validators.get(index);
     }
