@@ -55,12 +55,18 @@ public class GenericDAOTest {
     private static final String HELPER_NAME = "MyHelper";
     private static final String TABLE_NAME = "Issue";
 
-    @Mock private CountHelper mockCountHelper;
-    @Mock private DatabaseType mockDatabaseType;
-    @Mock private DatasourceInfo mockDatasourceInfo;
-    @Mock private LimitHelper mockLimitHelper;
-    @Mock private ModelEntity mockModelEntity;
-    @Mock private ModelFieldTypeReader mockModelFieldTypeReader;
+    @Mock
+    private CountHelper mockCountHelper;
+    @Mock
+    private DatabaseType mockDatabaseType;
+    @Mock
+    private DatasourceInfo mockDatasourceInfo;
+    @Mock
+    private LimitHelper mockLimitHelper;
+    @Mock
+    private ModelEntity mockModelEntity;
+    @Mock
+    private ModelFieldTypeReader mockModelFieldTypeReader;
     private GenericDAO dao;
 
     @Before
@@ -107,8 +113,7 @@ public class GenericDAOTest {
     }
 
     private Matcher<EntityExpr> entityExpr(
-            final String lhs, final EntityOperator operator, final ImmutableList<Integer> rhs)
-    {
+            final String lhs, final EntityOperator operator, final ImmutableList<Integer> rhs) {
         return new BaseMatcher<EntityExpr>() {
             public boolean matches(Object o) {
                 return o instanceof EntityExpr
@@ -260,10 +265,9 @@ public class GenericDAOTest {
     public void storeAllShouldAcceptEmptyEntityList() throws Exception {
         assertEquals(0, dao.storeAll(Collections.<GenericEntity>emptyList()));
     }
-    
+
     @Test
-    public void createEntityListIteratorMustCloseSQLProcessorIfGenericEntityExceptionIsThrown() throws Exception
-    {
+    public void createEntityListIteratorMustCloseSQLProcessorIfGenericEntityExceptionIsThrown() throws Exception {
         SQLProcessor sqlProcessor = mock(SQLProcessor.class);
         doThrow(new GenericEntityException()).when(sqlProcessor).prepareStatement(anyString(), anyBoolean(), anyInt(), anyInt());
 
@@ -273,8 +277,7 @@ public class GenericDAOTest {
     }
 
     @Test
-    public void createEntityListIteratorMustCloseSQLProcessorIfRuntimeExceptionIsThrown() throws Exception
-    {
+    public void createEntityListIteratorMustCloseSQLProcessorIfRuntimeExceptionIsThrown() throws Exception {
         SQLProcessor sqlProcessor = mock(SQLProcessor.class);
         doThrow(new RuntimeException()).when(sqlProcessor).prepareStatement(anyString(), anyBoolean(), anyInt(), anyInt());
 
@@ -283,34 +286,29 @@ public class GenericDAOTest {
         verify(sqlProcessor).close();
     }
 
-    private void createEntityListIteratorExpectingException(final SQLProcessor sqlProcessor) throws Exception
-    {
+    private void createEntityListIteratorExpectingException(final SQLProcessor sqlProcessor) throws Exception {
         String anySql = "any sql";
         List<ModelField> anySelectFields = Collections.emptyList();
         List<EntityConditionParam> anyWhereConditions = Collections.emptyList();
         List<EntityConditionParam> anyHavingConditions = Collections.emptyList();
 
-        try
-        {
+        try {
             dao.createEntityListIterator(sqlProcessor, anySql, mock(EntityFindOptions.class), mockModelEntity, anySelectFields, anyWhereConditions, anyHavingConditions, Collections.<String>emptySet());
             fail("An exception was expected to be thrown");
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             // do nothing, we were expecting the exception
         }
     }
 
     @Test
-    public void testRewriteWithTemporaryTables()
-    {
+    public void testRewriteWithTemporaryTables() {
         List<Integer> ids = Collections.nCopies(2001, 1);
         ModelEntity modelEntity = new ModelEntity();
         ModelField field = new ModelField();
         field.setName("test");
         modelEntity.addField(field);
         Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
-                                            new EntityExpr("test", IN, ids), modelEntity);
+                new EntityExpr("test", IN, ids), modelEntity);
 
         assertTrue("Rewrite should be required.", rewrite.isPresent());
         Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
@@ -321,17 +319,16 @@ public class GenericDAOTest {
 
         EntityCondition rewrittenCondition = rewrite.get().getNewCondition();
         assertThat(rewrittenCondition, instanceOf(EntityExpr.class));
-        EntityExpr rewrittenExpr = (EntityExpr)rewrittenCondition;
+        EntityExpr rewrittenExpr = (EntityExpr) rewrittenCondition;
         assertEquals("test", rewrittenExpr.getLhs());
         assertEquals(IN, rewrittenExpr.getOperator());
         assertThat(rewrittenExpr.getRhs(), instanceOf(EntityWhereString.class));
-        EntityWhereString rhs = (EntityWhereString)rewrittenExpr.getRhs();
+        EntityWhereString rhs = (EntityWhereString) rewrittenExpr.getRhs();
         assertEquals("select item from #temp1", rhs.sqlString);
     }
 
     @Test
-    public void testRewriteWithTemporaryTablesTwoSmallerInFragments()
-    {
+    public void testRewriteWithTemporaryTablesTwoSmallerInFragments() {
         List<Integer> ids = Collections.nCopies(1001, 1);
         ModelEntity modelEntity = new ModelEntity();
         ModelField field1 = new ModelField();
@@ -356,10 +353,10 @@ public class GenericDAOTest {
 
         EntityCondition rewrittenCondition = rewrite.get().getNewCondition();
         assertThat(rewrittenCondition, instanceOf(EntityConditionList.class));
-        EntityConditionList outerCondition = (EntityConditionList)rewrittenCondition;
+        EntityConditionList outerCondition = (EntityConditionList) rewrittenCondition;
         assertEquals(2, outerCondition.getConditionListSize());
-        EntityExpr rewritten1 = (EntityExpr)outerCondition.getCondition(0);
-        EntityExpr rewritten2 = (EntityExpr)outerCondition.getCondition(1);
+        EntityExpr rewritten1 = (EntityExpr) outerCondition.getCondition(0);
+        EntityExpr rewritten2 = (EntityExpr) outerCondition.getCondition(1);
 
         assertEquals("test1", rewritten1.getLhs());
         assertEquals("test2", rewritten2.getLhs());
@@ -367,8 +364,8 @@ public class GenericDAOTest {
         assertEquals(IN, rewritten2.getOperator());
         assertThat(rewritten1.getRhs(), instanceOf(EntityWhereString.class));
         assertThat(rewritten2.getRhs(), instanceOf(EntityWhereString.class));
-        EntityWhereString rhs1 = (EntityWhereString)rewritten1.getRhs();
-        EntityWhereString rhs2 = (EntityWhereString)rewritten2.getRhs();
+        EntityWhereString rhs1 = (EntityWhereString) rewritten1.getRhs();
+        EntityWhereString rhs2 = (EntityWhereString) rewritten2.getRhs();
         assertEquals("select item from #temp1", rhs1.sqlString);
         assertEquals("select item from #temp2", rhs2.sqlString);
     }
@@ -377,8 +374,7 @@ public class GenericDAOTest {
      * Temp table rewrite should not occur with too few parameters.
      */
     @Test
-    public void testNoRewriteWithNotEnoughParameters()
-    {
+    public void testNoRewriteWithNotEnoughParameters() {
         List<Integer> ids = Collections.nCopies(2000, 1);
         ModelEntity modelEntity = new ModelEntity();
         ModelField field = new ModelField();

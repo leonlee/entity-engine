@@ -10,19 +10,16 @@ import java.util.concurrent.Callable;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class ConnectionTrackerTest
-{
+public class ConnectionTrackerTest {
     MockConnection mockConnection;
     private ConnectionTracker connectionTracker;
 
     @Before
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
     }
 
     @Test
-    public void testConnectionTracking() throws Exception
-    {
+    public void testConnectionTracking() throws Exception {
         mockConnection = new MockConnection();
 
         connectionTracker = new ConnectionTracker();
@@ -36,13 +33,10 @@ public class ConnectionTrackerTest
 
     }
 
-    private Callable<Connection> connectionCallable()
-    {
-        return new Callable<Connection>()
-        {
+    private Callable<Connection> connectionCallable() {
+        return new Callable<Connection>() {
             @Override
-            public Connection call() throws Exception
-            {
+            public Connection call() throws Exception {
                 return mockConnection;
             }
         };

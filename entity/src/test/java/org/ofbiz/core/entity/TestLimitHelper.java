@@ -7,13 +7,16 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.ofbiz.core.entity.model.ModelField;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- *
  * @since v1.0.24
  */
 public class TestLimitHelper {
@@ -22,27 +25,27 @@ public class TestLimitHelper {
     public ExpectedException exception = ExpectedException.none();
 
     /**
-     *  Test the range of supported types, also check that the unsupported dbs are not altered
-     *  
-     *   Supported types
-     *   
-     *   <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql18.xml"/>
-     *   <field-type name="mysql" loader="maincp" location="entitydefs/fieldtype-mysql.xml"/>
-     *   <field-type name="mssql" loader="maincp" location="entitydefs/fieldtype-mssql.xml"/>
-     *   <field-type name="oracle" loader="maincp" location="entitydefs/fieldtype-oracle.xml"/>
-     *   <field-type name="oracle10g" loader="maincp" location="entitydefs/fieldtype-oracle10g.xml"/>
-     *   <field-type name="postgres" loader="maincp" location="entitydefs/fieldtype-postgres.xml"/>
-     *  <field-type name="postgres72" loader="maincp" location="entitydefs/fieldtype-postgres72.xml"/>
+     * Test the range of supported types, also check that the unsupported dbs are not altered
      *
-     *    Unsupported types
-     *   <field-type name="cloudscape" loader="maincp" location="entitydefs/fieldtype-cloudscape.xml"/>
-     *   <field-type name="firebird" loader="maincp" location="entitydefs/fieldtype-firebird.xml"/>
-     *   <field-type name="mckoidb" loader="maincp" location="entitydefs/fieldtype-mckoidb.xml"/>
-     *   <field-type name="sapdb" loader="maincp" location="entitydefs/fieldtype-sapdb.xml"/>
-     *   <field-type name="sybase" loader="maincp" location="entitydefs/fieldtype-sybase.xml"/>
-     *   <field-type name="db2" loader="maincp" location="entitydefs/fieldtype-db2.xml"/>
+     * Supported types
+     *
+     * <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql18.xml"/>
+     * <field-type name="mysql" loader="maincp" location="entitydefs/fieldtype-mysql.xml"/>
+     * <field-type name="mssql" loader="maincp" location="entitydefs/fieldtype-mssql.xml"/>
+     * <field-type name="oracle" loader="maincp" location="entitydefs/fieldtype-oracle.xml"/>
+     * <field-type name="oracle10g" loader="maincp" location="entitydefs/fieldtype-oracle10g.xml"/>
+     * <field-type name="postgres" loader="maincp" location="entitydefs/fieldtype-postgres.xml"/>
+     * <field-type name="postgres72" loader="maincp" location="entitydefs/fieldtype-postgres72.xml"/>
+     *
+     * Unsupported types
+     * <field-type name="cloudscape" loader="maincp" location="entitydefs/fieldtype-cloudscape.xml"/>
+     * <field-type name="firebird" loader="maincp" location="entitydefs/fieldtype-firebird.xml"/>
+     * <field-type name="mckoidb" loader="maincp" location="entitydefs/fieldtype-mckoidb.xml"/>
+     * <field-type name="sapdb" loader="maincp" location="entitydefs/fieldtype-sapdb.xml"/>
+     * <field-type name="sybase" loader="maincp" location="entitydefs/fieldtype-sybase.xml"/>
+     * <field-type name="db2" loader="maincp" location="entitydefs/fieldtype-db2.xml"/>
      */
-    private final String maxResults ="5";
+    private final String maxResults = "5";
     private final String offset = "1";
     private final String sql = "SELECT jiraissue.ID FROM jiraissue jiraissue INNER JOIN changegroup cg ON jiraissue.ID = cg.issueid WHERE (jiraissue.PROJECT IN (10000) ) ORDER BY cg.CREATED DESC";
     private final Map<String, String> expectedLimitResults = new HashMap<String, String>();
@@ -109,7 +112,7 @@ public class TestLimitHelper {
     public void TestOracleOffsetProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT * FROM jiraissue ORDER BY pkey";
         LimitHelper helper = new LimitHelper("oracle");
-        Assert.assertEquals("Oracle should produce sensible output","SELECT * FROM (SELECT sq_.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) sq_ WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
+        Assert.assertEquals("Oracle should produce sensible output", "SELECT * FROM (SELECT sq_.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) sq_ WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
     }
 
     @Test
@@ -123,7 +126,7 @@ public class TestLimitHelper {
     public void testSupportedFieldTypes() {
         for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType+" is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql, idFields, 5));
+            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql, idFields, 5));
         }
     }
 
@@ -155,7 +158,7 @@ public class TestLimitHelper {
     public void testOffsetForSupportedFieldTypes() {
         for (String fieldType : expectedLimitAndOffsetResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType+" is supposed to return", expectedLimitAndOffsetResults.get(fieldType), helper.addLimitClause(sql, idFields, 1, 5));
+            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitAndOffsetResults.get(fieldType), helper.addLimitClause(sql, idFields, 1, 5));
         }
     }
 
@@ -164,7 +167,7 @@ public class TestLimitHelper {
         int maxResults = 0;
         for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType+" is supposed to return", sql, helper.addLimitClause(sql, idFields, maxResults--));
+            Assert.assertEquals(fieldType + " is supposed to return", sql, helper.addLimitClause(sql, idFields, maxResults--));
         }
     }
 }

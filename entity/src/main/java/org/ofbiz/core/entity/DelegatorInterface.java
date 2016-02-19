@@ -38,13 +38,13 @@ import java.util.Set;
 /**
  * Delegator Interface
  *
- * @author     <a href="mailto:plightbo@cisco.com">Patrick Lightbody</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:plightbo@cisco.com">Patrick Lightbody</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 @SuppressWarnings("unused")
 public interface DelegatorInterface {
-    
+
     String getDelegatorName();
 
     ModelReader getModelReader();
@@ -131,7 +131,7 @@ public interface DelegatorInterface {
 
     List<GenericValue> findByAndCache(String entityName, Map<String, ?> fields, List<String> orderBy) throws GenericEntityException;
 
-    List<GenericValue> findByAnd(String entityName, List<? extends  EntityCondition> expressions) throws GenericEntityException;
+    List<GenericValue> findByAnd(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException;
 
     List<GenericValue> findByOr(String entityName, List<? extends EntityCondition> expressions) throws GenericEntityException;
 
@@ -154,11 +154,11 @@ public interface DelegatorInterface {
     int countAll(String entityName) throws GenericEntityException;
 
     EntityListIterator findListIteratorByCondition(String entityName, EntityCondition entityCondition,
-        Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;
+                                                   Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;
 
     EntityListIterator findListIteratorByCondition(String entityName, EntityCondition whereEntityCondition,
-        EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
-        throws GenericEntityException;
+                                                   EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions)
+            throws GenericEntityException;
 
     int removeByAnd(String entityName, Map<String, ?> fields) throws GenericEntityException;
 
@@ -271,13 +271,13 @@ public interface DelegatorInterface {
      * @param entityCondition the condition that selects the entities to transform (null means transform all)
      * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
      * @param lockField       the entity field to use for optimistic locking; the value of this field will be read
-     * between the SELECT and the UPDATE to determine whether another process has updated one of the target records in
-     * the meantime; if so, the transformation will be reapplied and another UPDATE attempted
+     *                        between the SELECT and the UPDATE to determine whether another process has updated one of the target records in
+     *                        the meantime; if so, the transformation will be reapplied and another UPDATE attempted
      * @param transformation  the transformation to apply (required)
      * @return the transformed entities in the order they were selected (never null)
      * @since 1.0.41
      */
     List<GenericValue> transform(String entityName, EntityCondition entityCondition, List<String> orderBy,
-            String lockField, Transformation transformation)
-        throws GenericEntityException;
+                                 String lockField, Transformation transformation)
+            throws GenericEntityException;
 }

@@ -60,38 +60,51 @@ import java.util.TreeSet;
  * the <code>notifyObservers()</code> method, and through that to the <code>update()</code> method of each
  * <code>Observer</code>.
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- *@created    Wed Aug 08 2001
- *@version    1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version 1.0
+ * @created Wed Aug 08 2001
  */
 public class GenericEntity extends Observable implements Map<String, Object>, Serializable, Comparable<GenericEntity>, Cloneable {
 
-    /** Name of the GenericDelegator, used to reget the GenericDelegator when deserialized */
+    /**
+     * Name of the GenericDelegator, used to reget the GenericDelegator when deserialized
+     */
     public String delegatorName = null;
 
-    /** Reference to an instance of GenericDelegator used to do some basic operations on this entity value. If null various methods in this class will fail. This is automatically set by the GenericDelegator for all GenericValue objects instantiated through it. You may set this manually for objects you instantiate manually, but it is optional. */
+    /**
+     * Reference to an instance of GenericDelegator used to do some basic operations on this entity value. If null various methods in this class will fail. This is automatically set by the GenericDelegator for all GenericValue objects instantiated through it. You may set this manually for objects you instantiate manually, but it is optional.
+     */
     public transient GenericDelegator internalDelegator = null;
 
-    /** Contains the fields for this entity. Note that this should always be a
-     *  HashMap to allow for two things: non-synchronized reads (synchronized
-     *  writes are done through synchronized setters) and being able to store
-     *  null values. Null values are important because with them we can distinguish
-     *  between desiring to set a value to null and desiring to not modify the
-     *  current value on an update.
+    /**
+     * Contains the fields for this entity. Note that this should always be a
+     * HashMap to allow for two things: non-synchronized reads (synchronized
+     * writes are done through synchronized setters) and being able to store
+     * null values. Null values are important because with them we can distinguish
+     * between desiring to set a value to null and desiring to not modify the
+     * current value on an update.
      */
     protected Map<String, Object> fields;
 
-    /** Contains the entityName of this entity, necessary for efficiency when creating EJBs */
+    /**
+     * Contains the entityName of this entity, necessary for efficiency when creating EJBs
+     */
     public String entityName = null;
 
-    /** Contains the ModelEntity instance that represents the definition of this entity, not to be serialized */
+    /**
+     * Contains the ModelEntity instance that represents the definition of this entity, not to be serialized
+     */
     public transient ModelEntity modelEntity = null;
 
-    /** Denotes whether or not this entity has been modified, or is known to be out of sync with the persistent record */
+    /**
+     * Denotes whether or not this entity has been modified, or is known to be out of sync with the persistent record
+     */
     public boolean modified = false;
 
-    /** Creates new GenericEntity
+    /**
+     * Creates new GenericEntity
+     *
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator) {
@@ -101,30 +114,38 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity.
+    /**
+     * Creates new GenericEntity.
+     *
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity) {
         setDelegator(delegator);
-        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        if (modelEntity == null)
+            throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;
         this.entityName = modelEntity.getEntityName();
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity from existing Map.
+    /**
+     * Creates new GenericEntity from existing Map.
+     *
      * @since 1.0.13
      */
     public GenericEntity(GenericDelegator delegator, ModelEntity modelEntity, Map<String, ?> fields) {
         setDelegator(delegator);
-        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        if (modelEntity == null)
+            throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;
         this.entityName = modelEntity.getEntityName();
         this.fields = new HashMap<String, Object>();
         setFields(fields);
     }
 
-    /** Creates new GenericEntity
+    /**
+     * Creates new GenericEntity
+     *
      * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator)}
      */
     public GenericEntity() {
@@ -133,28 +154,36 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity.
+    /**
+     * Creates new GenericEntity.
+     *
      * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator, ModelEntity modelEntity)}
      */
     public GenericEntity(ModelEntity modelEntity) {
-        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        if (modelEntity == null)
+            throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;
         this.entityName = modelEntity.getEntityName();
         this.fields = new HashMap<String, Object>();
     }
 
-    /** Creates new GenericEntity from existing Map.
+    /**
+     * Creates new GenericEntity from existing Map.
+     *
      * @deprecated since 1.0.13 Use {@link #GenericEntity(GenericDelegator internalDelegator, ModelEntity modelEntity, Map fields)}
      */
     public GenericEntity(ModelEntity modelEntity, Map<String, ?> fields) {
-        if (modelEntity == null) throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
+        if (modelEntity == null)
+            throw new IllegalArgumentException("Cannont create a GenericEntity with a null modelEntity parameter");
         this.modelEntity = modelEntity;
         this.entityName = modelEntity.getEntityName();
         this.fields = new HashMap<String, Object>();
         setFields(fields);
     }
 
-    /** Copy Constructor: Creates new GenericEntity from existing GenericEntity */
+    /**
+     * Copy Constructor: Creates new GenericEntity from existing GenericEntity
+     */
     public GenericEntity(GenericEntity value) {
         this.entityName = value.modelEntity.getEntityName();
         this.modelEntity = value.modelEntity;
@@ -181,8 +210,10 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return modelEntity;
     }
 
-    /** Get the GenericDelegator instance that created this value object and that is repsonsible for it.
-     *@return GenericDelegator object
+    /**
+     * Get the GenericDelegator instance that created this value object and that is repsonsible for it.
+     *
+     * @return GenericDelegator object
      */
     public GenericDelegator getDelegator() {
         if (internalDelegator == null) {
@@ -194,7 +225,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return internalDelegator;
     }
 
-    /** Set the GenericDelegator instance that created this value object and that is repsonsible for it. */
+    /**
+     * Set the GenericDelegator instance that created this value object and that is repsonsible for it.
+     */
     public void setDelegator(final GenericDelegator internalDelegator) {
         if (internalDelegator == null) {
             return;
@@ -213,7 +246,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return value;
     }
 
-    /** Returns true if the entity contains all of the primary key fields, but NO others. */
+    /**
+     * Returns true if the entity contains all of the primary key fields, but NO others.
+     */
     public boolean isPrimaryKey() {
         TreeSet<String> fieldKeys = new TreeSet<String>(fields.keySet());
 
@@ -225,7 +260,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return true;
     }
 
-    /** Returns true if the entity contains all of the primary key fields. */
+    /**
+     * Returns true if the entity contains all of the primary key fields.
+     */
     public boolean containsPrimaryKey() {
         TreeSet<String> fieldKeys = new TreeSet<String>(fields.keySet());
 
@@ -235,8 +272,10 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return true;
     }
 
-    /** Sets the named field to the passed value, even if the value is null
-     * @param name The field name to set
+    /**
+     * Sets the named field to the passed value, even if the value is null
+     *
+     * @param name  The field name to set
      * @param value The value to set
      */
     public void set(String name, Object value) {
@@ -250,8 +289,8 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
      * values in the HashMap to the datastore. If a value is not in the HashMap,
      * it will be left unmodified in the datastore.
      *
-     * @param field the name of the field to set; must be a valid field of this entity
-     * @param value the value to set; if null, will only be stored if <code>setIfNull</code> is true
+     * @param field     the name of the field to set; must be a valid field of this entity
+     * @param value     the value to set; if null, will only be stored if <code>setIfNull</code> is true
      * @param setIfNull specifies whether or not to set the value if it is null
      * @return the previous value of the given field (whether updated or not)
      */
@@ -305,8 +344,10 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return this.fields.get(modelField.getName());
     }
 
-    /** Sets the named field to the passed value, converting the value from a String to the correct type using <code>Type.valueOf()</code>
-     * @param name The field name to set
+    /**
+     * Sets the named field to the passed value, converting the value from a String to the correct type using <code>Type.valueOf()</code>
+     *
+     * @param name  The field name to set
      * @param value The String value to convert and set
      */
     public void setString(String name, String value) {
@@ -319,53 +360,55 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
 
         try {
             switch (SqlJdbcUtil.getType(fieldType)) {
-            case 1:
-                set(name, value);
-                break;
+                case 1:
+                    set(name, value);
+                    break;
 
-            case 2:
-                set(name, java.sql.Timestamp.valueOf(value));
-                break;
+                case 2:
+                    set(name, java.sql.Timestamp.valueOf(value));
+                    break;
 
-            case 3:
-                set(name, java.sql.Time.valueOf(value));
-                break;
+                case 3:
+                    set(name, java.sql.Time.valueOf(value));
+                    break;
 
-            case 4:
-                set(name, java.sql.Date.valueOf(value));
-                break;
+                case 4:
+                    set(name, java.sql.Date.valueOf(value));
+                    break;
 
-            case 5:
-                set(name, Integer.valueOf(value));
-                break;
+                case 5:
+                    set(name, Integer.valueOf(value));
+                    break;
 
-            case 6:
-                set(name, Long.valueOf(value));
-                break;
+                case 6:
+                    set(name, Long.valueOf(value));
+                    break;
 
-            case 7:
-                set(name, Float.valueOf(value));
-                break;
+                case 7:
+                    set(name, Float.valueOf(value));
+                    break;
 
-            case 8:
-                set(name, Double.valueOf(value));
-                break;
+                case 8:
+                    set(name, Double.valueOf(value));
+                    break;
 
-            case 9:
-                set(name, Boolean.valueOf(value));
-                break;
+                case 9:
+                    set(name, Boolean.valueOf(value));
+                    break;
 
-            case 10:
-                set(name, value);
-                break;
+                case 10:
+                    set(name, value);
+                    break;
             }
         } catch (GenericNotImplementedException ex) {
             throw new IllegalArgumentException(ex.getMessage());
         }
     }
 
-    /** Sets a field with an array of bytes, wrapping them automatically for easy use.
-     * @param name The field name to set
+    /**
+     * Sets a field with an array of bytes, wrapping them automatically for easy use.
+     *
+     * @param name  The field name to set
      * @param bytes The byte array to be wrapped and set
      */
     public void setBytes(String name, byte[] bytes) {
@@ -452,12 +495,16 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return new GenericPK(getModelEntity(), this.getFields(pkNames));
     }
 
-    /** go through the pks and for each one see if there is an entry in fields to set */
+    /**
+     * go through the pks and for each one see if there is an entry in fields to set
+     */
     public void setPKFields(Map<String, Object> fields) {
         this.setPKFields(fields, true);
     }
 
-    /** go through the pks and for each one see if there is an entry in fields to set */
+    /**
+     * go through the pks and for each one see if there is an entry in fields to set
+     */
     public void setPKFields(Map<String, Object> fields, boolean setIfEmpty) {
         Iterator<ModelField> iter = this.getModelEntity().getPksIterator();
 
@@ -494,12 +541,16 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         }
     }
 
-    /** go through the non-pks and for each one see if there is an entry in fields to set */
+    /**
+     * go through the non-pks and for each one see if there is an entry in fields to set
+     */
     public void setNonPKFields(Map<String, Object> fields) {
         this.setNonPKFields(fields, true);
     }
 
-    /** go through the non-pks and for each one see if there is an entry in fields to set */
+    /**
+     * go through the non-pks and for each one see if there is an entry in fields to set
+     */
     public void setNonPKFields(Map<String, Object> fields, boolean setIfEmpty) {
         Iterator<ModelField> iter = this.getModelEntity().getNopksIterator();
 
@@ -536,21 +587,27 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         }
     }
 
-    /** Returns keys of entity fields
+    /**
+     * Returns keys of entity fields
+     *
      * @return java.util.Collection
      */
     public Collection<String> getAllKeys() {
         return fields.keySet();
     }
 
-    /** Returns key/value pairs of entity fields
+    /**
+     * Returns key/value pairs of entity fields
+     *
      * @return java.util.Map
      */
     public Map<String, Object> getAllFields() {
         return new HashMap<String, Object>(fields);
     }
 
-    /** Used by clients to specify exactly the fields they are interested in
+    /**
+     * Used by clients to specify exactly the fields they are interested in
+     *
      * @param keysofFields the name of the fields the client is interested in
      * @return java.util.Map
      */
@@ -595,7 +652,9 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return true;
     }
 
-    /** Used to indicate if locking is enabled for this entity
+    /**
+     * Used to indicate if locking is enabled for this entity
+     *
      * @return True if locking is enabled
      */
     public boolean lockEnabled() {
@@ -631,18 +690,22 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return numberAdded;
     }
 
-    /** Makes an XML Element object with an attribute for each field of the entity
-     *@param document The XML Document that the new Element will be part of
-     *@return org.w3c.dom.Element object representing this generic entity
+    /**
+     * Makes an XML Element object with an attribute for each field of the entity
+     *
+     * @param document The XML Document that the new Element will be part of
+     * @return org.w3c.dom.Element object representing this generic entity
      */
     public Element makeXmlElement(Document document) {
         return makeXmlElement(document, null);
     }
 
-    /** Makes an XML Element object with an attribute for each field of the entity
-     *@param document The XML Document that the new Element will be part of
-     *@param prefix A prefix to put in front of the entity name in the tag name
-     *@return org.w3c.dom.Element object representing this generic entity
+    /**
+     * Makes an XML Element object with an attribute for each field of the entity
+     *
+     * @param document The XML Document that the new Element will be part of
+     * @param prefix   A prefix to put in front of the entity name in the tag name
+     * @return org.w3c.dom.Element object representing this generic entity
      */
     public Element makeXmlElement(Document document, String prefix) {
         Element element = null;
@@ -675,9 +738,11 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return element;
     }
 
-    /** Writes XML text with an attribute or CDATA element for each field of the entity
-     *@param writer A PrintWriter to write to
-     *@param prefix A prefix to put in front of the entity name in the tag name
+    /**
+     * Writes XML text with an attribute or CDATA element for each field of the entity
+     *
+     * @param writer A PrintWriter to write to
+     * @param prefix A prefix to put in front of the entity name in the tag name
      */
     public void writeXmlText(PrintWriter writer, String prefix) {
         final int indent = 4;
@@ -703,24 +768,18 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
 
             ModelFieldType mft = mtr.getModelFieldType(modelField.getType());
             // For blobs encode as Base64
-            if (mft.getJavaType().equals("java.lang.Object"))
-            {
+            if (mft.getJavaType().equals("java.lang.Object")) {
                 // need to serialise to Base64
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try
-                {
+                try {
                     new ObjectOutputStream(baos).writeObject(get(name));
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 value = StringUtils.newStringUtf8(Base64.encodeBase64(baos.toByteArray(), true));
                 cdataMap.put(name, value);
                 continue;
-            }
-            else
-            {
+            } else {
                 value = this.getString(name);
             }
 
@@ -770,20 +829,18 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     /**
      * Splits the string on the ']]>' characters so that they can be escaped and do not cause
      * broken CDATA sections.
+     *
      * @param s
      */
-    private void writeCdata(PrintWriter writer, String s)
-    {
-        if (s == null)
-        {
+    private void writeCdata(PrintWriter writer, String s) {
+        if (s == null) {
             writer.print(s);
             return;
         }
 
         int index = 0;
         int oldIndex = 0;
-        while ((index = s.indexOf("]]>", oldIndex)) > -1)
-        {
+        while ((index = s.indexOf("]]>", oldIndex)) > -1) {
             writer.print(s.substring(oldIndex, index));
             oldIndex = index + 3;
             writer.print("]]]]><![CDATA[>");
@@ -792,18 +849,15 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         writer.print(s.substring(oldIndex));
     }
 
-    private String escapeCDATA(String s)
-    {
-        if (s == null)
-        {
+    private String escapeCDATA(String s) {
+        if (s == null) {
             return null;
         }
 
         StringBuilder buffer = new StringBuilder();
         int index = 0;
         int oldIndex = 0;
-        while ((index = s.indexOf("]]>", oldIndex)) > -1)
-        {
+        while ((index = s.indexOf("]]>", oldIndex)) > -1) {
             buffer.append(s.substring(oldIndex, index));
             oldIndex = index + 3;
             buffer.append("]]]]><![CDATA[>");
@@ -814,16 +868,17 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
     }
 
 
-
-    /** Determines the equality of two GenericEntity objects, overrides the default equals
-     *@param  obj  The object (GenericEntity) to compare this two
-     *@return      boolean stating if the two objects are equal
+    /**
+     * Determines the equality of two GenericEntity objects, overrides the default equals
+     *
+     * @param obj The object (GenericEntity) to compare this two
+     * @return boolean stating if the two objects are equal
      */
     public boolean equals(Object obj) {
         if (obj == null) return false;
 
         // from here, use the compareTo method since it is more efficient:
-        if (this.compareTo((GenericEntity)obj) == 0) {
+        if (this.compareTo((GenericEntity) obj) == 0) {
             return true;
         } else {
             return false;
@@ -846,16 +901,20 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
          */
     }
 
-    /** Creates a hashCode for the entity, using the default String hashCode and Map hashCode, overrides the default hashCode
-     *@return    Hashcode corresponding to this entity
+    /**
+     * Creates a hashCode for the entity, using the default String hashCode and Map hashCode, overrides the default hashCode
+     *
+     * @return Hashcode corresponding to this entity
      */
     public int hashCode() {
         // divide both by two (shift to right one bit) to maintain scale and add together
         return getEntityName().hashCode() >> 1 + fields.hashCode() >> 1;
     }
 
-    /** Creates a String for the entity, overrides the default toString
-     *@return    String corresponding to this entity
+    /**
+     * Creates a String for the entity, overrides the default toString
+     *
+     * @return String corresponding to this entity
      */
     public String toString() {
         StringBuilder theString = new StringBuilder();
@@ -878,9 +937,11 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return theString.toString();
     }
 
-    /** Compares this GenericEntity to the passed object
-     *@param obj Object to compare this to
-     *@return int representing the result of the comparison (-1,0, or 1)
+    /**
+     * Compares this GenericEntity to the passed object
+     *
+     * @param obj Object to compare this to
+     * @return int representing the result of the comparison (-1,0, or 1)
      */
     public int compareTo(GenericEntity obj) {
         // if null, it will push to the beginning
@@ -906,7 +967,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             if (thisVal == null) {
                 if (thatVal == null)
                     tempResult = 0;
-                // if thisVal is null, but thatVal is not, return 1 to put this earlier in the list
+                    // if thisVal is null, but thatVal is not, return 1 to put this earlier in the list
                 else
                     tempResult = 1;
             } else {
@@ -930,7 +991,7 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
             if (thisVal == null) {
                 if (thatVal == null)
                     tempResult = 0;
-                // if thisVal is null, but thatVal is not, return 1 to put this earlier in the list
+                    // if thisVal is null, but thatVal is not, return 1 to put this earlier in the list
                 else
                     tempResult = 1;
             } else {
@@ -947,8 +1008,10 @@ public class GenericEntity extends Observable implements Map<String, Object>, Se
         return tempResult;
     }
 
-    /** Clones this GenericEntity, this is a shallow clone & uses the default shallow HashMap clone
-     *@return Object that is a clone of this GenericEntity
+    /**
+     * Clones this GenericEntity, this is a shallow clone & uses the default shallow HashMap clone
+     *
+     * @return Object that is a clone of this GenericEntity
      */
     public Object clone() {
         GenericEntity newEntity = new GenericEntity(this);

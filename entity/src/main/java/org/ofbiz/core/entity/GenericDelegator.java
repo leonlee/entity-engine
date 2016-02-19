@@ -60,7 +60,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.ofbiz.core.entity.EntityOperator.*;
+import static org.ofbiz.core.entity.EntityOperator.AND;
+import static org.ofbiz.core.entity.EntityOperator.LIKE;
+import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.config.EntityConfigUtil.DelegatorInfo;
 
 /**
@@ -1183,8 +1185,8 @@ public class GenericDelegator implements DelegatorInterface {
      * @param orderBy         The fields of the named entity to order the query by;
      *                        optionally add " ASC" for ascending or " DESC" for descending
      * @return EntityListIterator representing the result of the query: NOTE
-     *         THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
-     *         OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     public EntityListIterator findListIteratorByCondition(
             final String entityName, final EntityCondition entityCondition, final Collection<String> fieldsToSelect,
@@ -1214,8 +1216,8 @@ public class GenericDelegator implements DelegatorInterface {
      *                              advanced query options. See the EntityFindOptions JavaDoc for more
      *                              details.
      * @return EntityListIterator representing the result of the query: NOTE
-     *         THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
-     *         OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     * THAT THIS MUST BE CLOSED WHEN YOU ARE DONE WITH IT, AND DON'T LEAVE IT
+     * OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      * @see EntityCondition
      */
     public EntityListIterator findListIteratorByCondition(
@@ -2528,8 +2530,7 @@ public class GenericDelegator implements DelegatorInterface {
         return transformedEntities;
     }
 
-    private static void checkIfLocked()
-    {
+    private static void checkIfLocked() {
         if (isLocked()) {
             throw new UnsupportedOperationException(MESSAGE);
         }

@@ -44,22 +44,20 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 /**
  * JotmFactory - Central source for JOTM JDBC Objects
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.1
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.1
  */
 public class JotmConnectionFactory {
-        
-    public static final String module = JotmConnectionFactory.class.getName();                
-        
+
+    public static final String module = JotmConnectionFactory.class.getName();
+
     protected static Map<String, StandardXAPoolDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
-    public static synchronized void removeDatasource(String helperName)
-    {
+    public static synchronized void removeDatasource(String helperName) {
         StandardXAPoolDataSource pds = dsCache.get(helperName);
-        if (pds != null)
-        {
+        if (pds != null) {
             pds.shutdown(true);
             dsCache.remove(helperName);
         }
@@ -68,38 +66,37 @@ public class JotmConnectionFactory {
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
         StandardXAPoolDataSource pds = dsCache.get(helperName);
-        if (pds != null) {                      
+        if (pds != null) {
             if (Debug.verboseOn()) Debug.logInfo(helperName + " pool size: " + pds.pool.getCount(), module);
             //return TransactionUtil.enlistConnection(ds.getXAConnection());
             //return ds.getXAConnection().getConnection();
 
             return trackConnection(helperName, pds);
         }
-        
-        synchronized (JotmConnectionFactory.class) {            
+
+        synchronized (JotmConnectionFactory.class) {
             pds = dsCache.get(helperName);
-            if (pds != null) {              
+            if (pds != null) {
                 //return TransactionUtil.enlistConnection(ds.getXAConnection());
                 //return ds.getXAConnection().getConnection();
                 return trackConnection(helperName, pds);
             }
-              
-            StandardXADataSource ds;          
-            try {            
-                ds =  new StandardXADataSource();
+
+            StandardXADataSource ds;
+            try {
+                ds = new StandardXADataSource();
                 pds = new StandardXAPoolDataSource();
-            } catch (NoClassDefFoundError e) {                
-                throw new GenericEntityException("Cannot find enhydra-jdbc.jar");                       
+            } catch (NoClassDefFoundError e) {
+                throw new GenericEntityException("Cannot find enhydra-jdbc.jar");
             }
             ds.setDriverName(jdbcDatasource.getDriverClassName());
             ds.setUrl(jdbcDatasource.getUri());
             ds.setUser(jdbcDatasource.getUsername());
             ds.setPassword(jdbcDatasource.getPassword());
-            ds.setDescription(helperName);  
+            ds.setDescription(helperName);
             ds.setTransactionManager(TransactionFactory.getTransactionManager());
             String transIso = jdbcDatasource.getIsolationLevel();
-            if (isNotEmpty(transIso))
-            {
+            if (isNotEmpty(transIso)) {
                 ds.setTransactionIsolation(TransactionIsolations.fromString(transIso));
             }
             // set the datasource in the pool
@@ -111,8 +108,7 @@ public class JotmConnectionFactory {
             pds.setTransactionManager(TransactionFactory.getTransactionManager());
             // configure the pool settings
             ConnectionPoolInfo poolInfo = jdbcDatasource.getConnectionPoolInfo();
-            try
-            {
+            try {
                 pds.setMaxSize(poolInfo.getMaxSize());
                 pds.setMinSize(poolInfo.getMinSize());
                 pds.setSleepTime(poolInfo.getSleepTime());
@@ -120,9 +116,7 @@ public class JotmConnectionFactory {
                 pds.setDeadLockMaxWait(poolInfo.getDeadLockMaxWait());
                 pds.setDeadLockRetryWait(poolInfo.getDeadLockRetryWait());
                 pds.setJdbcTestStmt(poolInfo.getValidationQuery());
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Debug.logError(e, "Problems with pool settings: " + poolInfo, module);
             }
             // TODO: set the test statement to test connections
@@ -130,21 +124,18 @@ public class JotmConnectionFactory {
             // cache the pool
             dsCache.put(helperName, pds);
 
-            trackerCache.put(helperName,new ConnectionTracker(poolInfo));
-                                            
+            trackerCache.put(helperName, new ConnectionTracker(poolInfo));
+
             //return TransactionUtil.enlistConnection(ds.getXAConnection());
             //return ds.getXAConnection().getConnection();
             return trackConnection(helperName, pds);
-        }                
+        }
     }
 
-    private static Connection trackConnection(String helperName, final StandardXAPoolDataSource pds)
-    {
+    private static Connection trackConnection(String helperName, final StandardXAPoolDataSource pds) {
         final ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return pds.getConnection();
             }
         });

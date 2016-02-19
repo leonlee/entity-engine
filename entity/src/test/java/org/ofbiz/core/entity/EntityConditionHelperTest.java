@@ -23,12 +23,18 @@ public class EntityConditionHelperTest {
 
     public static final EntityCondition EMPTY_FIELD_MAP = new EntityFieldMap(Collections.<String, Object>emptyMap(), EntityOperator.BETWEEN);
 
-    @Mock Predicate<EntityExpr> predicate;
-    @Mock EntityExpr entityExpr;
-    @Mock EntityExpr entityExprTransformed;
-    @Mock EntityExpr entityExpr2;
-    @Mock EntityExpr entityExprTransformed2;
-    @Mock Function<EntityExpr, EntityCondition> function;
+    @Mock
+    Predicate<EntityExpr> predicate;
+    @Mock
+    EntityExpr entityExpr;
+    @Mock
+    EntityExpr entityExprTransformed;
+    @Mock
+    EntityExpr entityExpr2;
+    @Mock
+    EntityExpr entityExprTransformed2;
+    @Mock
+    Function<EntityExpr, EntityCondition> function;
 
     @Before
     public void setUp() throws Exception {
@@ -45,7 +51,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testTransformsSingleExpr() throws Exception {
-        assertThat(EntityConditionHelper.transformCondition(entityExpr, function), equalTo((EntityCondition)entityExprTransformed));
+        assertThat(EntityConditionHelper.transformCondition(entityExpr, function), equalTo((EntityCondition) entityExprTransformed));
     }
 
     @Test

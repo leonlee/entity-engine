@@ -24,22 +24,23 @@
  */
 package org.ofbiz.core.entity;
 
-import java.io.*;
+import org.ofbiz.core.entity.model.ModelField;
 
-import org.ofbiz.core.entity.model.*;
+import java.io.Serializable;
 
 /**
  * Represents a single parameter to be used in the preparedStatement
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityConditionParam implements Serializable {
     protected ModelField modelField;
     protected Object fieldValue;
 
-    protected EntityConditionParam() {}
+    protected EntityConditionParam() {
+    }
 
     public EntityConditionParam(ModelField modelField, Object fieldValue) {
         if (modelField == null) {

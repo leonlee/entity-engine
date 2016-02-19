@@ -37,15 +37,21 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Generic Entity - Entity Definition Reader
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelReader {
 
@@ -61,13 +67,19 @@ public class ModelReader {
 
     protected String modelName;
 
-    /** collection of filenames for entity definitions */
+    /**
+     * collection of filenames for entity definitions
+     */
     protected Collection<ResourceHandler> entityResourceHandlers;
 
-    /** contains a collection of entity names for each ResourceHandler, populated as they are loaded */
+    /**
+     * contains a collection of entity names for each ResourceHandler, populated as they are loaded
+     */
     protected Map<ResourceHandler, Collection<String>> resourceHandlerEntities;
 
-    /** for each entity contains a map to the ResourceHandler that the entity came from */
+    /**
+     * for each entity contains a map to the ResourceHandler that the entity came from
+     */
     protected Map<String, ResourceHandler> entityResourceHandlerMap;
 
     public static ModelReader getModelReader(String delegatorName) throws GenericEntityException {
@@ -238,16 +250,17 @@ public class ModelReader {
                     }
 
                     Debug.log("FINISHED LOADING ENTITIES - ALL FILES; #Entities=" + numEntities + " #ViewEntities=" +
-                        numViewEntities + " #Fields=" + numFields + " #Relationships=" + numRelations, module);
+                            numViewEntities + " #Fields=" + numFields + " #Relationships=" + numRelations, module);
                 }
             }
         }
         return entityCache;
     }
 
-    /** rebuilds the resourceHandlerEntities Map of Collections based on the current
-     *  entityResourceHandlerMap Map, must be done whenever a manual change is made to the
-     *  entityResourceHandlerMap Map after the initial load to make them consistent again.
+    /**
+     * rebuilds the resourceHandlerEntities Map of Collections based on the current
+     * entityResourceHandlerMap Map, must be done whenever a manual change is made to the
+     * entityResourceHandlerMap Map after the initial load to make them consistent again.
      */
     public void rebuildResourceHandlerEntities() {
         resourceHandlerEntities = new HashMap<ResourceHandler, Collection<String>>();
@@ -282,7 +295,9 @@ public class ModelReader {
         return entityResourceHandlerMap.get(entityName);
     }
 
-    /** Gets an Entity object based on a definition from the specified XML Entity descriptor file.
+    /**
+     * Gets an Entity object based on a definition from the specified XML Entity descriptor file.
+     *
      * @param entityName The entityName of the Entity definition to use.
      * @return An Entity object describing the specified entity of the specified descriptor file.
      */
@@ -301,7 +316,9 @@ public class ModelReader {
         return modelEntity;
     }
 
-    /** Creates a Iterator with the entityName of each Entity defined in the specified XML Entity Descriptor file.
+    /**
+     * Creates a Iterator with the entityName of each Entity defined in the specified XML Entity Descriptor file.
+     *
      * @return A Iterator of entityName Strings
      */
     public Iterator<String> getEntityNamesIterator() throws GenericEntityException {
@@ -314,7 +331,9 @@ public class ModelReader {
         }
     }
 
-    /** Creates a Collection with the entityName of each Entity defined in the specified XML Entity Descriptor file.
+    /**
+     * Creates a Collection with the entityName of each Entity defined in the specified XML Entity Descriptor file.
+     *
      * @return A Collection of entityName Strings
      */
     public Collection<String> getEntityNames() throws GenericEntityException {

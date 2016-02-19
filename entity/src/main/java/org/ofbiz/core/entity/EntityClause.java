@@ -32,10 +32,10 @@ import org.ofbiz.core.entity.model.ModelReader;
 /**
  * Generic Entity Clause - Used to string together entities to make a find clause
  *
- *@author     <a href='mailto:chris_maurer@altavista.com'>Chris Maurer</a>
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@created    Mon Nov 5, 2001
- *@version    1.0
+ * @author <a href='mailto:chris_maurer@altavista.com'>Chris Maurer</a>
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
+ * @created Mon Nov 5, 2001
  */
 public class EntityClause {
 
@@ -50,7 +50,9 @@ public class EntityClause {
 
     private boolean useValueForSecondEntity = false;
     private Object value = null;
-    public EntityClause() {}
+
+    public EntityClause() {
+    }
 
     public EntityClause(String firstEntity, String secondEntity, String firstField, String secondField, EntityOperator interFieldOperation, EntityOperator intraFieldOperation) {
         this.firstEntity = firstEntity;

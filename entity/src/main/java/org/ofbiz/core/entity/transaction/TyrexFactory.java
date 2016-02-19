@@ -23,25 +23,30 @@
  */
 package org.ofbiz.core.entity.transaction;
 
-import java.net.*;
-import java.sql.*;
-import javax.sql.*;
-import javax.transaction.*;
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.UtilURL;
+import org.ofbiz.core.util.UtilValidate;
 import org.w3c.dom.Element;
+import tyrex.resource.Resources;
+import tyrex.tm.TransactionDomain;
 
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.*;
-import org.ofbiz.core.util.*;
-
-import tyrex.tm.*;
-import tyrex.resource.*;
+import javax.sql.DataSource;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+import java.net.URL;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * TyrexTransactionFactory - central source for Tyrex JTA objects
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class TyrexFactory implements TransactionFactoryInterface {
 
@@ -135,11 +140,11 @@ public class TyrexFactory implements TransactionFactoryInterface {
             return null;
         }
     }
-    
+
     public String getTxMgrName() {
         return "tyrex";
     }
-    
+
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
@@ -151,7 +156,7 @@ public class TyrexFactory implements TransactionFactoryInterface {
             } catch (Exception ex) {
                 Debug.logError(ex, "Tyrex is the configured transaction manager but there was an error getting a database Connection through Tyrex for the " + helperName + " datasource. Please check your configuration, class path, etc.");
             }
-        
+
             Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
             return otherCon;
         } else if (datasourceInfo.getTyrexDataSourceElement() != null) {
@@ -198,8 +203,7 @@ public class TyrexFactory implements TransactionFactoryInterface {
         }
     }
 
-    public void removeDatasource(final String helperName)
-    {
+    public void removeDatasource(final String helperName) {
         // We'll never support tyrex, so I'm not gonna bother shutting it down....
     }
 }

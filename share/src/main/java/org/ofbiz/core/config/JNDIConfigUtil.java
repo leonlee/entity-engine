@@ -37,9 +37,9 @@ import java.util.Map;
 /**
  * JNDIConfigUtil
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class JNDIConfigUtil {
 
@@ -69,6 +69,7 @@ public class JNDIConfigUtil {
             Debug.logError(e, "Error loading JNDI config XML file " + JNDI_CONFIG_XML_FILENAME);
         }
     }
+
     public static void initialize(Element rootElement) throws GenericConfigException {
         List<Element> childElements = null;
         Iterator<Element> elementIter = null;

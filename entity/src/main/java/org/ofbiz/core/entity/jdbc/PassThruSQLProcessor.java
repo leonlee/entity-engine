@@ -10,10 +10,8 @@ import java.sql.Connection;
  *
  * This class is used to "clearly document" the mode the SQLProcessor is in
  */
-public class PassThruSQLProcessor extends SQLProcessor
-{
-    public PassThruSQLProcessor(String helperName, Connection connection)
-    {
+public class PassThruSQLProcessor extends SQLProcessor {
+    public PassThruSQLProcessor(String helperName, Connection connection) {
         super(helperName, connection);
     }
 }

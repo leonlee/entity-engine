@@ -59,13 +59,13 @@ import java.util.TreeSet;
 /**
  * GenericDAO Utility methods for general tasks
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @author     <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
- * @author     <a href="mailto:peterm@miraculum.com">Peter Moon</a>
- * @version    $Revision: 1.2 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:chris_maurer@altavista.com">Chris Maurer</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @author <a href="mailto:jdonnerstag@eds.de">Juergen Donnerstag</a>
+ * @author <a href="mailto:peterm@miraculum.com">Peter Moon</a>
+ * @version $Revision: 1.2 $
+ * @since 2.0
  */
 public class SqlJdbcUtil {
 
@@ -83,13 +83,14 @@ public class SqlJdbcUtil {
     public static boolean isBoolean(final String fieldType) {
         try {
             return getType(fieldType) == BOOLEAN;
-        }
-        catch (GenericNotImplementedException e) {
+        } catch (GenericNotImplementedException e) {
             throw new UnsupportedOperationException(e);
         }
     }
 
-    /** Makes the FROM clause and when necessary the JOIN clause(s) as well */
+    /**
+     * Makes the FROM clause and when necessary the JOIN clause(s) as well
+     */
     public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
         StringBuilder sql = new StringBuilder(" FROM ");
 
@@ -210,15 +211,15 @@ public class SqlJdbcUtil {
 
                 sql.append(openParens.toString());
                 sql.append(restOfStatement.toString());
-                
+
                 // handle tables not included in view-link
                 Iterator<? extends Map.Entry<String, ?>> meIter = modelViewEntity.getMemberModelMemberEntities().entrySet().iterator();
                 boolean fromEmpty = restOfStatement.length() == 0;
-                
+
                 while (meIter.hasNext()) {
                     Map.Entry<String, ?> entry = meIter.next();
                     ModelEntity fromEntity = modelViewEntity.getMemberModelEntity(entry.getKey());
-                    
+
                     if (!joinedAliasSet.contains(entry.getKey())) {
                         if (!fromEmpty) sql.append(", ");
                         fromEmpty = false;
@@ -260,28 +261,24 @@ public class SqlJdbcUtil {
      *
      * @param modelFields the fields to include in the WHERE string (can be null)
      * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
-     * @param operator the operator to insert between each column condition in the returned WHERE string (typically
-     * "AND" or "OR")
+     * @param operator    the operator to insert between each column condition in the returned WHERE string (typically
+     *                    "AND" or "OR")
      * @return an empty string if the given list of fields is null or empty, otherwise a string like
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(
-            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator)
-    {
+            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator) {
         return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
     }
 
-    public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues)
-    {
-        if (modelFields == null || modelFields.isEmpty())
-        {
+    public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues) {
+        if (modelFields == null || modelFields.isEmpty()) {
             return 0;
         }
 
         int parameterCount = 0;
 
-        for (ModelField modelField : modelFields)
-        {
+        for (ModelField modelField : modelFields) {
             final Object fieldValue = fieldValues.get(modelField.getName());
             if (fieldValue != null) //null fieldValue -> ... IS NULL
             {
@@ -296,17 +293,16 @@ public class SqlJdbcUtil {
      * Makes a WHERE clause String with "<col name>=?" if not null or "<col name> IS NULL" if null, all separated by the
      * given operator.
      *
-     * @param modelFields the fields to include in the WHERE string (can be null)
-     * @param fieldValues any field values to be checked against non-null values; keys are field (not column) names
-     * @param operator the operator to insert between each column
-     * condition in the returned WHERE string (typically "AND" or "OR")
+     * @param modelFields           the fields to include in the WHERE string (can be null)
+     * @param fieldValues           any field values to be checked against non-null values; keys are field (not column) names
+     * @param operator              the operator to insert between each column
+     *                              condition in the returned WHERE string (typically "AND" or "OR")
      * @param entityConditionParams if not null, an element will be added to this list
      * @return an empty string if the given list of fieldValues is null or empty, otherwise a string like
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues,
-            final String operator, final List<? super EntityConditionParam> entityConditionParams)
-    {
+                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams) {
         if (modelFields == null || modelFields.isEmpty()) {
             return "";
         }
@@ -381,7 +377,7 @@ public class SqlJdbcUtil {
 
                     ModelEntity linkEntity = modelViewEntity.getMemberModelEntity(viewLink.getEntityAlias());
                     ModelEntity relLinkEntity = modelViewEntity.getMemberModelEntity(viewLink.getRelEntityAlias());
-                    
+
                     if (linkEntity == null) {
                         throw new GenericEntityException("Link entity not found with alias: " + viewLink.getEntityAlias() + " for entity: " + modelViewEntity.getEntityName());
                     }
@@ -425,7 +421,7 @@ public class SqlJdbcUtil {
                         whereString.append(viewLink.getRelEntityAlias());
                         whereString.append(".");
                         whereString.append(filterColName(relLinkField.getColName()));
-                   }
+                    }
                 }
             } else {
                 throw new GenericModelException("The join-style " + joinStyle + " is not yet supported");
@@ -515,13 +511,13 @@ public class SqlJdbcUtil {
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo));
             sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
-            ModelViewEntity modelViewEntity = (ModelViewEntity)modelEntity;
+            ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
             String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
             if (UtilValidate.isNotEmpty(groupByString)) {
                 sql.append(" GROUP BY ");
                 sql.append(groupByString);
             }
-            
+
             sql.append(")");
             return sql.toString();
         } else {
@@ -530,7 +526,7 @@ public class SqlJdbcUtil {
     }
 
     public static String filterColName(String colName) {
-        return colName.replace('.', '_').replace('(','_').replace(')','_');
+        return colName.replace('.', '_').replace('(', '_').replace(')', '_');
     }
 
     /* ====================================================================== */
@@ -538,8 +534,8 @@ public class SqlJdbcUtil {
     /* ====================================================================== */
 
     /**
-     *  The elements (ModelFields) of the list are bound to an SQL statement
-     *  (SQL-Processor)
+     * The elements (ModelFields) of the list are bound to an SQL statement
+     * (SQL-Processor)
      *
      * @param sqlP
      * @param list
@@ -548,17 +544,16 @@ public class SqlJdbcUtil {
      * @throws GenericEntityException
      */
     public static void setValues(final SQLProcessor sqlP, final List<ModelField> list, final GenericEntity entity,
-            final ModelFieldTypeReader modelFieldTypeReader)
-        throws GenericEntityException
-    {
+                                 final ModelFieldTypeReader modelFieldTypeReader)
+            throws GenericEntityException {
         for (final ModelField curField : list) {
             setValue(sqlP, curField, entity, modelFieldTypeReader);
         }
     }
 
     /**
-     *  The elements (ModelFields) of the list are bound to an SQL statement
-     *  (SQL-Processor), but values must not be null.
+     * The elements (ModelFields) of the list are bound to an SQL statement
+     * (SQL-Processor), but values must not be null.
      *
      * @param sqlP
      * @param list
@@ -567,9 +562,8 @@ public class SqlJdbcUtil {
      * @throws GenericEntityException
      */
     public static void setValuesWhereClause(final SQLProcessor sqlP, final List<ModelField> list,
-            final GenericValue dummyValue, final ModelFieldTypeReader modelFieldTypeReader)
-        throws GenericEntityException
-    {
+                                            final GenericValue dummyValue, final ModelFieldTypeReader modelFieldTypeReader)
+            throws GenericEntityException {
         for (final ModelField curField : list) {
             // for where clause variables only setValue if not null...
             if (dummyValue.get(curField.getName()) != null) {
@@ -579,8 +573,8 @@ public class SqlJdbcUtil {
     }
 
     /**
-     *  Get all primary keys from the model entity and bind their values
-     *  to the an SQL statement (SQL-Processor)
+     * Get all primary keys from the model entity and bind their values
+     * to the an SQL statement (SQL-Processor)
      *
      * @param sqlP
      * @param modelEntity
@@ -614,114 +608,108 @@ public class SqlJdbcUtil {
 
             if (typeValue <= 4 || typeValue == 10 || typeValue == 11) {
                 switch (typeValue) {
-                case 1:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getString(ind));
-                    break;
+                    case 1:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getString(ind));
+                        break;
 
-                case 2:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getTimestamp(ind));
-                    break;
+                    case 2:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getTimestamp(ind));
+                        break;
 
-                case 3:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getTime(ind));
-                    break;
+                    case 3:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getTime(ind));
+                        break;
 
-                case 4:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getDate(ind));
-                    break;
+                    case 4:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getDate(ind));
+                        break;
 
-                case 10:
-                    InputStream binaryInput = null;
-                    Object obj = null;
-                    // add support for Postgresql BYTEA datatypes and SQL Server IMAGE
-                    if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType()))
-                    {
-                        byte[] bytes = rs.getBytes(ind);
-                        if (bytes != null && bytes.length > 0)
-                        {
-                            binaryInput = new ByteArrayInputStream(bytes);
+                    case 10:
+                        InputStream binaryInput = null;
+                        Object obj = null;
+                        // add support for Postgresql BYTEA datatypes and SQL Server IMAGE
+                        if ("BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType())) {
+                            byte[] bytes = rs.getBytes(ind);
+                            if (bytes != null && bytes.length > 0) {
+                                binaryInput = new ByteArrayInputStream(bytes);
+                            }
+                        } else {
+                            Blob blobLocator = rs.getBlob(ind);
+                            if (blobLocator != null && blobLocator.length() > 0) {
+                                binaryInput = blobLocator.getBinaryStream();
+                            }
                         }
-                    }
-                    else
-                    {
-                        Blob blobLocator = rs.getBlob(ind);
-                        if (blobLocator != null && blobLocator.length() > 0)
-                        {
-                            binaryInput = blobLocator.getBinaryStream();
+                        if (null != binaryInput) {
+                            try {
+                                ObjectInputStream in = new ObjectInputStream(binaryInput);
+                                obj = in.readObject();
+                                in.close();
+                            } catch (IOException ex) {
+                                throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
+                            } catch (ClassNotFoundException ex) {
+                                throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
+                            }
                         }
-                    }
-                    if (null != binaryInput)
-                    {
-                        try {
-                            ObjectInputStream in = new ObjectInputStream(binaryInput);
-                            obj = in.readObject();
-                            in.close();
-                        } catch (IOException ex) {
-                            throw new GenericDataSourceException("Unable to read BLOB data from input stream: ", ex);
-                        } catch (ClassNotFoundException ex) {
-                            throw new GenericDataSourceException("Class not found: Unable to cast BLOB data to a Java object: ", ex);
-                        }
-                    }
-                    entity.dangerousSetNoCheckButFast(curField, obj);
-                    break;
-                case 11:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
-                    break;
-                case 12:
-                    entity.dangerousSetNoCheckButFast(curField, rs.getClob(ind));
-                    break;
+                        entity.dangerousSetNoCheckButFast(curField, obj);
+                        break;
+                    case 11:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getBlob(ind));
+                        break;
+                    case 12:
+                        entity.dangerousSetNoCheckButFast(curField, rs.getClob(ind));
+                        break;
                 }
             } else {
                 switch (typeValue) {
-                case 5:
-                    int intValue = rs.getInt(ind);
+                    case 5:
+                        int intValue = rs.getInt(ind);
 
-                    if (rs.wasNull()) {
-                        entity.dangerousSetNoCheckButFast(curField, null);
-                    } else {
-                        entity.dangerousSetNoCheckButFast(curField, intValue);
-                    }
-                    break;
+                        if (rs.wasNull()) {
+                            entity.dangerousSetNoCheckButFast(curField, null);
+                        } else {
+                            entity.dangerousSetNoCheckButFast(curField, intValue);
+                        }
+                        break;
 
-                case 6:
-                    long longValue = rs.getLong(ind);
+                    case 6:
+                        long longValue = rs.getLong(ind);
 
-                    if (rs.wasNull()) {
-                        entity.dangerousSetNoCheckButFast(curField, null);
-                    } else {
-                        entity.dangerousSetNoCheckButFast(curField, longValue);
-                    }
-                    break;
+                        if (rs.wasNull()) {
+                            entity.dangerousSetNoCheckButFast(curField, null);
+                        } else {
+                            entity.dangerousSetNoCheckButFast(curField, longValue);
+                        }
+                        break;
 
-                case 7:
-                    float floatValue = rs.getFloat(ind);
+                    case 7:
+                        float floatValue = rs.getFloat(ind);
 
-                    if (rs.wasNull()) {
-                        entity.dangerousSetNoCheckButFast(curField, null);
-                    } else {
-                        entity.dangerousSetNoCheckButFast(curField, floatValue);
-                    }
-                    break;
+                        if (rs.wasNull()) {
+                            entity.dangerousSetNoCheckButFast(curField, null);
+                        } else {
+                            entity.dangerousSetNoCheckButFast(curField, floatValue);
+                        }
+                        break;
 
-                case 8:
-                    double doubleValue = rs.getDouble(ind);
+                    case 8:
+                        double doubleValue = rs.getDouble(ind);
 
-                    if (rs.wasNull()) {
-                        entity.dangerousSetNoCheckButFast(curField, null);
-                    } else {
-                        entity.dangerousSetNoCheckButFast(curField, doubleValue);
-                    }
-                    break;
+                        if (rs.wasNull()) {
+                            entity.dangerousSetNoCheckButFast(curField, null);
+                        } else {
+                            entity.dangerousSetNoCheckButFast(curField, doubleValue);
+                        }
+                        break;
 
-                case BOOLEAN:
-                    boolean booleanValue = rs.getBoolean(ind);
+                    case BOOLEAN:
+                        boolean booleanValue = rs.getBoolean(ind);
 
-                    if (rs.wasNull()) {
-                        entity.dangerousSetNoCheckButFast(curField, null);
-                    } else {
-                        entity.dangerousSetNoCheckButFast(curField, booleanValue);
-                    }
-                    break;
+                        if (rs.wasNull()) {
+                            entity.dangerousSetNoCheckButFast(curField, null);
+                        } else {
+                            entity.dangerousSetNoCheckButFast(curField, booleanValue);
+                        }
+                        break;
                 }
             }
         } catch (SQLException sqle) {
@@ -766,79 +754,73 @@ public class SqlJdbcUtil {
             int typeValue = getType(fieldType);
 
             switch (typeValue) {
-            case 1:
-                sqlP.setValue((String) fieldValue);
-                break;
+                case 1:
+                    sqlP.setValue((String) fieldValue);
+                    break;
 
-            case 2:
-                sqlP.setValue((java.sql.Timestamp) fieldValue);
-                break;
+                case 2:
+                    sqlP.setValue((java.sql.Timestamp) fieldValue);
+                    break;
 
-            case 3:
-                sqlP.setValue((java.sql.Time) fieldValue);
-                break;
+                case 3:
+                    sqlP.setValue((java.sql.Time) fieldValue);
+                    break;
 
-            case 4:
-                sqlP.setValue((java.sql.Date) fieldValue);
-                break;
+                case 4:
+                    sqlP.setValue((java.sql.Date) fieldValue);
+                    break;
 
-            case 5:
-                sqlP.setValue((java.lang.Integer) fieldValue);
-                break;
+                case 5:
+                    sqlP.setValue((java.lang.Integer) fieldValue);
+                    break;
 
-            case 6:
-                sqlP.setValue((java.lang.Long) fieldValue);
-                break;
+                case 6:
+                    sqlP.setValue((java.lang.Long) fieldValue);
+                    break;
 
-            case 7:
-                sqlP.setValue((java.lang.Float) fieldValue);
-                break;
+                case 7:
+                    sqlP.setValue((java.lang.Float) fieldValue);
+                    break;
 
-            case 8:
-                sqlP.setValue((java.lang.Double) fieldValue);
-                break;
+                case 8:
+                    sqlP.setValue((java.lang.Double) fieldValue);
+                    break;
 
-            case BOOLEAN:
-                sqlP.setValue((java.lang.Boolean) fieldValue);
-                break;
+                case BOOLEAN:
+                    sqlP.setValue((java.lang.Boolean) fieldValue);
+                    break;
 
-            case 10:
-                if (isByteArrayType(mft))
-                {
-                    sqlP.setByteArrayData(fieldValue);
-                }
-                else
-                {
-                    sqlP.setBinaryStream(fieldValue);
-                }
-                break;
-                
-            case 11:
-                if (fieldValue == null && isByteArrayType(mft))
-                {
-                    sqlP.setByteArrayData(null);
-                }
-                else
-                {
-                    sqlP.setValue((Blob)fieldValue);
-                }
-                break;
-            
-            case 12:
-                sqlP.setValue((java.sql.Clob) fieldValue);
-                break;
+                case 10:
+                    if (isByteArrayType(mft)) {
+                        sqlP.setByteArrayData(fieldValue);
+                    } else {
+                        sqlP.setBinaryStream(fieldValue);
+                    }
+                    break;
+
+                case 11:
+                    if (fieldValue == null && isByteArrayType(mft)) {
+                        sqlP.setByteArrayData(null);
+                    } else {
+                        sqlP.setValue((Blob) fieldValue);
+                    }
+                    break;
+
+                case 12:
+                    sqlP.setValue((java.sql.Clob) fieldValue);
+                    break;
             }
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while setting value: ", sqle);
         }
     }
 
-    private static boolean isByteArrayType(ModelFieldType mft)
-    {
+    private static boolean isByteArrayType(ModelFieldType mft) {
         return "BYTEA".equals(mft.getSqlType()) || "IMAGE".equals(mft.getSqlType());
     }
 
     protected static HashMap<String, Integer> fieldTypeMap = new HashMap<String, Integer>();
+
     static {
         fieldTypeMap.put("java.lang.String", 1);
         fieldTypeMap.put("String", 1);

@@ -23,19 +23,20 @@
  */
 package org.ofbiz.core.entity.transaction;
 
-import java.util.*;
-import java.sql.*;
-import java.util.concurrent.Callable;
-
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-
-import org.ofbiz.core.entity.*;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.TransactionUtil;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.Debug;
+import tyrex.resource.jdbc.xa.EnabledDataSource;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 // For Tyrex 0.9.8.5
-import tyrex.resource.jdbc.xa.*;
 
 // For Tyrex 0.9.7.0
 // import tyrex.jdbc.xa.*;
@@ -47,30 +48,25 @@ import tyrex.resource.jdbc.xa.*;
  * @version $Revision: 1.1 $
  * @since 2.0
  */
-public class TyrexConnectionFactory
-{
+public class TyrexConnectionFactory {
 
     protected static Map<String, EnabledDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
 
     public static Connection getConnection(String helperName, JdbcDatasourceInfo jdbcDatasource)
-            throws SQLException, GenericEntityException
-    {
+            throws SQLException, GenericEntityException {
         EnabledDataSource ds;
 
         // try once
         ds = dsCache.get(helperName);
-        if (ds != null)
-        {
+        if (ds != null) {
             return trackConnection(helperName, ds);
         }
 
-        synchronized (TyrexConnectionFactory.class)
-        {
+        synchronized (TyrexConnectionFactory.class) {
             // try again inside the synch just in case someone when through while we were waiting
             ds = dsCache.get(helperName);
-            if (ds != null)
-            {
+            if (ds != null) {
                 return trackConnection(helperName, ds);
             }
 
@@ -83,28 +79,24 @@ public class TyrexConnectionFactory
 
             String transIso = jdbcDatasource.getIsolationLevel();
 
-            if (transIso != null && transIso.length() > 0)
-            {
+            if (transIso != null && transIso.length() > 0) {
                 ds.setIsolationLevel(transIso);
             }
 
             ds.setLogWriter(Debug.getPrintWriter());
 
             dsCache.put(helperName, ds);
-            trackerCache.put(helperName,new ConnectionTracker());
+            trackerCache.put(helperName, new ConnectionTracker());
 
             return trackConnection(helperName, ds);
         }
 
     }
 
-    private static Connection trackConnection(final String helperName, final EnabledDataSource ds)
-    {
+    private static Connection trackConnection(final String helperName, final EnabledDataSource ds) {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return TransactionUtil.enlistConnection(ds.getXAConnection());
             }
         });

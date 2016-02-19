@@ -8,10 +8,8 @@ package org.ofbiz.core.entity.jdbc;
  * <p/>
  * This class is used to "clearly document" the mode the SQLProcessor is in
  */
-public class ReadOnlySQLProcessor extends SQLProcessor
-{
-    public ReadOnlySQLProcessor(String helperName)
-    {
+public class ReadOnlySQLProcessor extends SQLProcessor {
+    public ReadOnlySQLProcessor(String helperName) {
         super(helperName, CommitMode.READONLY);
     }
 }

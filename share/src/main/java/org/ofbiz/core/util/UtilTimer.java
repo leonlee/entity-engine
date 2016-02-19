@@ -28,9 +28,9 @@ package org.ofbiz.core.util;
  * Utility class for simple reporting of the progress of a process. Steps are labelled, and the time between each label
  * (or message) and the time since the start are reported in each call to timerString.
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class UtilTimer {
 
@@ -40,14 +40,17 @@ public class UtilTimer {
     String lastMessage = null;
     boolean log = false;
 
-    /** Default constructor. Starts the timer.
+    /**
+     * Default constructor. Starts the timer.
      */
     public UtilTimer() {
         lastMessageTime = realStartTime = startTime = System.currentTimeMillis();
         lastMessage = "Begin";
     }
 
-    /** Creates a string with information including the passed message, the last passed message and the time since the last call, and the time since the beginning
+    /**
+     * Creates a string with information including the passed message, the last passed message and the time since the last call, and the time since the beginning
+     *
      * @param message A message to put into the timer String
      * @return A String with the timing information, the timer String
      */
@@ -55,9 +58,11 @@ public class UtilTimer {
         return timerString(message, null);
     }
 
-    /** Creates a string with information including the passed message, the last passed message and the time since the last call, and the time since the beginning
+    /**
+     * Creates a string with information including the passed message, the last passed message and the time since the last call, and the time since the beginning
+     *
      * @param message A message to put into the timer String
-     * @param module The debug/log module/thread to use, can be null for root module
+     * @param module  The debug/log module/thread to use, can be null for root module
      * @return A String with the timing information, the timer String
      */
     public String timerString(String message, String module) {
@@ -65,8 +70,8 @@ public class UtilTimer {
         long tsStart = System.currentTimeMillis();
 
         String retString = "[[" + message + "- total:" + secondsSinceStart() +
-            ",since last(" + ((lastMessage.length() > 20) ? (lastMessage.substring(0, 17) + "...") : lastMessage) + "):" +
-            secondsSinceLast() + "]]";
+                ",since last(" + ((lastMessage.length() > 20) ? (lastMessage.substring(0, 17) + "...") : lastMessage) + "):" +
+                secondsSinceLast() + "]]";
 
         lastMessage = message;
         if (log) Debug.log(Debug.TIMING, null, retString, module, "org.ofbiz.core.util.UtilTimer");
@@ -79,21 +84,27 @@ public class UtilTimer {
         return retString;
     }
 
-    /** Returns the number of seconds since the timer started
+    /**
+     * Returns the number of seconds since the timer started
+     *
      * @return The number of seconds since the timer started
      */
     public double secondsSinceStart() {
         return ((double) timeSinceStart()) / 1000.0;
     }
 
-    /** Returns the number of seconds since the last time timerString was called
+    /**
+     * Returns the number of seconds since the last time timerString was called
+     *
      * @return The number of seconds since the last time timerString was called
      */
     public double secondsSinceLast() {
         return ((double) timeSinceLast()) / 1000.0;
     }
 
-    /** Returns the number of milliseconds since the timer started
+    /**
+     * Returns the number of milliseconds since the timer started
+     *
      * @return The number of milliseconds since the timer started
      */
     public long timeSinceStart() {
@@ -102,7 +113,9 @@ public class UtilTimer {
         return currentTime - startTime;
     }
 
-    /** Returns the number of milliseconds since the last time timerString was called
+    /**
+     * Returns the number of milliseconds since the last time timerString was called
+     *
      * @return The number of milliseconds since the last time timerString was called
      */
     public long timeSinceLast() {
@@ -111,24 +124,30 @@ public class UtilTimer {
         return currentTime - lastMessageTime;
     }
 
-    /** Sets the value of the log member, denoting whether log output is off or not
+    /**
+     * Sets the value of the log member, denoting whether log output is off or not
+     *
      * @param log The new value of log
      */
     public void setLog(boolean log) {
         this.log = log;
     }
 
-    /** Gets the value of the log member, denoting whether log output is off or not
+    /**
+     * Gets the value of the log member, denoting whether log output is off or not
+     *
      * @return The value of log
      */
     public boolean getLog() {
         return log;
     }
 
-    /** Creates a string with information including the passed message, the time since the last call,
+    /**
+     * Creates a string with information including the passed message, the time since the last call,
      * and the time since the beginning.  This version allows an integer level to be specified to
      * improve readability of the output.
-     * @param level Integer specifying how many levels to indent the timer string so the output can be more easily read through nested method calls.
+     *
+     * @param level   Integer specifying how many levels to indent the timer string so the output can be more easily read through nested method calls.
      * @param message A message to put into the timer String
      * @return A String with the timing information, the timer String
      */

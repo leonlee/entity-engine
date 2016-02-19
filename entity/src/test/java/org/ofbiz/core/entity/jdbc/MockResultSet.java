@@ -337,7 +337,7 @@ public class MockResultSet implements ResultSet {
     }
 
     public boolean previous() throws SQLException {
-        index --;
+        index--;
         return index > -1 && !data.isEmpty();
     }
 
@@ -825,13 +825,11 @@ public class MockResultSet implements ResultSet {
     //
     // 1.7 new methods - getting ready for the future ... or is that the past
 
-    public <T> T getObject(final int columnIndex, final Class<T> type) throws SQLException
-    {
+    public <T> T getObject(final int columnIndex, final Class<T> type) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    public <T> T getObject(final String columnLabel, final Class<T> type) throws SQLException
-    {
+    public <T> T getObject(final String columnLabel, final Class<T> type) throws SQLException {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

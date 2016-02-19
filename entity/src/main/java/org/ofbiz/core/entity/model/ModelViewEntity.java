@@ -31,35 +31,53 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class extends ModelEntity and provides additional information appropriate to view entities
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:peterm@miraculum.com">Peter Moon</a>
- * @version    $Revision: 1.2 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:peterm@miraculum.com">Peter Moon</a>
+ * @version $Revision: 1.2 $
+ * @since 2.0
  */
 public class ModelViewEntity extends ModelEntity {
     public static final String module = ModelViewEntity.class.getName();
 
-    /** Contains member-entity alias name definitions: key is alias, value is ModelMemberEntity */
+    /**
+     * Contains member-entity alias name definitions: key is alias, value is ModelMemberEntity
+     */
     protected Map<String, ModelMemberEntity> memberModelMemberEntities = new HashMap<String, ModelMemberEntity>();
 
-    /** A list of all ModelMemberEntity entries; this is mainly used to preserve the original order of member entities from the XML file */
+    /**
+     * A list of all ModelMemberEntity entries; this is mainly used to preserve the original order of member entities from the XML file
+     */
     protected List<ModelMemberEntity> allModelMemberEntities = new LinkedList<ModelMemberEntity>();
 
-    /** Contains member-entity ModelEntities: key is alias, value is ModelEntity; populated with fields */
+    /**
+     * Contains member-entity ModelEntities: key is alias, value is ModelEntity; populated with fields
+     */
     protected Map<String, ModelEntity> memberModelEntities = null;
 
-    /** List of aliases with information in addition to what is in the standard field list */
+    /**
+     * List of aliases with information in addition to what is in the standard field list
+     */
     protected List<ModelAlias> aliases = new ArrayList<ModelAlias>();
 
-    /** List of view links to define how entities are connected (or "joined") */
+    /**
+     * List of view links to define how entities are connected (or "joined")
+     */
     protected List<ModelViewLink> viewLinks = new ArrayList<ModelViewLink>();
 
-    /** A List of the Field objects for the View Entity, one for each GROUP BY field */
+    /**
+     * A List of the Field objects for the View Entity, one for each GROUP BY field
+     */
     protected List<ModelField> groupBys = new ArrayList<ModelField>();
 
     public ModelViewEntity(ModelReader reader, Element entityElement, Element docElement, UtilTimer utilTimer, Hashtable<String, String> docElementValues) {
@@ -145,7 +163,9 @@ public class ModelViewEntity extends ModelEntity {
         this.allModelMemberEntities.remove(modelMemberEntity);
     }
 
-    /** List of aliases with information in addition to what is in the standard field list */
+    /**
+     * List of aliases with information in addition to what is in the standard field list
+     */
     public ModelAlias getAlias(int index) {
         return this.aliases.get(index);
     }
@@ -166,7 +186,9 @@ public class ModelViewEntity extends ModelEntity {
         return new ArrayList<ModelField>(this.groupBys);
     }
 
-    /** List of view links to define how entities are connected (or "joined") */
+    /**
+     * List of view links to define how entities are connected (or "joined")
+     */
     public ModelViewLink getViewLink(int index) {
         return this.viewLinks.get(index);
     }
@@ -322,7 +344,8 @@ public class ModelViewEntity extends ModelEntity {
         // is specified this alias is a calculated value; can be: min, max, sum, avg, count, count-distinct
         protected String function = null;
 
-        protected ModelAlias() {}
+        protected ModelAlias() {
+        }
 
         public ModelAlias(Element aliasElement) {
             this.entityAlias = UtilXml.checkEmpty(aliasElement.getAttribute("entity-alias"));
@@ -380,7 +403,8 @@ public class ModelViewEntity extends ModelEntity {
         protected boolean relOptional = false;
         protected List<ModelKeyMap> keyMaps = new ArrayList<ModelKeyMap>();
 
-        protected ModelViewLink() {}
+        protected ModelViewLink() {
+        }
 
         public ModelViewLink(Element viewLinkElement) {
             this.entityAlias = UtilXml.checkEmpty(viewLinkElement.getAttribute("entity-alias"));

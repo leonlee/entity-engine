@@ -26,40 +26,33 @@ public class LoggingSQLInterceptorFactory implements SQLInterceptorFactory {
     private static final String ON_EXCEPTION_TEMPLATE = "Error executing '%s'\n... error = %s";
 
     @Override
-    public SQLInterceptor newSQLInterceptor(final String ofbizHelperName)
-    {
-        return new SQLConnectionInterceptor()
-        {
+    public SQLInterceptor newSQLInterceptor(final String ofbizHelperName) {
+        return new SQLConnectionInterceptor() {
             @Override
             public void beforeExecution(final String sqlString, final List<String> parameterValues,
-                    final Statement statement)
-            {
+                                        final Statement statement) {
                 LOGGER.debug(String.format(BEFORE_TEMPLATE, sqlString, parameterValues));
             }
 
             @Override
             public void afterSuccessfulExecution(final String sqlString, final List<String> parameterValues,
-                    final Statement statement, final ResultSet resultSet, final int rowsUpdated)
-            {
+                                                 final Statement statement, final ResultSet resultSet, final int rowsUpdated) {
                 LOGGER.debug(String.format(AFTER_SUCCESS_TEMPLATE, sqlString, rowsUpdated));
             }
 
             @Override
             public void onException(final String sqlString, final List<String> parameterValues,
-                    final Statement statement, final SQLException sqlException)
-            {
+                                    final Statement statement, final SQLException sqlException) {
                 LOGGER.debug(String.format(ON_EXCEPTION_TEMPLATE, sqlString, sqlException));
             }
 
             @Override
-            public void onConnectionTaken(final Connection connection, final ConnectionPoolState connectionPoolState)
-            {
+            public void onConnectionTaken(final Connection connection, final ConnectionPoolState connectionPoolState) {
                 LOGGER.debug(String.format(CONNECTION_TAKEN_TEMPLATE, connection, connectionPoolState));
             }
 
             @Override
-            public void onConnectionReplaced(final Connection connection, final ConnectionPoolState connectionPoolState)
-            {
+            public void onConnectionReplaced(final Connection connection, final ConnectionPoolState connectionPoolState) {
                 LOGGER.debug(String.format(CONNECTION_REPLACED_TEMPLATE, connection, connectionPoolState));
             }
         };

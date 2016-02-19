@@ -33,16 +33,17 @@ import java.util.Hashtable;
 /**
  * JNDIContextFactory - central source for JNDI Contexts by helper name
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class JNDIContextFactory {
     static UtilCache<String, InitialContext> contexts = new UtilCache<String, InitialContext>("entity.JNDIContexts", 0, 0);
 
-    /** 
+    /**
      * Return the initial context according to the entityengine.xml parameters that correspond to the given prefix
+     *
      * @return the JNDI initial context
      */
     public static InitialContext getInitialContext(String jndiServerName) throws GenericConfigException {
@@ -93,13 +94,15 @@ public class JNDIContextFactory {
 
         return ic;
     }
+
     /**
      * Removes an entry from the JNDI cache.
+     *
      * @param jndiServerName
      */
     public static void clearInitialContext(String jndiServerName) {
         InitialContext ic = contexts.get(jndiServerName);
-        if (ic != null) 
+        if (ic != null)
             contexts.remove(jndiServerName);
     }
 

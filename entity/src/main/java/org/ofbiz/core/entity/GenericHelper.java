@@ -63,7 +63,7 @@ public interface GenericHelper {
      * Find a Generic Entity by its Primary Key and only returns the values requested by the passed keys (names)
      *
      * @param primaryKey The primary key to find by.
-     * @param keys The keys, or names, of the values to retrieve; only these values will be retrieved
+     * @param keys       The keys, or names, of the values to retrieve; only these values will be retrieved
      * @return The GenericValue corresponding to the primaryKey
      */
     GenericValue findByPrimaryKeyPartial(GenericPK primaryKey, Set<String> keys) throws GenericEntityException;
@@ -88,9 +88,9 @@ public interface GenericHelper {
      * Finds Generic Entity records by all of the specified fields (ie: combined using AND)
      *
      * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
-     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
-     * DESC" for descending
+     * @param fields      The fields of the named entity to query by with their corresponging values
+     * @param orderBy     The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
+     *                    DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     List<GenericValue> findByAnd(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy)
@@ -100,9 +100,9 @@ public interface GenericHelper {
      * Finds Generic Entity records by all of the specified fields (ie: combined using OR)
      *
      * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
-     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
-     * DESC" for descending
+     * @param fields      The fields of the named entity to query by with their corresponging values
+     * @param orderBy     The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
+     *                    DESC" for descending
      * @return List of GenericValue instances that match the query
      */
     List<GenericValue> findByOr(ModelEntity modelEntity, Map<String, ?> fields, List<String> orderBy)
@@ -112,49 +112,49 @@ public interface GenericHelper {
      * Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc
      * for more details.
      *
-     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param modelEntity     The ModelEntity of the Entity as defined in the entity XML file
      * @param entityCondition The EntityCondition object that specifies how to constrain this query
-     * @param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will
-     * be retreived
-     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
-     * DESC" for descending
+     * @param fieldsToSelect  The fields of the named entity to get from the database; if empty or null all fields will
+     *                        be retreived
+     * @param orderBy         The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
+     *                        DESC" for descending
      * @return List of GenericValue objects representing the result
      */
     List<GenericValue> findByCondition(ModelEntity modelEntity, EntityCondition entityCondition,
-            Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;
+                                       Collection<String> fieldsToSelect, List<String> orderBy) throws GenericEntityException;
 
     List<GenericValue> findByMultiRelation(GenericValue value, ModelRelation modelRelationOne, ModelEntity modelEntityOne,
-            ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List<String> orderBy)
+                                           ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List<String> orderBy)
             throws GenericEntityException;
 
     /**
      * Finds GenericValues by the conditions specified in the EntityCondition object, the the EntityCondition javadoc
      * for more details.
      *
-     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     * @param whereEntityCondition The EntityCondition object that specifies how to constrain this query before any
-     * groupings are done (if this is a view entity with group-by aliases)
+     * @param modelEntity           The ModelEntity of the Entity as defined in the entity XML file
+     * @param whereEntityCondition  The EntityCondition object that specifies how to constrain this query before any
+     *                              groupings are done (if this is a view entity with group-by aliases)
      * @param havingEntityCondition The EntityCondition object that specifies how to constrain this query after any
-     * groupings are done (if this is a view entity with group-by aliases)
-     * @param fieldsToSelect The fields of the named entity to get from the database; if empty or null all fields will
-     * be retreived
-     * @param orderBy The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
-     * DESC" for descending
-     * @param findOptions An instance of EntityFindOptions that specifies advanced query options. See the
-     * EntityFindOptions JavaDoc for more details.
+     *                              groupings are done (if this is a view entity with group-by aliases)
+     * @param fieldsToSelect        The fields of the named entity to get from the database; if empty or null all fields will
+     *                              be retreived
+     * @param orderBy               The fields of the named entity to order the query by; optionally add a " ASC" for ascending or "
+     *                              DESC" for descending
+     * @param findOptions           An instance of EntityFindOptions that specifies advanced query options. See the
+     *                              EntityFindOptions JavaDoc for more details.
      * @return EntityListIterator representing the result of the query: NOTE THAT THIS MUST BE CLOSED WHEN YOU ARE DONE
-     *         WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
+     * WITH IT, AND DON'T LEAVE IT OPEN TOO LONG BECAUSE IT WILL MAINTAIN A DATABASE CONNECTION.
      */
     EntityListIterator findListIteratorByCondition(ModelEntity modelEntity, EntityCondition whereEntityCondition,
-            EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy,
-            EntityFindOptions findOptions)
-        throws GenericEntityException;
+                                                   EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy,
+                                                   EntityFindOptions findOptions)
+            throws GenericEntityException;
 
     /**
      * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
      *
      * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     * @param fields The fields of the named entity to query by with their corresponging values
+     * @param fields      The fields of the named entity to query by with their corresponging values
      * @return int representing number of rows effected by this operation
      */
     int removeByAnd(ModelEntity modelEntity, Map<String, ?> fields) throws GenericEntityException;
@@ -162,7 +162,7 @@ public interface GenericHelper {
     /**
      * Removes/deletes Generic Entity records found by all of the specified fields (ie: combined using AND)
      *
-     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
+     * @param modelEntity    The ModelEntity of the Entity as defined in the entity XML file
      * @param whereCondition The EntityCondition object that specifies how to constrain this query
      * @return int representing number of rows effected by this operation
      */
@@ -206,8 +206,8 @@ public interface GenericHelper {
      * fields on the server
      *
      * @param modelEntities Map of entityName names and ModelEntity values
-     * @param messages Collection to put any result messages in
-     * @param addMissing Flag indicating whether or not to add missing entities and fields on the server
+     * @param messages      Collection to put any result messages in
+     * @param addMissing    Flag indicating whether or not to add missing entities and fields on the server
      */
     void checkDataSource(Map<String, ? extends ModelEntity> modelEntities, Collection<String> messages, boolean addMissing)
             throws GenericEntityException;
@@ -215,18 +215,18 @@ public interface GenericHelper {
     /**
      * Returns the count of the results that matches the specified condition
      *
-     * @param modelEntity The ModelEntity of the Entity as defined in the entity XML file
-     * @param fieldName The field of the named entity to count, if null this is equivalent to count(*)
+     * @param modelEntity     The ModelEntity of the Entity as defined in the entity XML file
+     * @param fieldName       The field of the named entity to count, if null this is equivalent to count(*)
      * @param entityCondition The EntityCondition object that specifies how to constrain this query The expressions to
-     * use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
-     * @param findOptions An instance of EntityFindOptions that specifies advanced query options.  The only option that
-     * is used is distinct, in which case a select (distinct fieldname) is issued. <p> If you issue a distinct without a
-     * fieldName  it will be ignored as select count (distinct *) makes no sense
+     *                        use for the lookup, each consisting of at least a field name, an EntityOperator, and a value to compare to
+     * @param findOptions     An instance of EntityFindOptions that specifies advanced query options.  The only option that
+     *                        is used is distinct, in which case a select (distinct fieldname) is issued. <p> If you issue a distinct without a
+     *                        fieldName  it will be ignored as select count (distinct *) makes no sense
      * @return the number of rows that match the query
      */
     int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
-            final EntityFindOptions findOptions)
-        throws GenericEntityException;
+              final EntityFindOptions findOptions)
+            throws GenericEntityException;
 
     /**
      * Applies the given transformation to any entities matching the given condition.
@@ -235,13 +235,13 @@ public interface GenericHelper {
      * @param entityCondition the condition that selects the entities to transform (null means transform all)
      * @param orderBy         the order in which the entities should be selected for updating (null means no ordering)
      * @param lockField       the entity field to use for optimistic locking; the value of this field will be read
-     * between the SELECT and the UPDATE to determine whether another process has updated one of the target records in
-     * the meantime; if so, the transformation will be reapplied and another UPDATE attempted
+     *                        between the SELECT and the UPDATE to determine whether another process has updated one of the target records in
+     *                        the meantime; if so, the transformation will be reapplied and another UPDATE attempted
      * @param transformation  the transformation to apply (required)
      * @return the transformed entities in the order they were selected (never null)
      * @since 1.0.41
      */
     List<GenericValue> transform(ModelEntity modelEntity, EntityCondition entityCondition, List<String> orderBy,
-            String lockField, Transformation transformation)
-        throws GenericEntityException;
+                                 String lockField, Transformation transformation)
+            throws GenericEntityException;
 }

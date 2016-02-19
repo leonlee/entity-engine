@@ -1,6 +1,8 @@
 package org.ofbiz.core.entity.jdbc;
 
-import java.io.Closeable;
+import org.ofbiz.core.util.Debug;
+
+import javax.annotation.concurrent.ThreadSafe;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -9,10 +11,6 @@ import java.sql.SQLException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.ofbiz.core.util.Debug;
 
 /**
  * A guardian for possibly leaked {@code SQLProcessor} instances.
@@ -25,8 +23,7 @@ import org.ofbiz.core.util.Debug;
  * @since v1.0.65
  */
 @ThreadSafe
-class ConnectionGuard extends PhantomReference<SQLProcessor>
-{
+class ConnectionGuard extends PhantomReference<SQLProcessor> {
     /**
      * Map for holding existing connection guards.
      * <p>
@@ -37,7 +34,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * </p>
      */
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")  // Not what I'm using it for...
-    private static final ConcurrentMap<ConnectionGuard,ConnectionGuard> GUARDS = new ConcurrentHashMap<>(64);
+    private static final ConcurrentMap<ConnectionGuard, ConnectionGuard> GUARDS = new ConcurrentHashMap<>(64);
 
     /**
      * A reference queue for holding the phantom reference guards for the connection that were cleared by the GC
@@ -49,8 +46,7 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
     private final AtomicReference<Connection> connectionRef;
     private volatile String sql;
 
-    private ConnectionGuard(SQLProcessor owner, Connection connection)
-    {
+    private ConnectionGuard(SQLProcessor owner, Connection connection) {
         super(owner, ABANDONED);
         this.connectionRef = new AtomicReference<>(connection);
     }
@@ -69,12 +65,11 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * Note that {@link #clear()} is the <em>normal</em> way of releasing the guard.
      * </p>
      *
-     * @param owner the {@code SQLProcessor} that allocated the connection
+     * @param owner      the {@code SQLProcessor} that allocated the connection
      * @param connection the allocated connection
      * @return the newly created connection guard
      */
-    static ConnectionGuard register(SQLProcessor owner, Connection connection)
-    {
+    static ConnectionGuard register(SQLProcessor owner, Connection connection) {
         final ConnectionGuard guard = new ConnectionGuard(owner, connection);
         GUARDS.put(guard, guard);
         return guard;
@@ -87,11 +82,9 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * instead.  This in turn prevents it from ever showing up in {@link #ABANDONED}, so it should only
      * be called if the connection is actually being closed.
      * </p>
-     *
      */
     @Override
-    public void clear()
-    {
+    public void clear() {
         GUARDS.remove(this);
         connectionRef.set(null);
         sql = null;
@@ -103,34 +96,27 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * {@link #ABANDONED} reference queue, which means it must have been collected by the GC instead
      * of by a proper call to {@link SQLProcessor#close()}.
      */
-    private void closeAbandonedProcessor()
-    {
+    private void closeAbandonedProcessor() {
         GUARDS.remove(this);
         final Connection connection = connectionRef.getAndSet(null);
-        if (connection != null)
-        {
+        if (connection != null) {
             closeAbandonedConnection(connection);
         }
     }
 
-    private void closeAbandonedConnection(Connection connection)
-    {
+    private void closeAbandonedConnection(Connection connection) {
         Debug.logError("!!! ABANDONED SQLProcessor DETECTED !!!" +
                 "\n\tThis probably means that somebody forgot to close an EntityListIterator." +
                 "\n\tConnection: " + connection +
                 "\n\tSQL: " + sql, SQLProcessor.module);
-        try
-        {
+        try {
             connection.close();
-        }
-        catch (SQLException | RuntimeException | LinkageError e)
-        {
+        } catch (SQLException | RuntimeException | LinkageError e) {
             Debug.logError(e, "ConnectionGuard.close() failed", SQLProcessor.module);
         }
     }
 
-    void setSql(String sql)
-    {
+    void setSql(String sql) {
         this.sql = sql;
     }
 
@@ -142,19 +128,16 @@ class ConnectionGuard extends PhantomReference<SQLProcessor>
      * </p>
      */
     @SuppressWarnings("CastToConcreteClass")  // Have to; the reference queue isn't more specific than that.
-    static void closeAbandonedProcessors()
-    {
+    static void closeAbandonedProcessors() {
         Reference<? extends SQLProcessor> abandoned = ABANDONED.poll();
-        while (abandoned != null)
-        {
-            ((ConnectionGuard)abandoned).closeAbandonedProcessor();
+        while (abandoned != null) {
+            ((ConnectionGuard) abandoned).closeAbandonedProcessor();
             abandoned = ABANDONED.poll();
         }
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "ConnectionGuard[connection=" + connectionRef.get() + ",sql=" + sql + ']';
     }
 }

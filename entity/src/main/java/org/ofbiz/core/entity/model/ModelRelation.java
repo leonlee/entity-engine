@@ -34,31 +34,45 @@ import java.util.List;
 /**
  * Generic Entity - Relation model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelRelation {
 
-    /** the title, gives a name/description to the relation */
+    /**
+     * the title, gives a name/description to the relation
+     */
     protected String title;
 
-    /** the type: either "one" or "many" or "one-nofk" */
+    /**
+     * the type: either "one" or "many" or "one-nofk"
+     */
     protected String type;
 
-    /** the name of the related entity */
+    /**
+     * the name of the related entity
+     */
     protected String relEntityName;
 
-    /** the name to use for a database foreign key, if applies */
+    /**
+     * the name to use for a database foreign key, if applies
+     */
     protected String fkName;
 
-    /** keyMaps defining how to lookup the relatedTable using columns from this table */
+    /**
+     * keyMaps defining how to lookup the relatedTable using columns from this table
+     */
     protected List<ModelKeyMap> keyMaps = new ArrayList<ModelKeyMap>();
 
-    /** the main entity of this relation */
+    /**
+     * the main entity of this relation
+     */
     protected ModelEntity mainEntity = null;
 
-    /** Default Constructor */
+    /**
+     * Default Constructor
+     */
     public ModelRelation() {
         title = "";
         type = "";
@@ -66,7 +80,9 @@ public class ModelRelation {
         fkName = "";
     }
 
-    /** XML Constructor */
+    /**
+     * XML Constructor
+     */
     public ModelRelation(ModelEntity mainEntity, Element relationElement) {
         this.mainEntity = mainEntity;
 
@@ -89,7 +105,9 @@ public class ModelRelation {
         }
     }
 
-    /** the title, gives a name/description to the relation */
+    /**
+     * the title, gives a name/description to the relation
+     */
     public String getTitle() {
         return this.title;
     }
@@ -98,7 +116,9 @@ public class ModelRelation {
         this.title = title;
     }
 
-    /** the type: either "one" or "many" or "one-nofk" */
+    /**
+     * the type: either "one" or "many" or "one-nofk"
+     */
     public String getType() {
         return this.type;
     }
@@ -107,7 +127,9 @@ public class ModelRelation {
         this.type = type;
     }
 
-    /** the name of the related entity */
+    /**
+     * the name of the related entity
+     */
     public String getRelEntityName() {
         return this.relEntityName;
     }
@@ -124,7 +146,9 @@ public class ModelRelation {
         this.fkName = fkName;
     }
 
-    /** the main entity of this relation */
+    /**
+     * the main entity of this relation
+     */
     public ModelEntity getMainEntity() {
         return this.mainEntity;
     }
@@ -133,7 +157,9 @@ public class ModelRelation {
         this.mainEntity = mainEntity;
     }
 
-    /** keyMaps defining how to lookup the relatedTable using columns from this table */
+    /**
+     * keyMaps defining how to lookup the relatedTable using columns from this table
+     */
     public Iterator<ModelKeyMap> getKeyMapsIterator() {
         return this.keyMaps.iterator();
     }
@@ -154,7 +180,9 @@ public class ModelRelation {
         return this.keyMaps.remove(index);
     }
 
-    /** Find a KeyMap with the specified fieldName */
+    /**
+     * Find a KeyMap with the specified fieldName
+     */
     public ModelKeyMap findKeyMap(String fieldName) {
         for (ModelKeyMap keyMap : keyMaps) {
             if (keyMap.fieldName.equals(fieldName)) return keyMap;
@@ -162,7 +190,9 @@ public class ModelRelation {
         return null;
     }
 
-    /** Find a KeyMap with the specified relFieldName */
+    /**
+     * Find a KeyMap with the specified relFieldName
+     */
     public ModelKeyMap findKeyMapByRelated(String relFieldName) {
         for (ModelKeyMap keyMap : keyMaps) {
             if (keyMap.relFieldName.equals(relFieldName))
@@ -206,19 +236,19 @@ public class ModelRelation {
         if (keyMaps.size() < 1)
             return "";
 
-        StringBuilder returnString = new StringBuilder( keyMaps.size() * 10 );
-        int i=0;
+        StringBuilder returnString = new StringBuilder(keyMaps.size() * 10);
+        int i = 0;
         while (true) {
             ModelKeyMap kmap = keyMaps.get(i);
-            returnString.append( ModelUtil.upperFirstChar( kmap.fieldName));
+            returnString.append(ModelUtil.upperFirstChar(kmap.fieldName));
 
             i++;
             if (i >= keyMaps.size()) {
-                returnString.append( afterLast );
+                returnString.append(afterLast);
                 break;
             }
 
-            returnString.append( separator );
+            returnString.append(separator);
         }
 
         return returnString.toString();
@@ -243,19 +273,19 @@ public class ModelRelation {
         if (keyMaps.size() < 1)
             return "";
 
-        StringBuilder returnString = new StringBuilder( keyMaps.size() * 10 );
-        int i=0;
+        StringBuilder returnString = new StringBuilder(keyMaps.size() * 10);
+        int i = 0;
         while (true) {
             ModelKeyMap kmap = keyMaps.get(i);
-            returnString.append( ModelUtil.upperFirstChar( kmap.relFieldName ));
+            returnString.append(ModelUtil.upperFirstChar(kmap.relFieldName));
 
             i++;
             if (i >= keyMaps.size()) {
-                returnString.append( afterLast );
+                returnString.append(afterLast);
                 break;
             }
 
-            returnString.append( separator );
+            returnString.append(separator);
         }
 
         return returnString.toString();
