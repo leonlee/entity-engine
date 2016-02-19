@@ -155,11 +155,7 @@ public class DBCPConnectionFactory {
         final String validationQuery = dataSource.getValidationQuery();
         if (validationQuery == null || validationQuery.isEmpty()) {
             final List<StackTraceElement> stackTraceElements = Lists.newArrayList(error.getStackTrace());
-            for (StackTraceElement element : stackTraceElements) {
-                if (element.getMethodName().contains("isValid")) {
-                    return true;
-                }
-            }
+            return stackTraceElements.stream().anyMatch(stackTraceElement -> stackTraceElement.getMethodName().contains("isValid"));
         }
         return false;
     }

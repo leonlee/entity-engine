@@ -37,7 +37,7 @@
     </scm>
 
     <properties>
-        <jdkLevel>1.7</jdkLevel>
+        <jdkLevel>1.8</jdkLevel>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Core Dependencies -->
