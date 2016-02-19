@@ -48,12 +48,12 @@ public class DBCPConnectionFactoryTest {
     }
 
     @Test
-    public void getUpdatedJdbcDatasourceShouldReturnInstanceWithAddedValidationQueryAndAllOtherParamsShouldBeTheSame () {
+    public void getUpdatedJdbcDatasourceShouldReturnInstanceWithAddedValidationQueryAndAllOtherParamsShouldBeTheSame() {
         final JdbcDatasourceInfo dsi = mock(JdbcDatasourceInfo.class);
         final ConnectionPoolInfo cpi = mock(ConnectionPoolInfo.class);
 
         final Properties props = new Properties();
-        props.setProperty("test","test");
+        props.setProperty("test", "test");
 
         when(cpi.getMaxSize()).thenReturn(1);
         when(cpi.getMinSize()).thenReturn(2);

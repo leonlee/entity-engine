@@ -35,7 +35,15 @@ import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
 import org.ofbiz.core.entity.model.ModelRelation;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 /**
  * Partial GenericHelper implementation that is entirely memory-based,
@@ -52,7 +60,7 @@ public class MemoryHelper implements GenericHelper {
         cache = getNewCache();
     }
 
-    private static <K,V> Map<K, V> getNewCache() {
+    private static <K, V> Map<K, V> getNewCache() {
         return Collections.synchronizedMap(new HashMap<K, V>());
     }
 
@@ -71,11 +79,9 @@ public class MemoryHelper implements GenericHelper {
 
         // we need to be sure that no-one accesses the underlying cache
         // between calling 'get' and 'put'
-        synchronized (cache)
-        {
+        synchronized (cache) {
             Map<GenericEntity, GenericValue> entityCache = cache.get(value.getEntityName());
-            if (entityCache == null)
-            {
+            if (entityCache == null) {
                 entityCache = getNewCache();
                 cache.put(value.getEntityName(), entityCache);
             }
@@ -164,7 +170,7 @@ public class MemoryHelper implements GenericHelper {
         ModelEntity me = value.getModelEntity();
 
         // make sure the PKs exist
-        for (Iterator<ModelField> iterator = me.getPksIterator(); iterator.hasNext();) {
+        for (Iterator<ModelField> iterator = me.getPksIterator(); iterator.hasNext(); ) {
             ModelField field = iterator.next();
             if (!value.fields.containsKey(field.getName())) {
                 return false;
@@ -179,7 +185,7 @@ public class MemoryHelper implements GenericHelper {
         }
 
         // make sure all fields that are in the value are of the right type
-        for (Iterator<ModelField> iterator = me.getFieldsIterator(); iterator.hasNext();) {
+        for (Iterator<ModelField> iterator = me.getFieldsIterator(); iterator.hasNext(); ) {
             ModelField field = iterator.next();
             Object o = value.get(field.getName());
             int typeValue;
@@ -305,7 +311,7 @@ public class MemoryHelper implements GenericHelper {
         ArrayList<GenericValue> result = new ArrayList<GenericValue>();
         // according to the javadocs for Collections.synchronizedMap() we need to
         // synchronize when iterating over the elements of the collection
-        synchronized(entityCache) {
+        synchronized (entityCache) {
             for (Map.Entry<GenericEntity, GenericValue> mapEntry : entityCache.entrySet()) {
                 GenericValue value = mapEntry.getValue();
 
@@ -359,7 +365,7 @@ public class MemoryHelper implements GenericHelper {
         ArrayList<GenericValue> result = new ArrayList<GenericValue>();
         // according to the javadocs for Collections.synchronizedMap() we need to
         // synchronize when iterating over the elements of the collection
-        synchronized(entityCache) {
+        synchronized (entityCache) {
             for (Map.Entry<?, GenericValue> mapEntry : entityCache.entrySet()) {
                 GenericValue value = mapEntry.getValue();
 
@@ -392,7 +398,7 @@ public class MemoryHelper implements GenericHelper {
 
             // according to the javadocs for Collections.synchronizedMap() we need to
             // synchronize when iterating over the elements of the collection
-            synchronized(entityCache) {
+            synchronized (entityCache) {
                 for (Map.Entry<?, GenericValue> mapEntry : entityCache.entrySet()) {
                     GenericValue value = mapEntry.getValue();
                     if (checkEntityExpr(value, entityExpr))
@@ -430,16 +436,13 @@ public class MemoryHelper implements GenericHelper {
         } else if (entityCondition instanceof EntityFieldMap) {
             EntityFieldMap entityCond = (EntityFieldMap) entityCondition;
 
-            if (entityCond.getOperator().equals(EntityOperator.AND))
-            {
+            if (entityCond.getOperator().equals(EntityOperator.AND)) {
                 return findByAnd(modelEntity, entityCond.fieldMap, orderBy);
-            } else
-            {
+            } else {
                 return findByOr(modelEntity, entityCond.fieldMap, orderBy);
             }
 
-        } else if (entityCondition == null)
-        {
+        } else if (entityCondition == null) {
             return new ArrayList<GenericValue>(entityCache.values());
         } else {
             throw new UnsupportedOperationException("findByCondidition not implemented for expression:" + entityCondition.getClass().getName());
@@ -452,7 +455,7 @@ public class MemoryHelper implements GenericHelper {
     }
 
     public List<GenericValue> findByMultiRelation(GenericValue value, ModelRelation modelRelationOne, ModelEntity modelEntityOne,
-                                    ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List<String> orderBy) throws GenericEntityException {
+                                                  ModelRelation modelRelationTwo, ModelEntity modelEntityTwo, List<String> orderBy) throws GenericEntityException {
         return null;
     }
 
@@ -466,10 +469,8 @@ public class MemoryHelper implements GenericHelper {
         final Iterator<GenericValue> entities = (new ArrayList<GenericValue>(findByCondition(modelEntity, whereEntityCondition, fieldsToSelect, orderBy))).iterator();
 
         // hack in the minimum that we can for this.
-        return new EntityListIterator(new ReadOnlySQLProcessor(null), modelEntity, null, modelFieldTypeReader)
-        {
-            public GenericValue next()
-            {
+        return new EntityListIterator(new ReadOnlySQLProcessor(null), modelEntity, null, modelFieldTypeReader) {
+            public GenericValue next() {
                 if (entities.hasNext())
 
                     return entities.next();
@@ -477,8 +478,7 @@ public class MemoryHelper implements GenericHelper {
                     return null;
             }
 
-            public void close()
-            {
+            public void close() {
                 //do nothing
             }
         };
@@ -502,8 +502,7 @@ public class MemoryHelper implements GenericHelper {
     }
 
     public int removeByCondition(final ModelEntity modelEntity, final EntityCondition whereCondition)
-            throws GenericEntityException
-    {
+            throws GenericEntityException {
         Map<GenericEntity, GenericValue> entityCache = cache.get(modelEntity.getEntityName());
         if (entityCache == null) {
             return 0;
@@ -554,7 +553,7 @@ public class MemoryHelper implements GenericHelper {
 
     //Ignore Find Options for this implementation
     public int count(final ModelEntity modelEntity, final String fieldName, final EntityCondition entityCondition,
-            final EntityFindOptions findOptions) throws GenericEntityException  {
+                     final EntityFindOptions findOptions) throws GenericEntityException {
         Map<GenericEntity, GenericValue> entityCache = cache.get(modelEntity.getEntityName());
         if (entityCache == null) {
             return 0;
@@ -565,9 +564,8 @@ public class MemoryHelper implements GenericHelper {
 
     @Override
     public List<GenericValue> transform(final ModelEntity modelEntity, final EntityCondition entityCondition,
-            final List<String> orderBy, final String lockField, final Transformation transformation)
-        throws GenericEntityException
-    {
+                                        final List<String> orderBy, final String lockField, final Transformation transformation)
+            throws GenericEntityException {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

@@ -26,9 +26,9 @@ package org.ofbiz.core.entity;
 /**
  * GenericTransactionException
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class GenericTransactionException extends GenericEntityException {
 

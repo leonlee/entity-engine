@@ -40,9 +40,9 @@ import java.sql.ResultSet;
  * </code></pre>
  * </p>
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @since      Aug 8, 2002
- * @version    1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
+ * @since Aug 8, 2002
  */
 public class EntityFindOptions implements Serializable {
 
@@ -116,7 +116,9 @@ public class EntityFindOptions implements Serializable {
     protected int resultSetType = ResultSet.TYPE_FORWARD_ONLY;
     protected int resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
     protected boolean distinct;
-    /** maximum results to obtain from DB - negative values mean no limit */
+    /**
+     * maximum results to obtain from DB - negative values mean no limit
+     */
     protected int maxResults = -1;
     protected int offset;
     protected int fetchSize = Integer.valueOf(System.getProperty("entity.find.options.fetch.size", "-1"));
@@ -130,25 +132,25 @@ public class EntityFindOptions implements Serializable {
      * maxResults = -1  (no limit)
      * fetchSize = -1  (use driver's default setting)
      */
-    public EntityFindOptions() {}
+    public EntityFindOptions() {
+    }
 
     /**
      * Constructor that allows some options to be provided at construction time.
      *
      * @param specifyTypeAndConcurrency if {@code false}, then resultSetType and resultSetConcurrency are ignored, and the
-     *                             JDBC driver's defaults are used for these fields, instead
-     * @param resultSetType either {@link #TYPE_FORWARD_ONLY}, {@link #TYPE_SCROLL_INSENSITIVE}, or {@link #TYPE_SCROLL_SENSITIVE}
-     * @param resultSetConcurrency either {@link #CONCUR_READ_ONLY}, or {@link #CONCUR_UPDATABLE}
-     * @param distinct if {@code true}, then the {@code DISTINCT} SQL keyword is used in the query
-     * @param maxResults if specified, then this value is used to limit the number of results retrieved,
-     *                   by using {@code LIMIT} on MySQL, {@code ROWNUM} on Oracle, and so on
+     *                                  JDBC driver's defaults are used for these fields, instead
+     * @param resultSetType             either {@link #TYPE_FORWARD_ONLY}, {@link #TYPE_SCROLL_INSENSITIVE}, or {@link #TYPE_SCROLL_SENSITIVE}
+     * @param resultSetConcurrency      either {@link #CONCUR_READ_ONLY}, or {@link #CONCUR_UPDATABLE}
+     * @param distinct                  if {@code true}, then the {@code DISTINCT} SQL keyword is used in the query
+     * @param maxResults                if specified, then this value is used to limit the number of results retrieved,
+     *                                  by using {@code LIMIT} on MySQL, {@code ROWNUM} on Oracle, and so on
      * @deprecated since 1.0.27 - Please use the chained form as shown in the {@link EntityFindOptions examples}.
      */
     @Deprecated
     @SuppressWarnings("unused")
     public EntityFindOptions(final boolean specifyTypeAndConcurrency, final int resultSetType,
-            final int resultSetConcurrency, final boolean distinct, final int maxResults)
-    {
+                             final int resultSetConcurrency, final boolean distinct, final int maxResults) {
         this.specifyTypeAndConcurrency = specifyTypeAndConcurrency;
         this.resultSetType = resultSetType;
         this.resultSetConcurrency = resultSetConcurrency;
@@ -446,7 +448,7 @@ public class EntityFindOptions implements Serializable {
     /**
      * Specifies the range of results to find.
      *
-     * @param offset the offset from which to start
+     * @param offset     the offset from which to start
      * @param maxResults the maximum number of results to find
      * @return {@code this}, for convenient use as a chained builder
      */

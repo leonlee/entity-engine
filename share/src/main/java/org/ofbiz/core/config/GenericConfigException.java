@@ -23,14 +23,14 @@
  */
 package org.ofbiz.core.config;
 
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.GeneralException;
 
 /**
  * GenericConfigException
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class GenericConfigException extends GeneralException {
 

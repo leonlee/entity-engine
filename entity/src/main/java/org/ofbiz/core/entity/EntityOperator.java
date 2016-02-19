@@ -28,11 +28,11 @@ package org.ofbiz.core.entity;
 /**
  * Encapsulates operations between entities and entity fields. This is a immutable class.
  *
- *@author     <a href='mailto:chris_maurer@altavista.com'>Chris Maurer</a>
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- *@created    Nov 5, 2001
- *@version    1.0
+ * @author <a href='mailto:chris_maurer@altavista.com'>Chris Maurer</a>
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version 1.0
+ * @created Nov 5, 2001
  */
 public class EntityOperator implements java.io.Serializable {
 
@@ -49,38 +49,28 @@ public class EntityOperator implements java.io.Serializable {
     public static final int ID_OR = 11;
     public static final int ID_LIKE = 12;
 
-    public static final EntityOperator EQUALS = new EntityOperator(ID_EQUALS, "=")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
+    public static final EntityOperator EQUALS = new EntityOperator(ID_EQUALS, "=") {
+        public boolean compare(Object o1, Object o2) {
             return ((o1 == null && o2 == null) || (o1 != null && o1.equals(o2)));
         }
     };
-    public static final EntityOperator NOT_EQUAL = new EntityOperator(ID_NOT_EQUAL, "<>")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
+    public static final EntityOperator NOT_EQUAL = new EntityOperator(ID_NOT_EQUAL, "<>") {
+        public boolean compare(Object o1, Object o2) {
             return !((o1 == null && o2 == null) || (o1 != null && o1.equals(o2)));
         }
     };
-    public static final EntityOperator LESS_THAN = new EntityOperator(ID_LESS_THAN, "<")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
+    public static final EntityOperator LESS_THAN = new EntityOperator(ID_LESS_THAN, "<") {
+        public boolean compare(Object o1, Object o2) {
             Comparable c1 = null;
-            if (o1 != null && o1 instanceof Comparable<?>)
-            {
+            if (o1 != null && o1 instanceof Comparable<?>) {
                 c1 = (Comparable) o1;
                 return c1.compareTo(o1) < 0;
-            }
-            else
+            } else
                 return false;
         }
     };
-    public static final EntityOperator GREATER_THAN = new EntityOperator(ID_GREATER_THAN, ">")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
+    public static final EntityOperator GREATER_THAN = new EntityOperator(ID_GREATER_THAN, ">") {
+        public boolean compare(Object o1, Object o2) {
             Comparable c1 = null;
             if (o1 != null && o1 instanceof Comparable)
                 c1 = (Comparable) o1;
@@ -88,18 +78,14 @@ public class EntityOperator implements java.io.Serializable {
             return c1.compareTo(o1) > 0;
         }
     };
-    public static final EntityOperator LESS_THAN_EQUAL_TO = new EntityOperator(ID_LESS_THAN_EQUAL_TO, "<=")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
-            return !(GREATER_THAN.compare(o1,o2));
+    public static final EntityOperator LESS_THAN_EQUAL_TO = new EntityOperator(ID_LESS_THAN_EQUAL_TO, "<=") {
+        public boolean compare(Object o1, Object o2) {
+            return !(GREATER_THAN.compare(o1, o2));
         }
     };
-    public static final EntityOperator GREATER_THAN_EQUAL_TO = new EntityOperator(ID_GREATER_THAN_EQUAL_TO, ">=")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
-            return !(LESS_THAN.compare(o1,o2));
+    public static final EntityOperator GREATER_THAN_EQUAL_TO = new EntityOperator(ID_GREATER_THAN_EQUAL_TO, ">=") {
+        public boolean compare(Object o1, Object o2) {
+            return !(LESS_THAN.compare(o1, o2));
         }
     };
     public static final EntityOperator IN = new EntityOperator(ID_IN, "IN");
@@ -107,30 +93,19 @@ public class EntityOperator implements java.io.Serializable {
     public static final EntityOperator NOT = new EntityOperator(ID_NOT, "NOT");
     public static final EntityOperator AND = new EntityOperator(ID_AND, "AND");
     public static final EntityOperator OR = new EntityOperator(ID_OR, "OR");
-    public static final EntityOperator LIKE = new EntityOperator(ID_LIKE, "LIKE")
-    {
-        public boolean compare(Object o1, Object o2)
-        {
-            if (o1 == null)
-            {
-                if (o2 == null)
-                {
+    public static final EntityOperator LIKE = new EntityOperator(ID_LIKE, "LIKE") {
+        public boolean compare(Object o1, Object o2) {
+            if (o1 == null) {
+                if (o2 == null) {
                     // Should not happen very often as using the like operator to compare nulls is not a good way to go
                     return true;
-                }
-                else
-                {
+                } else {
                     return false;
                 }
-            }
-            else
-            {
-                if (o2 == null)
-                {
+            } else {
+                if (o2 == null) {
                     return false;
-                }
-                else
-                {
+                } else {
                     String s1 = (String) o1;
                     String s2 = (String) o2;
                     // Not a good way of doing it as it ignores the '%' inside the match.
@@ -164,8 +139,7 @@ public class EntityOperator implements java.io.Serializable {
         return codeString;
     }
 
-    public boolean compare(Object o1, Object o2)
-    {
+    public boolean compare(Object o1, Object o2) {
         throw new UnsupportedOperationException("This class does not implement compare as is has no meaning out side of sql");
     }
 

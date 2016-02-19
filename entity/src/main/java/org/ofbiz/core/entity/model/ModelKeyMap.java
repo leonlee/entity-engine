@@ -23,50 +23,60 @@
  */
 package org.ofbiz.core.entity.model;
 
-import org.w3c.dom.*;
-
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.UtilXml;
+import org.w3c.dom.Element;
 
 /**
  * Generic Entity - KeyMap model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelKeyMap {
 
-    /** name of the field in this entity */
+    /**
+     * name of the field in this entity
+     */
     protected String fieldName = "";
 
-    /** name of the field in related entity */
+    /**
+     * name of the field in related entity
+     */
     protected String relFieldName = "";
 
-    /** a constant value for joining on */
-    protected String constValue= "";
+    /**
+     * a constant value for joining on
+     */
+    protected String constValue = "";
 
-    /** Default Constructor */
-    public ModelKeyMap() {}
+    /**
+     * Default Constructor
+     */
+    public ModelKeyMap() {
+    }
 
-    /** XML Constructor */
+    /**
+     * XML Constructor
+     */
     public ModelKeyMap(Element keyMapElement) {
         this.fieldName = UtilXml.checkEmpty(keyMapElement.getAttribute("field-name"));
         // if no relFieldName is specified, use the fieldName; this is convenient for when they are named the same, which is often the case
         this.relFieldName = UtilXml.checkEmpty(keyMapElement.getAttribute("rel-field-name"), this.fieldName);
         this.constValue = UtilXml.checkEmpty(keyMapElement.getAttribute("const-value"));
-        if (this.constValue.indexOf('\'') != -1)
-        {
+        if (this.constValue.indexOf('\'') != -1) {
             throw new IllegalArgumentException("The const-value parameter must not contain single-quote (\"'\"): " +
                     this.constValue);
         }
     }
 
-    public String getConstValue()
-    {
+    public String getConstValue() {
         return constValue;
     }
 
-    /** name of the field in this entity */
+    /**
+     * name of the field in this entity
+     */
     public String getFieldName() {
         return this.fieldName;
     }
@@ -75,7 +85,9 @@ public class ModelKeyMap {
         this.fieldName = fieldName;
     }
 
-    /** name of the field in related entity */
+    /**
+     * name of the field in related entity
+     */
     public String getRelFieldName() {
         return this.relFieldName;
     }

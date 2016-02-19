@@ -24,19 +24,20 @@
  */
 package org.ofbiz.core.config;
 
-import java.net.*;
-import java.io.*;
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.UtilURL;
+
+import java.io.InputStream;
+import java.net.URL;
 
 /**
  * Loads resources from the classpath
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ClasspathLoader extends ResourceLoader {
-    
+
     public InputStream loadResource(String location) throws GenericConfigException {
         String fullLocation = fullLocation(location);
         URL url = UtilURL.fromResource(fullLocation);

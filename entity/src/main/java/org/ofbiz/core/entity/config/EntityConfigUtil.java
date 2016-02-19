@@ -27,7 +27,12 @@ package org.ofbiz.core.entity.config;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.config.ResourceLoader;
-import org.ofbiz.core.entity.*;
+import org.ofbiz.core.entity.GenericDAO;
+import org.ofbiz.core.entity.GenericDelegator;
+import org.ofbiz.core.entity.GenericEntityConfException;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericHelperFactory;
+import org.ofbiz.core.entity.TransactionFactory;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilValidate;
 import org.ofbiz.core.util.UtilXml;
@@ -47,8 +52,7 @@ import java.util.Map;
  * @version $Revision: 1.7 $
  * @since 2.0
  */
-public class EntityConfigUtil
-{
+public class EntityConfigUtil {
 
     public static final String ENTITY_ENGINE_XML_FILENAME = "entityengine.xml";
 
@@ -69,17 +73,14 @@ public class EntityConfigUtil
 
     private static volatile EntityConfigUtil singletonInstance;
 
-    public static EntityConfigUtil getInstance()
-    {
+    public static EntityConfigUtil getInstance() {
         final EntityConfigUtil existing = singletonInstance;
         return (existing != null) ? existing : getInstanceUnderLock();
     }
 
-    synchronized private static EntityConfigUtil getInstanceUnderLock()
-    {
+    synchronized private static EntityConfigUtil getInstanceUnderLock() {
         final EntityConfigUtil existing = singletonInstance;
-        if (existing != null)
-        {
+        if (existing != null) {
             return existing;
         }
 
@@ -88,69 +89,48 @@ public class EntityConfigUtil
         return created;
     }
 
-    protected Element getXmlRootElement() throws GenericEntityConfException
-    {
-        try
-        {
+    protected Element getXmlRootElement() throws GenericEntityConfException {
+        try {
             return ResourceLoader.getXmlRootElement(EntityConfigUtil.ENTITY_ENGINE_XML_FILENAME);
-        }
-        catch (GenericConfigException e)
-        {
+        } catch (GenericConfigException e) {
             throw new GenericEntityConfException("Could not get entity engine XML root element", e);
         }
     }
 
-    protected Document getXmlDocument() throws GenericEntityConfException
-    {
-        try
-        {
+    protected Document getXmlDocument() throws GenericEntityConfException {
+        try {
             return ResourceLoader.getXmlDocument(EntityConfigUtil.ENTITY_ENGINE_XML_FILENAME);
-        }
-        catch (GenericConfigException e)
-        {
+        } catch (GenericConfigException e) {
             throw new GenericEntityConfException("Could not get entity engine XML document", e);
         }
     }
 
-    public EntityConfigUtil()
-    {
-        try
-        {
+    public EntityConfigUtil() {
+        try {
             initialize(getXmlRootElement());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             Debug.logError(e, "Error loading entity config XML file " + ENTITY_ENGINE_XML_FILENAME);
         }
     }
 
-    public EntityConfigUtil(String filename)
-    {
-        try
-        {
+    public EntityConfigUtil(String filename) {
+        try {
             initialize(ResourceLoader.getXmlRootElement(filename));
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             Debug.logError(e, "Error loading entity config XML file " + ENTITY_ENGINE_XML_FILENAME);
         }
     }
 
-    public synchronized void reinitialize() throws GenericEntityException
-    {
-        try
-        {
+    public synchronized void reinitialize() throws GenericEntityException {
+        try {
             ResourceLoader.invalidateDocument(ENTITY_ENGINE_XML_FILENAME);
             initialize(getXmlRootElement());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new GenericEntityException("Error reloading entity config XML file " + ENTITY_ENGINE_XML_FILENAME, e);
         }
     }
 
-    public synchronized void removeDatasource(String helperName)
-    {
+    public synchronized void removeDatasource(String helperName) {
         // Remove the helper
         GenericHelperFactory.removeHelper(helperName);
         // Remove the DAO
@@ -161,52 +141,41 @@ public class EntityConfigUtil
         this.datasourceInfos.remove(helperName);
     }
 
-    public synchronized void addDatasourceInfo(DatasourceInfo datasourceInfo)
-    {
+    public synchronized void addDatasourceInfo(DatasourceInfo datasourceInfo) {
         datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
     }
 
-    public synchronized void removeDelegator(String delegatorName)
-    {
+    public synchronized void removeDelegator(String delegatorName) {
         this.delegatorInfos.remove(delegatorName);
         GenericDelegator.removeGenericDelegator(delegatorName);
     }
 
-    public synchronized void addDelegatorInfo(DelegatorInfo delegatorInfo)
-    {
+    public synchronized void addDelegatorInfo(DelegatorInfo delegatorInfo) {
         delegatorInfos.put(delegatorInfo.name, delegatorInfo);
     }
 
-    public void initialize(Element rootElement) throws GenericEntityException
-    {
+    public void initialize(Element rootElement) throws GenericEntityException {
         Element transactionFactoryElement = UtilXml.firstChildElement(rootElement, "transaction-factory");
-        if (transactionFactoryElement == null)
-        {
+        if (transactionFactoryElement == null) {
             throw new GenericEntityConfException("ERROR: no transaction-factory definition was found in " + ENTITY_ENGINE_XML_FILENAME);
         }
 
         this.txFactoryClass = transactionFactoryElement.getAttribute("class");
 
         Element userTxJndiElement = UtilXml.firstChildElement(transactionFactoryElement, "user-transaction-jndi");
-        if (userTxJndiElement != null)
-        {
+        if (userTxJndiElement != null) {
             this.txFactoryUserTxJndiName = userTxJndiElement.getAttribute("jndi-name");
             this.txFactoryUserTxJndiServerName = userTxJndiElement.getAttribute("jndi-server-name");
-        }
-        else
-        {
+        } else {
             this.txFactoryUserTxJndiName = null;
             this.txFactoryUserTxJndiServerName = null;
         }
 
         Element txMgrJndiElement = UtilXml.firstChildElement(transactionFactoryElement, "transaction-manager-jndi");
-        if (txMgrJndiElement != null)
-        {
+        if (txMgrJndiElement != null) {
             this.txFactoryTxMgrJndiName = txMgrJndiElement.getAttribute("jndi-name");
             this.txFactoryTxMgrJndiServerName = txMgrJndiElement.getAttribute("jndi-server-name");
-        }
-        else
-        {
+        } else {
             this.txFactoryTxMgrJndiName = null;
             this.txFactoryTxMgrJndiServerName = null;
         }
@@ -218,8 +187,7 @@ public class EntityConfigUtil
         // resource-loader - resourceLoaderInfos
         childElements = UtilXml.childElementList(rootElement, "resource-loader");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             ResourceLoaderInfo resourceLoaderInfo = new EntityConfigUtil.ResourceLoaderInfo(curElement);
             this.resourceLoaderInfos.put(resourceLoaderInfo.name, resourceLoaderInfo);
@@ -228,8 +196,7 @@ public class EntityConfigUtil
         // delegator - delegatorInfos
         childElements = UtilXml.childElementList(rootElement, "delegator");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             DelegatorInfo delegatorInfo = new EntityConfigUtil.DelegatorInfo(curElement);
             this.delegatorInfos.put(delegatorInfo.name, delegatorInfo);
@@ -238,8 +205,7 @@ public class EntityConfigUtil
         // entity-model-reader - entityModelReaderInfos
         childElements = UtilXml.childElementList(rootElement, "entity-model-reader");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             EntityModelReaderInfo entityModelReaderInfo = new EntityModelReaderInfo(curElement);
             entityModelReaderInfos.put(entityModelReaderInfo.name, entityModelReaderInfo);
@@ -248,8 +214,7 @@ public class EntityConfigUtil
         // entity-group-reader - entityGroupReaderInfos
         childElements = UtilXml.childElementList(rootElement, "entity-group-reader");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             EntityGroupReaderInfo entityGroupReaderInfo = new EntityGroupReaderInfo(curElement);
             entityGroupReaderInfos.put(entityGroupReaderInfo.name, entityGroupReaderInfo);
@@ -258,8 +223,7 @@ public class EntityConfigUtil
         // entity-eca-reader - entityEcaReaderInfos
         childElements = UtilXml.childElementList(rootElement, "entity-eca-reader");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             EntityEcaReaderInfo entityEcaReaderInfo = new EntityEcaReaderInfo(curElement);
             entityEcaReaderInfos.put(entityEcaReaderInfo.name, entityEcaReaderInfo);
@@ -268,8 +232,7 @@ public class EntityConfigUtil
         // field-type - fieldTypeInfos
         childElements = UtilXml.childElementList(rootElement, "field-type");
         elementIter = childElements.iterator();
-        while (elementIter.hasNext())
-        {
+        while (elementIter.hasNext()) {
             Element curElement = elementIter.next();
             FieldTypeInfo fieldTypeInfo = new FieldTypeInfo(curElement);
             fieldTypeInfos.put(fieldTypeInfo.name, fieldTypeInfo);
@@ -279,11 +242,9 @@ public class EntityConfigUtil
         childElements = UtilXml.childElementList(rootElement, "datasource");
         // Allow there to be no datasource as yet... as in the case of a fresh multi tenant app with
         // no tenants.
-        if (childElements != null)
-        {
+        if (childElements != null) {
             elementIter = childElements.iterator();
-            while (elementIter.hasNext())
-            {
+            while (elementIter.hasNext()) {
                 Element curElement = elementIter.next();
                 DatasourceInfo datasourceInfo = new DatasourceInfo(curElement);
                 datasourceInfos.put(datasourceInfo.getName(), datasourceInfo);
@@ -291,75 +252,61 @@ public class EntityConfigUtil
         }
     }
 
-    public String getTxFactoryClass()
-    {
+    public String getTxFactoryClass() {
         return txFactoryClass;
     }
 
-    public String getTxFactoryUserTxJndiName()
-    {
+    public String getTxFactoryUserTxJndiName() {
         return txFactoryUserTxJndiName;
     }
 
-    public String getTxFactoryUserTxJndiServerName()
-    {
+    public String getTxFactoryUserTxJndiServerName() {
         return txFactoryUserTxJndiServerName;
     }
 
-    public String getTxFactoryTxMgrJndiName()
-    {
+    public String getTxFactoryTxMgrJndiName() {
         return txFactoryTxMgrJndiName;
     }
 
-    public String getTxFactoryTxMgrJndiServerName()
-    {
+    public String getTxFactoryTxMgrJndiServerName() {
         return txFactoryTxMgrJndiServerName;
     }
 
-    public ResourceLoaderInfo getResourceLoaderInfo(String name)
-    {
+    public ResourceLoaderInfo getResourceLoaderInfo(String name) {
         return resourceLoaderInfos.get(name);
     }
 
-    public DelegatorInfo getDelegatorInfo(String name)
-    {
+    public DelegatorInfo getDelegatorInfo(String name) {
         return delegatorInfos.get(name);
     }
 
-    public EntityModelReaderInfo getEntityModelReaderInfo(String name)
-    {
+    public EntityModelReaderInfo getEntityModelReaderInfo(String name) {
         return entityModelReaderInfos.get(name);
     }
 
-    public EntityGroupReaderInfo getEntityGroupReaderInfo(String name)
-    {
+    public EntityGroupReaderInfo getEntityGroupReaderInfo(String name) {
         return entityGroupReaderInfos.get(name);
     }
 
-    public EntityEcaReaderInfo getEntityEcaReaderInfo(String name)
-    {
+    public EntityEcaReaderInfo getEntityEcaReaderInfo(String name) {
         return entityEcaReaderInfos.get(name);
     }
 
-    public FieldTypeInfo getFieldTypeInfo(String name)
-    {
+    public FieldTypeInfo getFieldTypeInfo(String name) {
         return fieldTypeInfos.get(name);
     }
 
-    public DatasourceInfo getDatasourceInfo(String name)
-    {
+    public DatasourceInfo getDatasourceInfo(String name) {
         return datasourceInfos.get(name);
     }
 
-    public static class ResourceLoaderInfo
-    {
+    public static class ResourceLoaderInfo {
         public String name;
         public String className;
         public String prependEnv;
         public String prefix;
 
-        public ResourceLoaderInfo(Element element)
-        {
+        public ResourceLoaderInfo(Element element) {
             this.name = element.getAttribute("name");
             this.className = element.getAttribute("class");
             this.prependEnv = element.getAttribute("prepend-env");
@@ -368,8 +315,7 @@ public class EntityConfigUtil
     }
 
 
-    public static class DelegatorInfo
-    {
+    public static class DelegatorInfo {
         public String name;
         public String entityModelReader;
         public String entityGroupReader;
@@ -379,16 +325,14 @@ public class EntityConfigUtil
         public String distributedCacheClearUserLoginId;
         public Map<String, String> groupMap = new HashMap<String, String>();
 
-        public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map<String, String> groupMap)
-        {
+        public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map<String, String> groupMap) {
             this.name = name;
             this.entityModelReader = entityModelReader;
             this.entityGroupReader = entityGroupReader;
             this.groupMap = groupMap;
         }
 
-        public DelegatorInfo(Element element)
-        {
+        public DelegatorInfo(Element element) {
             this.name = element.getAttribute("name");
             entityModelReader = element.getAttribute("entity-model-reader");
             entityGroupReader = element.getAttribute("entity-group-reader");
@@ -396,14 +340,12 @@ public class EntityConfigUtil
             // this defaults to false, ie anything but true is false
             this.useDistributedCacheClear = "true".equals(element.getAttribute("distributed-cache-clear-enabled"));
             this.distributedCacheClearClassName = element.getAttribute("distributed-cache-clear-class-name");
-            if (UtilValidate.isEmpty(this.distributedCacheClearClassName))
-            {
+            if (UtilValidate.isEmpty(this.distributedCacheClearClassName)) {
                 this.distributedCacheClearClassName = "org.ofbiz.core.extentity.EntityCacheServices";
             }
 
             this.distributedCacheClearUserLoginId = element.getAttribute("distributed-cache-clear-user-login-id");
-            if (UtilValidate.isEmpty(this.distributedCacheClearUserLoginId))
-            {
+            if (UtilValidate.isEmpty(this.distributedCacheClearUserLoginId)) {
                 this.distributedCacheClearUserLoginId = "admin";
             }
 
@@ -416,52 +358,44 @@ public class EntityConfigUtil
     }
 
 
-    public static class EntityModelReaderInfo
-    {
+    public static class EntityModelReaderInfo {
         public String name;
         public List<Element> resourceElements;
 
-        public EntityModelReaderInfo(Element element)
-        {
+        public EntityModelReaderInfo(Element element) {
             this.name = element.getAttribute("name");
             resourceElements = UtilXml.childElementList(element, "resource");
         }
     }
 
 
-    public static class EntityGroupReaderInfo
-    {
+    public static class EntityGroupReaderInfo {
         public String name;
         public Element resourceElement;
 
-        public EntityGroupReaderInfo(Element element)
-        {
+        public EntityGroupReaderInfo(Element element) {
             this.name = element.getAttribute("name");
             resourceElement = element;
         }
     }
 
 
-    public static class EntityEcaReaderInfo
-    {
+    public static class EntityEcaReaderInfo {
         public String name;
         public List<Element> resourceElements;
 
-        public EntityEcaReaderInfo(Element element)
-        {
+        public EntityEcaReaderInfo(Element element) {
             this.name = element.getAttribute("name");
             resourceElements = UtilXml.childElementList(element, "resource");
         }
     }
 
 
-    public static class FieldTypeInfo
-    {
+    public static class FieldTypeInfo {
         public String name;
         public Element resourceElement;
 
-        public FieldTypeInfo(Element element)
-        {
+        public FieldTypeInfo(Element element) {
             this.name = element.getAttribute("name");
             resourceElement = element;
         }

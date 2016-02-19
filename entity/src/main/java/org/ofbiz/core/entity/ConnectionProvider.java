@@ -13,7 +13,7 @@ public interface ConnectionProvider {
      *
      * @param name a name for the connection if required by the implementation.
      * @return a {@link java.sql.Connection}.
-     * @throws SQLException on JDBC based failure.
+     * @throws SQLException           on JDBC based failure.
      * @throws GenericEntityException on Ofbiz framework exception.
      */
     public Connection getConnection(String name) throws SQLException, GenericEntityException;

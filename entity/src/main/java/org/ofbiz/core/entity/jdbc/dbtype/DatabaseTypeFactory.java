@@ -52,8 +52,7 @@ public class DatabaseTypeFactory {
      *
      * @see org.ofbiz.core.entity.jdbc.dbtype.AbstractDatabaseType#registerWithFactory()
      */
-    public static void registerDatabaseType(DatabaseType databaseType)
-    {
+    public static void registerDatabaseType(DatabaseType databaseType) {
         DATABASE_TYPES.add(databaseType);
     }
 

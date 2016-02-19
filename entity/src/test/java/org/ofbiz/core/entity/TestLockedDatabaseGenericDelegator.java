@@ -8,13 +8,11 @@ import java.util.List;
 import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.mock;
 
-public class TestLockedDatabaseGenericDelegator
-{
+public class TestLockedDatabaseGenericDelegator {
     private GenericDelegator genericDelegator;
 
     @Before
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         this.genericDelegator = new LockedDatabaseGenericDelegator();
     }
 

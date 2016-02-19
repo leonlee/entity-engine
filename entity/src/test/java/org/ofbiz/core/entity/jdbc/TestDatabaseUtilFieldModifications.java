@@ -31,9 +31,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
-@RunWith (MockitoJUnitRunner.class)
-public class TestDatabaseUtilFieldModifications
-{
+@RunWith(MockitoJUnitRunner.class)
+public class TestDatabaseUtilFieldModifications {
     public static final String PROMOTED_TYPE_MATCH = "has different type definition and has been changed from";
     private static String MOCK_TABLE_NAME = "BOOKS";
     private static String MOCK_COLUMN_NAME = "AUTHOR";
@@ -64,8 +63,7 @@ public class TestDatabaseUtilFieldModifications
 
 
     @Before
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         databaseUtil = new DatabaseUtil("field-modification-tests", modelFieldTypeReader, datasourceInfo, connectionProvider);
 
         when(modelEntity.getTableName(any(DatasourceInfo.class))).thenReturn(MOCK_TABLE_NAME);
@@ -78,16 +76,15 @@ public class TestDatabaseUtilFieldModifications
         messages = new ArrayList<String>();
     }
 
-	@After
-	public void tearDown() throws Exception {
-		//this method simply des not work
-		verify(datasourceInfo,never()).getDatabaseTypeFromJDBCConnection();
+    @After
+    public void tearDown() throws Exception {
+        //this method simply des not work
+        verify(datasourceInfo, never()).getDatabaseTypeFromJDBCConnection();
 
-	}
+    }
 
-	@Test
-    public void testWideningFieldsInOracle() throws Exception
-    {
+    @Test
+    public void testWideningFieldsInOracle() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -105,8 +102,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testUsingWideningFlag() throws Exception
-    {
+    public void testUsingWideningFlag() throws Exception {
         // mock existing SQL type:
         columnInfo.columnSize = 10;
         columnInfo.typeName = "VARCHAR";
@@ -122,8 +118,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testNotShorteningFields() throws Exception
-    {
+    public void testNotShorteningFields() throws Exception {
         // mock existing SQL type:
         columnInfo.columnSize = 20;
         columnInfo.typeName = "VARCHAR";
@@ -139,8 +134,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testPromotingType() throws Exception
-    {
+    public void testPromotingType() throws Exception {
         mockDataBase(DatabaseTypeFactory.HSQL);
 
         // mock existing SQL type:
@@ -158,8 +152,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testPromotingOracleType() throws Exception
-    {
+    public void testPromotingOracleType() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -177,8 +170,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testPromotingOracleExtension() throws Exception
-    {
+    public void testPromotingOracleExtension() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -197,8 +189,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void shouldNotPromoteExtensionWhenDbNotOracle() throws Exception
-    {
+    public void shouldNotPromoteExtensionWhenDbNotOracle() throws Exception {
         mockDataBase(DatabaseTypeFactory.MSSQL);
 
         // mock existing SQL type:
@@ -216,14 +207,12 @@ public class TestDatabaseUtilFieldModifications
         Assert.assertThat(messages, IsIterableWithSize.<String>iterableWithSize(0));
     }
 
-    private void mockDataBase(DatabaseType databaseType)
-    {
+    private void mockDataBase(DatabaseType databaseType) {
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(databaseType);
     }
 
     @Test
-    public void testDetectOracleUnicodeFields() throws Exception
-    {
+    public void testDetectOracleUnicodeFields() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -246,8 +235,7 @@ public class TestDatabaseUtilFieldModifications
 
 
     @Test
-    public void testNotPromotingTypeInReverse() throws Exception
-    {
+    public void testNotPromotingTypeInReverse() throws Exception {
         // mock existing SQL type:
         columnInfo.columnSize = 20;
         columnInfo.typeName = "NVARCHAR";
@@ -264,8 +252,7 @@ public class TestDatabaseUtilFieldModifications
 
 
     @Test
-    public void testUsingPromotingFlag() throws Exception
-    {
+    public void testUsingPromotingFlag() throws Exception {
         // mock existing SQL type:
         columnInfo.columnSize = 20;
         columnInfo.typeName = "VARCHAR";
@@ -286,8 +273,7 @@ public class TestDatabaseUtilFieldModifications
      * promotion SHOULD make it possible to narrow the size.
      */
     @Test
-    public void testPromotingTypeRegardlessOfShortening() throws Exception
-    {
+    public void testPromotingTypeRegardlessOfShortening() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
         // mock existing SQL type:
@@ -305,20 +291,17 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testSqlStatementCompositionOracle() throws Exception
-    {
+    public void testSqlStatementCompositionOracle() throws Exception {
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.ORACLE_10G);
     }
 
     @Test
-    public void testSqlStatementCompositionHsqldb() throws Exception
-    {
+    public void testSqlStatementCompositionHsqldb() throws Exception {
 
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.HSQL);
     }
 
-    private void testSqlStatementCompositionForDBWithModify(DatabaseType databaseType) throws SQLException
-    {
+    private void testSqlStatementCompositionForDBWithModify(DatabaseType databaseType) throws SQLException {
         mockDataBase(databaseType);
 
         // mock existing SQL type:
@@ -335,19 +318,16 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testSqlStatementCompositionMssql() throws Exception
-    {
+    public void testSqlStatementCompositionMssql() throws Exception {
         testSqlStatementCompositionWithAlterColumnForDB(DatabaseTypeFactory.MSSQL);
     }
 
     @Test
-    public void testSqlStatementCompositionMysql() throws Exception
-    {
+    public void testSqlStatementCompositionMysql() throws Exception {
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.MYSQL);
     }
 
-    private void testSqlStatementCompositionWithAlterColumnForDB(DatabaseType databaseType) throws SQLException
-    {
+    private void testSqlStatementCompositionWithAlterColumnForDB(DatabaseType databaseType) throws SQLException {
         mockDataBase(databaseType);
         // mock existing SQL type:
         columnInfo.columnSize = 45;
@@ -363,8 +343,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testSqlStatementCompositionPostgresql() throws Exception
-    {
+    public void testSqlStatementCompositionPostgresql() throws Exception {
         mockDataBase(DatabaseTypeFactory.POSTGRES_7_3);
 
         // mock existing SQL type:
@@ -381,8 +360,7 @@ public class TestDatabaseUtilFieldModifications
     }
 
     @Test
-    public void testMessagesWhenWideningIsDisabled() throws Exception
-    {
+    public void testMessagesWhenWideningIsDisabled() throws Exception {
         // pick an outdated DB type:
         mockDataBase(DatabaseTypeFactory.POSTGRES_7_2);
 

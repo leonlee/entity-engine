@@ -34,16 +34,15 @@ import java.util.Map;
 /**
  * Generic Entity Helper Factory Class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class GenericHelperFactory {
 
     protected static Map<String, GenericHelper> helperCache = CopyOnWriteMap.newHashMap();
 
-    public static synchronized void removeHelper(String helperName)
-    {
+    public static synchronized void removeHelper(String helperName) {
         helperCache.remove(helperName);
     }
 
@@ -75,8 +74,8 @@ public class GenericHelperFactory {
                             }
                         }
 
-                        Class<?>[] paramTypes = new Class<?>[] {String.class};
-                        Object[] params = new Object[] {helperName};
+                        Class<?>[] paramTypes = new Class<?>[]{String.class};
+                        Object[] params = new Object[]{helperName};
 
                         java.lang.reflect.Constructor<?> helperConstructor = null;
 

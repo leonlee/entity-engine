@@ -34,9 +34,9 @@ import java.util.List;
  * Makes it easier to deal with entities that follow the
  * extensibility pattern and that can be of various types as identified in the database.
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class EntityTypeUtil {
 
@@ -115,10 +115,10 @@ public class EntityTypeUtil {
     }
 
     /**
-     *  Description of the Method
+     * Description of the Method
      *
-     *@param  catName                       Description of Parameter
-     *@exception  java.rmi.RemoteException  Description of Exception
+     * @param catName Description of Parameter
+     * @throws java.rmi.RemoteException Description of Exception
      */
     public static boolean isType(GenericValue thisType, GenericValue targetType) {
         if (thisType == null) {

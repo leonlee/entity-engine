@@ -33,24 +33,24 @@ import java.util.Map;
 /**
  * EntityEcaHandler interface
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.1
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.1
  */
 public interface EntityEcaHandler {
-    
+
     public static final String EV_VALIDATE = "validate";
     public static final String EV_RUN = "run";
     public static final String EV_RETURN = "return";
     public static final String EV_CACHE_CLEAR = "cache-clear";
     public static final String EV_CACHE_CHECK = "cache-check";
     public static final String EV_CACHE_PUT = "cache-put";
-    
+
     public static final String OP_CREATE = "create";
     public static final String OP_STORE = "store";
     public static final String OP_REMOVE = "remove";
     public static final String OP_FIND = "find";
-    
+
 
     public void setDelegator(GenericDelegator delegator);
 

@@ -27,19 +27,23 @@ import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Utilities for analyzing and converting Object types in Java - takes advantage of a lot of reflection and other stuff
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @author     <a href="mailto:gielen@aixcept.de">Rene Gielen</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:gielen@aixcept.de">Rene Gielen</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ObjectType {
-    
+
     public static final String module = ObjectType.class.getName();
 
     protected static Map<String, Class<?>> classCache = new HashMap<String, Class<?>>();
@@ -47,8 +51,9 @@ public class ObjectType {
     public static final String LANG_PACKAGE = "java.lang."; // We will test both the raw value and this + raw value
     public static final String SQL_PACKAGE = "java.sql.";   // We will test both the raw value and this + raw value
 
-    /** 
+    /**
      * Loads a class with the current thread's context classloader
+     *
      * @param className The name of the class to load
      */
     public static Class<?> loadClass(String className) throws ClassNotFoundException {
@@ -60,8 +65,9 @@ public class ObjectType {
         return loadClass(className, null);
     }
 
-    /** 
+    /**
      * Loads a class with the current thread's context classloader
+     *
      * @param className The name of the class to load
      */
     public static Class<?> loadClass(String className, ClassLoader loader) throws ClassNotFoundException {
@@ -93,8 +99,9 @@ public class ObjectType {
         return theClass;
     }
 
-    /** 
+    /**
      * Returns an instance of the specified class
+     *
      * @param className Name of the class to instantiate
      */
     public static Object getInstance(String className) throws ClassNotFoundException,
@@ -106,9 +113,10 @@ public class ObjectType {
         return o;
     }
 
-    /** 
+    /**
      * Tests if an object properly implements the specified interface
-     * @param obj Object to test
+     *
+     * @param obj           Object to test
      * @param interfaceName Name of the interface to test against
      */
     public static boolean interfaceOf(Object obj, String interfaceName) throws ClassNotFoundException {
@@ -117,9 +125,10 @@ public class ObjectType {
         return interfaceOf(obj, interfaceClass);
     }
 
-    /** 
+    /**
      * Tests if an object properly implements the specified interface
-     * @param obj Object to test
+     *
+     * @param obj             Object to test
      * @param interfaceObject to test against
      */
     public static boolean interfaceOf(Object obj, Object interfaceObject) {
@@ -128,9 +137,10 @@ public class ObjectType {
         return interfaceOf(obj, interfaceClass);
     }
 
-    /** 
+    /**
      * Tests if an object properly implements the specified interface
-     * @param obj Object to test
+     *
+     * @param obj            Object to test
      * @param interfaceClass Class to test against
      */
     public static boolean interfaceOf(Object obj, Class<?> interfaceClass) {
@@ -146,9 +156,10 @@ public class ObjectType {
         return false;
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of or a sub-class of the parent
-     * @param obj Object to test
+     *
+     * @param obj        Object to test
      * @param parentName Name of the parent class to test against
      */
     public static boolean isOrSubOf(Object obj, String parentName) throws ClassNotFoundException {
@@ -157,9 +168,10 @@ public class ObjectType {
         return isOrSubOf(obj, parentClass);
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of or a sub-class of the parent
-     * @param obj Object to test
+     *
+     * @param obj          Object to test
      * @param parentObject Object to test against
      */
     public static boolean isOrSubOf(Object obj, Object parentObject) {
@@ -168,9 +180,10 @@ public class ObjectType {
         return isOrSubOf(obj, parentClass);
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of or a sub-class of the parent
-     * @param obj Object to test
+     *
+     * @param obj         Object to test
      * @param parentClass Class to test against
      */
     public static boolean isOrSubOf(Object obj, Class<?> parentClass) {
@@ -183,9 +196,10 @@ public class ObjectType {
         return false;
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of a sub-class of or properly implements an interface
-     * @param obj Object to test
+     *
+     * @param obj        Object to test
      * @param typeObject Object to test against
      */
     public static boolean instanceOf(Object obj, Object typeObject) {
@@ -194,18 +208,20 @@ public class ObjectType {
         return instanceOf(obj, typeClass);
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of a sub-class of or properly implements an interface
-     * @param obj Object to test
+     *
+     * @param obj        Object to test
      * @param typeObject Object to test against
      */
     public static boolean instanceOf(Object obj, String typeName) {
         return instanceOf(obj, typeName, null);
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of a sub-class of or properly implements an interface
-     * @param obj Object to test
+     *
+     * @param obj        Object to test
      * @param typeObject Object to test against
      */
     public static boolean instanceOf(Object obj, String typeName, ClassLoader loader) {
@@ -242,9 +258,10 @@ public class ObjectType {
         return instanceOf(obj, infoClass);
     }
 
-    /** 
+    /**
      * Tests if an object is an instance of a sub-class of or properly implements an interface
-     * @param obj Object to test
+     *
+     * @param obj       Object to test
      * @param typeClass Class to test against
      */
     public static boolean instanceOf(Object obj, Class<?> typeClass) {
@@ -258,12 +275,13 @@ public class ObjectType {
         }
     }
 
-    /** 
+    /**
      * Converts the passed object to the named simple type; supported types
      * include: String, Boolean, Double, Float, Long, Integer, Date (java.sql.Date),
      * Time, Timestamp;
-     * @param obj Object to convert
-     * @param type Name of type to convert to
+     *
+     * @param obj    Object to convert
+     * @param type   Name of type to convert to
      * @param format Optional (can be null) format string for Date, Time, Timestamp
      * @param locale Optional (can be null) Locale for formatting and parsing Double, Float, Long, Integer
      */
@@ -297,7 +315,7 @@ public class ObjectType {
                 if (loc != null) {
                     return loc;
                 } else {
-                    throw new GeneralException("Could not convert " + str + " to " + type + ": ");    
+                    throw new GeneralException("Could not convert " + str + " to " + type + ": ");
                 }
             } else if ("Double".equals(type) || "java.lang.Double".equals(type)) {
                 try {
@@ -614,7 +632,7 @@ public class ObjectType {
                     return 1;
                 else
                     return 0;
-            } else { 
+            } else {
                 throw new GeneralException("Conversion from " + fromType + " to " + type + " not currently supported");
             }
         } else if (obj instanceof java.util.Locale) {
@@ -633,10 +651,11 @@ public class ObjectType {
     }
 
     public static Boolean doRealCompare(Object value1, Object value2, String operator, String type, String format,
-        List<String> messages, Locale locale, ClassLoader loader) {
+                                        List<String> messages, Locale locale, ClassLoader loader) {
         boolean verboseOn = Debug.verboseOn();
 
-        if (verboseOn) Debug.logVerbose("Comparing value1: \"" + value1 + "\" " + operator + " value2:\"" + value2 + "\"");
+        if (verboseOn)
+            Debug.logVerbose("Comparing value1: \"" + value1 + "\" " + operator + " value2:\"" + value2 + "\"");
 
         int result = 0;
 
@@ -690,11 +709,11 @@ public class ObjectType {
                 return Boolean.TRUE;
             if (value1 instanceof List && ((List<?>) value1).size() == 0)
                 return Boolean.TRUE;
-            if (value1 instanceof Map && ((Map<?,?>) value1).size() == 0)
+            if (value1 instanceof Map && ((Map<?, ?>) value1).size() == 0)
                 return Boolean.TRUE;
-            return Boolean.FALSE;    
+            return Boolean.FALSE;
         }
-        
+
         if ("is-not-empty".equals(operator)) {
             if (value1 == null)
                 return Boolean.FALSE;
@@ -702,11 +721,11 @@ public class ObjectType {
                 return Boolean.FALSE;
             if (value1 instanceof List && ((List<?>) value1).size() == 0)
                 return Boolean.FALSE;
-            if (value1 instanceof Map && ((Map<?,?>) value1).size() == 0)
+            if (value1 instanceof Map && ((Map<?, ?>) value1).size() == 0)
                 return Boolean.FALSE;
-            return Boolean.TRUE;    
+            return Boolean.TRUE;
         }
-        
+
         if ("String".equals(type) || "PlainString".equals(type)) {
             String str1 = (String) convertedValue1;
             String str2 = (String) convertedValue2;

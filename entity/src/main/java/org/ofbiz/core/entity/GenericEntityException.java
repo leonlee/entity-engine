@@ -24,14 +24,14 @@
  */
 package org.ofbiz.core.entity;
 
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.GeneralException;
 
 /**
  * GenericEntityException
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class GenericEntityException extends GeneralException {
 

@@ -11,37 +11,36 @@ import java.util.StringTokenizer;
  * re-used.
  */
 
-public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType
-{
+public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType {
 
     private static final int MAJOR = 0;
     private static final int MINOR = 1;
 
     protected AbstractPostgresDatabaseType(String name, String fieldTypeName) {
-        super(name, fieldTypeName, new String[] {"POSTGRESQL"});
+        super(name, fieldTypeName, new String[]{"POSTGRESQL"});
     }
 
-    public String getSchemaName (Connection con) {
+    public String getSchemaName(Connection con) {
         return "public";
     }
 
-     protected int[] parseVersionStr(String version) {
+    protected int[] parseVersionStr(String version) {
         int[] versionNumber = new int[2];
 
-         StringTokenizer versionTokens = new StringTokenizer(version, ".");
+        StringTokenizer versionTokens = new StringTokenizer(version, ".");
 
-         if(versionTokens.hasMoreElements()) {
-             versionNumber[MAJOR] = Integer.parseInt(versionTokens.nextToken());
+        if (versionTokens.hasMoreElements()) {
+            versionNumber[MAJOR] = Integer.parseInt(versionTokens.nextToken());
 
 
-             if(versionTokens.hasMoreElements()) {
-                 versionNumber[MINOR] = Integer.parseInt(versionTokens.nextToken());
+            if (versionTokens.hasMoreElements()) {
+                versionNumber[MINOR] = Integer.parseInt(versionTokens.nextToken());
 
-                 return versionNumber;
-             }
-         }
+                return versionNumber;
+            }
+        }
 
-         return null;
+        return null;
     }
 
     protected int[] getPostgresVersion(Connection con) throws SQLException {
@@ -51,13 +50,13 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType
             versionNumber[MAJOR] = metaData.getDatabaseMajorVersion();
             versionNumber[MINOR] = metaData.getDatabaseMinorVersion();
             return versionNumber;
-        } catch (AbstractMethodError ame){
+        } catch (AbstractMethodError ame) {
             return parseVersionStr(metaData.getDatabaseProductVersion());
         }
     }
 
 
-    protected boolean postgresVersionGreaterThanOrEqual(Connection con,int major, int minor) throws SQLException {
+    protected boolean postgresVersionGreaterThanOrEqual(Connection con, int major, int minor) throws SQLException {
         int[] vers = getPostgresVersion(con);
 
         return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor);
