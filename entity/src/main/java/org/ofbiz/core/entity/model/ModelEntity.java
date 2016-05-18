@@ -136,6 +136,11 @@ public class ModelEntity implements Comparable<ModelEntity> {
     protected List<ModelIndex> indexes = new ArrayList<ModelIndex>();
 
     /**
+     * function based indexes in this entity
+     */
+    protected List<ModelFunctionBasedIndex> functionBasedIndexes = new ArrayList<>();
+
+    /**
      * An indicator to specify if this entity requires locking for updates
      */
     protected boolean doLock = false;
@@ -201,6 +206,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
         if (utilTimer != null) utilTimer.timerString("  createModelEntity: before relations");
         this.populateRelated(reader, entityElement);
         this.populateIndexes(entityElement);
+        this.populateFunctionBasedIndexes(entityElement);
     }
 
     /**
@@ -271,6 +277,17 @@ public class ModelEntity implements Comparable<ModelEntity> {
             if (indexElement.getParentNode() == entityElement) {
                 ModelIndex index = new ModelIndex(this, indexElement);
                 this.indexes.add(index);
+            }
+        }
+    }
+
+    protected void populateFunctionBasedIndexes(Element entityElement) {
+        NodeList indexList = entityElement.getElementsByTagName("function-based-index");
+        for (int i = 0; i < indexList.getLength(); i++) {
+            Element indexElement = (Element) indexList.item(i);
+            if (indexElement.getParentNode() == entityElement) {
+                ModelFunctionBasedIndex index = new ModelFunctionBasedIndex(this, indexElement);
+                this.functionBasedIndexes.add(index);
             }
         }
     }
@@ -644,6 +661,14 @@ public class ModelEntity implements Comparable<ModelEntity> {
 
     public ModelIndex removeIndex(int index) {
         return this.indexes.remove(index);
+    }
+
+    public Iterator<ModelFunctionBasedIndex> getFunctionBasedIndexesIterator() {
+        return this.functionBasedIndexes.iterator();
+    }
+
+    public void addFunctionBasedIndex(ModelFunctionBasedIndex fbindex) {
+        this.functionBasedIndexes.add(fbindex);
     }
 
     public String nameString(List<ModelField> flds) {
