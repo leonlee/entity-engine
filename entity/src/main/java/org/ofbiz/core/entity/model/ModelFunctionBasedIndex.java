@@ -114,4 +114,15 @@ public class ModelFunctionBasedIndex {
         return this.mainEntity;
     }
 
+    public ModelField getVirtualColumnModelField() {
+        ModelField modelField = null;
+        if (virtualColumn != null) {
+            modelField = new ModelField();
+            modelField.setName(virtualColumn);
+            modelField.setType(type);
+            modelField.setColName(ModelUtil.javaNameToDbName(virtualColumn));
+        }
+        return modelField;
+    }
+
 }

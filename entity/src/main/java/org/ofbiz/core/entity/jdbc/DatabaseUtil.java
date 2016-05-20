@@ -223,14 +223,24 @@ public class DatabaseUtil {
 
                 if (colInfo != null) {
                     Map<String, ModelField> fieldColNames = new HashMap<String, ModelField>();
+                    Map<String, ModelField> virtualColumnNames = new HashMap<String, ModelField>();
                     for (int fnum = 0; fnum < entity.getFieldsSize(); fnum++) {
                         ModelField field = entity.getField(fnum);
                         fieldColNames.put(field.getColName().toUpperCase(), field);
                     }
+                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); )
+                    {
+                        ModelFunctionBasedIndex fbIndex = iter.next();
+                        ModelField mf = fbIndex.getVirtualColumnModelField();
+                        if ( mf != null){
+                            fieldColNames.put(mf.getColName().toUpperCase(), mf);
+                            virtualColumnNames.put(mf.getColName().toUpperCase(), mf);
+                        }
+                    }
 
                     List<ColumnCheckInfo> colList = colInfo.get(upperTableName);
                     int numCols = 0;
-
+                    int numFields = fieldColNames.size();
                     if (colList != null) {
                         for (; numCols < colList.size(); numCols++) {
                             ColumnCheckInfo ccInfo = colList.get(numCols);
@@ -246,11 +256,17 @@ public class DatabaseUtil {
                     }
 
                     // -display message if number of table columns does not match number of entity fields
-                    if (numCols != entity.getFieldsSize()) {
-                        String message = "Entity \"" + entityName + "\" has " + entity.getFieldsSize() + " fields but table \"" + tableName + "\" has " +
+                    if (numCols != numFields) {
+                        String message = "Entity \"" + entityName + "\" has " + numFields + " fields but table \"" + tableName + "\" has " +
                                 numCols + " columns.";
 
                         warn(message, messages);
+                    }
+
+                    // remove all calculated columns from list of columns, if the virtual column is missing it will
+                    // be added via the createMissingFunctionBasedIndices method call later in this method
+                    for (String s : virtualColumnNames.keySet()) {
+                        fieldColNames.remove(s);
                     }
 
                     // -list all fields that do not have a corresponding column
