@@ -45,6 +45,7 @@ public class DatasourceInfo {
     private String fkStyle = null;
     private boolean useFkInitiallyDeferred = true;
     private boolean useIndices = true;
+    private boolean useFunctionBasedIndices = true;
     private String joinStyle = "ansi";
 
     protected static final Properties CONFIGURATION;
@@ -156,6 +157,7 @@ public class DatasourceInfo {
         useFkInitiallyDeferred = "true".equals(element.getAttribute("use-fk-initially-deferred"));
         // anything but false is true
         useIndices = !"false".equals(element.getAttribute("use-indices"));
+        useFunctionBasedIndices = !"false".equals(element.getAttribute("use-ifunction-based-ndices"));
         joinStyle = element.getAttribute("join-style");
         if (fkStyle == null || fkStyle.length() == 0) {
             fkStyle = "name_constraint";
@@ -412,6 +414,10 @@ public class DatasourceInfo {
 
     public boolean isUsePkConstraintNames() {
         return usePkConstraintNames;
+    }
+
+    public boolean isUseFunctionBasedIndices() {
+        return useFunctionBasedIndices;
     }
 
     public String getFkStyle() {

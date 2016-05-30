@@ -40,7 +40,7 @@
         <!ELEMENT version ( #PCDATA  )>
 
         <!-- ================== entity ===================== -->
-        <!ELEMENT entity ( description?, field+, prim-key*, relation*, index* )>
+        <!ELEMENT entity ( description?, field+, prim-key*, relation*, index*, function-based-index* )>
         <!-- see the children of entitymodel section for description, etc. -->
         <!ATTLIST entity
                 entity-name CDATA #REQUIRED
@@ -88,6 +88,17 @@
         <!ELEMENT index-field EMPTY>
         <!ATTLIST index-field
                 name CDATA #REQUIRED >
+
+        <!-- ==================== function-based-index ===================== -->
+        <!ELEMENT function-based-index ( virtual-column )>
+        <!ATTLIST function-based-index
+                name CDATA #REQUIRED
+                unique ( true | false ) "false"
+                function CDATA #REQUIRED>
+        <!ELEMENT virtual-column EMPTY>
+        <!ATTLIST virtual-column
+                name CDATA #REQUIRED
+                type CDATA #REQUIRED>
 
         <!-- ================== view-entity ===================== -->
         <!ELEMENT view-entity ( description?, member-entity+, alias+, view-link*, relation* )>

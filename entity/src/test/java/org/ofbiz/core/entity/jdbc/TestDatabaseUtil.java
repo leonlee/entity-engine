@@ -11,6 +11,9 @@ import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
+import org.ofbiz.core.entity.model.ModelFieldType;
+import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.entity.model.ModelFunctionBasedIndex;
 import org.ofbiz.core.entity.model.ModelIndex;
 
 import java.sql.Connection;
@@ -81,6 +84,51 @@ public class TestDatabaseUtil {
         final String mesg = du.createDeclaredIndices(modelEntity);
         assertNull("unexpected error", mesg);
         verify(statement).executeUpdate("CREATE INDEX  ON TESTABLE (nicecolumn)");
+    }
+
+    @Test
+    public void testCreateFunctionBasedIndicesSupportedDB() throws Exception {
+        final Connection connection = mock(Connection.class);
+        final Statement statement = mock(Statement.class);
+        when(connection.createStatement()).thenReturn(statement);
+        final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.POSTGRES);
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, datasourceInfo, new MyConnectionProvider(connection));
+        ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
+        final ModelField modelField = new ModelField();
+        modelField.setColName("nicecolumn");
+        modelField.setName("fieldname");
+        modelEntity.addField(modelField);
+        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", "lower(fieldname)", true, "lower_vname", "long-varchar");
+        modelEntity.addFunctionBasedIndex(modelFBIndex);
+        final String mesg = du.createFunctionBasedIndices(modelEntity);
+        assertNull("unexpected error", mesg);
+        verify(statement).executeUpdate("CREATE UNIQUE INDEX fbindex ON TESTABLE (lower(fieldname))");
+    }
+
+    @Test
+    public void testCreateFunctionBasedIndicesUnsupportedDB() throws Exception {
+        final Connection connection = mock(Connection.class);
+        final Statement statement = mock(Statement.class);
+        when(connection.createStatement()).thenReturn(statement);
+        final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.MSSQL);
+        final ModelFieldType modelFieldType = mock(ModelFieldType.class);
+        when(modelFieldType.getSqlType()).thenReturn("VARCHAR");
+        final ModelFieldTypeReader modelFieldTypeReader = mock(ModelFieldTypeReader.class);
+        when(modelFieldTypeReader.getModelFieldType("long-varchar")).thenReturn(modelFieldType);
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", modelFieldTypeReader, datasourceInfo, new MyConnectionProvider(connection));
+        ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
+        final ModelField modelField = new ModelField();
+        modelField.setColName("nicecolumn");
+        modelField.setName("fieldname");
+        modelEntity.addField(modelField);
+        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", "lower(fieldname)", false, "lower_vname", "long-varchar");
+        modelEntity.addFunctionBasedIndex(modelFBIndex);
+        final String mesg = du.createFunctionBasedIndices(modelEntity);
+        assertNull("unexpected error", mesg);
+        verify(statement).executeUpdate("ALTER TABLE TESTABLE ADD lower_vname VARCHAR AS (lower(fieldname))");
+        verify(statement).executeUpdate("CREATE INDEX fbindex ON TESTABLE (lower_vname)");
     }
 
     @Test

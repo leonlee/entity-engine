@@ -38,6 +38,7 @@ import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
+import org.ofbiz.core.entity.model.ModelFunctionBasedIndex;
 import org.ofbiz.core.entity.model.ModelIndex;
 import org.ofbiz.core.entity.model.ModelKeyMap;
 import org.ofbiz.core.entity.model.ModelRelation;
@@ -222,14 +223,24 @@ public class DatabaseUtil {
 
                 if (colInfo != null) {
                     Map<String, ModelField> fieldColNames = new HashMap<String, ModelField>();
+                    Map<String, ModelField> virtualColumnNames = new HashMap<String, ModelField>();
                     for (int fnum = 0; fnum < entity.getFieldsSize(); fnum++) {
                         ModelField field = entity.getField(fnum);
                         fieldColNames.put(field.getColName().toUpperCase(), field);
                     }
+                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); )
+                    {
+                        ModelFunctionBasedIndex fbIndex = iter.next();
+                        ModelField mf = fbIndex.getVirtualColumnModelField();
+                        if ( mf != null){
+                            fieldColNames.put(mf.getColName().toUpperCase(), mf);
+                            virtualColumnNames.put(mf.getColName().toUpperCase(), mf);
+                        }
+                    }
 
                     List<ColumnCheckInfo> colList = colInfo.get(upperTableName);
                     int numCols = 0;
-
+                    int numFields = fieldColNames.size();
                     if (colList != null) {
                         for (; numCols < colList.size(); numCols++) {
                             ColumnCheckInfo ccInfo = colList.get(numCols);
@@ -245,11 +256,17 @@ public class DatabaseUtil {
                     }
 
                     // -display message if number of table columns does not match number of entity fields
-                    if (numCols != entity.getFieldsSize()) {
-                        String message = "Entity \"" + entityName + "\" has " + entity.getFieldsSize() + " fields but table \"" + tableName + "\" has " +
+                    if (numCols != numFields) {
+                        String message = "Entity \"" + entityName + "\" has " + numFields + " fields but table \"" + tableName + "\" has " +
                                 numCols + " columns.";
 
                         warn(message, messages);
+                    }
+
+                    // remove all calculated columns from list of columns, if the virtual column is missing it will
+                    // be added via the createMissingFunctionBasedIndices method call later in this method
+                    for (String s : virtualColumnNames.keySet()) {
+                        fieldColNames.remove(s);
                     }
 
                     // -list all fields that do not have a corresponding column
@@ -341,6 +358,19 @@ public class DatabaseUtil {
             }
 
             createMissingIndices(existingTableEntities, messages);
+        }
+
+        if (datasourceInfo.isUseFunctionBasedIndices()) {
+            // for each newly added table, add function based indexes
+            for (ModelEntity curEntity : entitiesAdded) {
+                String indErrMsg = createFunctionBasedIndices(curEntity);
+
+                if (indErrMsg != null && indErrMsg.length() > 0) {
+                    error("Could not create function based indices for entity \"" + curEntity.getEntityName() + "\"", messages);
+                    error(indErrMsg, messages);
+                }
+            }
+            createMissingFunctionBasedIndices(existingTableEntities, messages);
         }
 
         // make sure each one-relation has an FK
@@ -753,7 +783,7 @@ public class DatabaseUtil {
     }
 
     public TreeSet<String> getTableNames(Collection<String> messages) {
-        Connection connection = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -877,7 +907,7 @@ public class DatabaseUtil {
             return new HashMap<String, List<ColumnCheckInfo>>();
         }
 
-        Connection connection = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -983,7 +1013,7 @@ public class DatabaseUtil {
     }
 
     public Map<String, Map<String, ReferenceCheckInfo>> getReferenceInfo(Set<String> tableNames, Collection<String> messages) {
-        Connection connection = null;
+        Connection connection;
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
@@ -1119,7 +1149,7 @@ public class DatabaseUtil {
      * @return a map of table names to sets of index names or null on failure.
      */
     public Map<String, Set<String>> getIndexInfo(Set<String> tableNames, Collection<String> messages, boolean includeUnique) {
-        Connection connection = null;
+        Connection connection;
         try {
             connection = getConnection();
         } catch (SQLException sqle) {
@@ -1269,8 +1299,7 @@ public class DatabaseUtil {
             return "ERROR: Cannot create table for a view entity";
         }
 
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1345,15 +1374,7 @@ public class DatabaseUtil {
         if (Debug.verboseOn()) {
             Debug.logVerbose("[createTable] sql=" + sqlBuf.toString());
         }
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(sqlBuf.toString());
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + sqlBuf.toString() + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, sqlBuf.toString());
     }
 
     public String addColumn(ModelEntity entity, ModelField field) {
@@ -1408,6 +1429,57 @@ public class DatabaseUtil {
                 // if this also fails report original error, not this error...
                 return "SQL Exception while executing the following:\n" + sql + "\nError was: " + sqle.toString();
             }
+        } finally {
+            cleanup(connection, stmt);
+        }
+        return null;
+    }
+
+
+    public String addVirtualColumn(ModelEntity entity, ModelFunctionBasedIndex index) {
+        if (entity == null || index == null) {
+            return "ModelEntity or ModelFunctionBasedIndex where null, cannot add column";
+        }
+        if (entity instanceof ModelViewEntity) {
+            return "ERROR: Cannot add column for a view entity";
+        }
+        Connection connection;
+        try {
+            connection = getConnection();
+        } catch (SQLException sqle) {
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
+        } catch (GenericEntityException e) {
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
+        }
+        ModelFieldType type = modelFieldTypeReader.getModelFieldType(index.getType());
+        if (type == null) {
+            return "Field type [" + type + "] not found for field [" + index.getName() + "] of entity [" + entity.getEntityName() + "], not adding column.";
+        }
+        StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
+        sqlBuf.append(entity.getTableName(datasourceInfo));
+        sqlBuf.append(" ADD ");
+        sqlBuf.append(index.getVirtualColumn());
+        sqlBuf.append(" ");
+        sqlBuf.append(type.getSqlType());
+        sqlBuf.append(" AS (");
+        sqlBuf.append(index.getFunction());
+        sqlBuf.append(")");
+        String sql = sqlBuf.toString();
+        if (Debug.infoOn()) {
+            Debug.logInfo("[addColumn] sql=" + sql);
+        }
+        String sqle = executeStatement(connection, sql);
+        if (sqle != null) return sqle;
+        return null;
+    }
+
+    private String executeStatement(Connection connection, String sql) {
+        Statement stmt = null;
+        try {
+            stmt = connection.createStatement();
+            stmt.executeUpdate(sql);
+        } catch (SQLException sqle) {
+            return "SQL Exception while executing the following:\n" + sql + "\nError was: " + sqle.toString();
         } finally {
             cleanup(connection, stmt);
         }
@@ -1475,8 +1547,7 @@ public class DatabaseUtil {
     }
 
     public String createForeignKey(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1495,15 +1566,7 @@ public class DatabaseUtil {
         if (Debug.verboseOn()) {
             Debug.logVerbose("[createForeignKey] sql=" + sqlBuf.toString());
         }
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(sqlBuf.toString());
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + sqlBuf.toString() + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, sqlBuf.toString());
     }
 
     public String makeFkConstraintClause(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
@@ -1618,8 +1681,7 @@ public class DatabaseUtil {
     }
 
     public String deleteForeignKey(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1640,15 +1702,7 @@ public class DatabaseUtil {
         if (Debug.verboseOn()) {
             Debug.logVerbose("[deleteForeignKey] sql=" + sqlBuf.toString());
         }
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(sqlBuf.toString());
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + sqlBuf.toString() + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, sqlBuf.toString());
     }
 
     /**
@@ -1690,8 +1744,8 @@ public class DatabaseUtil {
     }
 
     public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
+        
 
         try {
             connection = getConnection();
@@ -1706,15 +1760,7 @@ public class DatabaseUtil {
             Debug.logVerbose("[createForeignKeyIndex] index sql=" + createIndexSql);
         }
 
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(createIndexSql);
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + createIndexSql + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, createIndexSql);
     }
 
     public String makeIndexClause(ModelEntity entity, ModelIndex modelIndex) {
@@ -1729,21 +1775,24 @@ public class DatabaseUtil {
             }
             mainCols.append(mainField.getColName());
         }
+        StringBuilder indexSqlBuf = generateIndexClause(entity, modelIndex.getUnique(), modelIndex.getName(), mainCols.toString());
+        return indexSqlBuf.toString();
+    }
 
+    private StringBuilder generateIndexClause(ModelEntity entity, boolean isUnique, String indexName, String mainCols) {
         StringBuilder indexSqlBuf = new StringBuilder("CREATE ");
-        if (modelIndex.getUnique()) {
+        if (isUnique) {
             indexSqlBuf.append("UNIQUE ");
         }
         indexSqlBuf.append("INDEX ");
-        indexSqlBuf.append(modelIndex.getName());
+        indexSqlBuf.append(indexName);
         indexSqlBuf.append(" ON ");
         indexSqlBuf.append(entity.getTableName(datasourceInfo));
 
         indexSqlBuf.append(" (");
-        indexSqlBuf.append(mainCols.toString());
+        indexSqlBuf.append(mainCols);
         indexSqlBuf.append(")");
-
-        return indexSqlBuf.toString();
+        return indexSqlBuf;
     }
 
     public String deleteDeclaredIndices(ModelEntity entity) {
@@ -1777,8 +1826,7 @@ public class DatabaseUtil {
     }
 
     public String deleteDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1796,15 +1844,7 @@ public class DatabaseUtil {
             Debug.logVerbose("[deleteForeignKeyIndex] index sql=" + deleteIndexSql);
         }
 
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(deleteIndexSql);
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + deleteIndexSql + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, deleteIndexSql);
     }
 
     public String createForeignKeyIndices(ModelEntity entity, int constraintNameClipLength) {
@@ -1842,8 +1882,7 @@ public class DatabaseUtil {
     }
 
     public String createForeignKeyIndex(ModelEntity entity, ModelRelation modelRelation, int constraintNameClipLength) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1859,15 +1898,7 @@ public class DatabaseUtil {
             Debug.logVerbose("[createForeignKeyIndex] index sql=" + createIndexSql);
         }
 
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(createIndexSql);
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + createIndexSql + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, createIndexSql);
     }
 
     public String makeFkIndexClause(ModelEntity entity, ModelRelation modelRelation, int constraintNameClipLength) {
@@ -1885,17 +1916,8 @@ public class DatabaseUtil {
             mainCols.append(mainField.getColName());
         }
 
-        StringBuilder indexSqlBuf = new StringBuilder("CREATE INDEX ");
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
-
-        indexSqlBuf.append(relConstraintName);
-        indexSqlBuf.append(" ON ");
-        indexSqlBuf.append(entity.getTableName(datasourceInfo));
-
-        indexSqlBuf.append(" (");
-        indexSqlBuf.append(mainCols.toString());
-        indexSqlBuf.append(")");
-
+        StringBuilder indexSqlBuf =  generateIndexClause(entity, false, relConstraintName, mainCols.toString());
         return indexSqlBuf.toString();
     }
 
@@ -1934,8 +1956,7 @@ public class DatabaseUtil {
     }
 
     public String deleteForeignKeyIndex(ModelEntity entity, ModelRelation modelRelation, int constraintNameClipLength) {
-        Connection connection = null;
-        Statement stmt = null;
+        Connection connection;
 
         try {
             connection = getConnection();
@@ -1958,16 +1979,128 @@ public class DatabaseUtil {
             Debug.logVerbose("[deleteForeignKeyIndex] index sql=" + deleteIndexSql);
         }
 
-        try {
-            stmt = connection.createStatement();
-            stmt.executeUpdate(deleteIndexSql);
-        } catch (SQLException sqle) {
-            return "SQL Exception while executing the following:\n" + deleteIndexSql + "\nError was: " + sqle.toString();
-        } finally {
-            cleanup(connection, stmt);
-        }
-        return null;
+        return executeStatement(connection, deleteIndexSql);
     }
+
+    /**
+     * Creates a function based index for every declared index on the given entity.
+     *
+     * @param entity
+     * @return an error message if there is an error, or null if it worked.
+     */
+    public String createFunctionBasedIndices(ModelEntity entity) {
+        if (entity == null) {
+            return "ModelEntity was null and is required to create functional based indices for a table";
+        }
+        if (entity instanceof ModelViewEntity) {
+            return "ERROR: Cannot create functional based indices for a view entity";
+        }
+        StringBuilder retMsgsBuffer = new StringBuilder();
+        // go through the indexes to see if any need to be added
+        Iterator<ModelFunctionBasedIndex> indexesIter = entity.getFunctionBasedIndexesIterator();
+        while (indexesIter.hasNext()) {
+            ModelFunctionBasedIndex fbIndex = indexesIter.next();
+
+            String retMsg = createFunctionBasedIndex(entity, fbIndex);
+
+            if (retMsg != null && retMsg.length() > 0) {
+                if (retMsgsBuffer.length() > 0) {
+                    retMsgsBuffer.append("\n");
+                }
+                retMsgsBuffer.append(retMsg);
+            }
+        }
+
+        if (retMsgsBuffer.length() > 0) {
+            return retMsgsBuffer.toString();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Add only the missing function based indexes for the given modelEntities, keyed by table name. The existence of an index is
+     * determined soley by its name. If the {@link org.ofbiz.core.entity.model.ModelFunctionBasedIndex} defines an index that has the
+     * same name but a different function or unique flag as the one in the database, no action is taken to rectify the
+     * difference.
+     *
+     * @param tableToModelEntities a map of table name to corresponding model entity.
+     * @param messages             error messages go here
+     */
+    void createMissingFunctionBasedIndices(Map<String, ModelEntity> tableToModelEntities, Collection<String> messages) {
+        // get the actual db index names per table
+        final Map<String, Set<String>> indexInfo = getIndexInfo(tableToModelEntities.keySet(), messages, true);
+
+        for (Map.Entry<String, Set<String>> indexInfoEntry : indexInfo.entrySet()) {
+            final String tableName = indexInfoEntry.getKey();
+            final Set<String> actualIndexes = indexInfoEntry.getValue();
+
+            final ModelEntity modelEntity = tableToModelEntities.get(tableName);
+            final Iterator<ModelFunctionBasedIndex> indexesIterator = modelEntity.getFunctionBasedIndexesIterator();
+
+            final StringBuilder retMsgsBuffer = new StringBuilder();
+
+            while (indexesIterator.hasNext()) {
+                ModelFunctionBasedIndex modelIndex = indexesIterator.next();
+                if (!actualIndexes.contains(modelIndex.getName().toUpperCase())) {
+                    if (Debug.infoOn()) {
+                        Debug.logInfo("Missing index '" + modelIndex.getName() + "' on existing table '" + tableName + "' ...creating");
+                    }
+                    String retMsg = createFunctionBasedIndex(modelEntity, modelIndex);
+
+                    if (retMsg != null && retMsg.length() > 0) {
+                        if (retMsgsBuffer.length() > 0) {
+                            retMsgsBuffer.append('\n');
+                        }
+                        retMsgsBuffer.append(retMsg);
+                    }
+                }
+            }
+            if (retMsgsBuffer.length() > 0) {
+                error("Could not create missing function based indices for entity \"" + modelEntity.getEntityName() + '"', messages);
+                error(retMsgsBuffer.toString(), messages);
+            } else {
+                important("Created function based indices for entity \"" + modelEntity.getEntityName() + "\"", messages);
+            }
+        }
+    }
+
+    public String createFunctionBasedIndex(ModelEntity entity, ModelFunctionBasedIndex fbIndex) {
+        Connection connection;
+        try {
+            connection = getConnection();
+        } catch (SQLException sqle) {
+            return "Unable to establish a connection with the database... Error was: " + sqle.toString();
+        } catch (GenericEntityException e) {
+            return "Unable to establish a connection with the database... Error was: " + e.toString();
+        }
+        String createFBIndexSql = makeFunctionBasedIndexClause(entity, fbIndex, supportsFunctionBasedIndices(connection));
+        if (Debug.verboseOn()) {
+            Debug.logVerbose("[createFunctionBasedIndex] index sql=" + createFBIndexSql);
+        }
+
+        return executeStatement(connection, createFBIndexSql);
+    }
+
+    private boolean supportsFunctionBasedIndices(Connection connection) {
+        final DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
+        return DatabaseTypeFactory.ORACLE_10G == dbType || DatabaseTypeFactory.ORACLE_8I == dbType
+                || DatabaseTypeFactory.POSTGRES  == dbType|| DatabaseTypeFactory.POSTGRES_7_2 == dbType
+                || DatabaseTypeFactory.POSTGRES_7_3 == dbType;
+    }
+
+    public String makeFunctionBasedIndexClause(ModelEntity entity, ModelFunctionBasedIndex fbIndex, boolean supportsFunctionalBasedIndices) {
+        String indexOver;
+        if (supportsFunctionalBasedIndices) {
+            indexOver = fbIndex.getFunction();
+        } else {
+            addVirtualColumn(entity, fbIndex);
+            indexOver = fbIndex.getVirtualColumn();
+        }
+        StringBuilder indexSqlBuf = generateIndexClause(entity, fbIndex.getUnique(), fbIndex.getName(), indexOver);
+        return indexSqlBuf.toString();
+    }
+
 
     private String convertToSchemaTableName(String tableName, DatabaseMetaData dbData) throws SQLException {
         // Check if the database supports schemas
