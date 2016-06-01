@@ -157,7 +157,7 @@ public class DatasourceInfo {
         useFkInitiallyDeferred = "true".equals(element.getAttribute("use-fk-initially-deferred"));
         // anything but false is true
         useIndices = !"false".equals(element.getAttribute("use-indices"));
-        useFunctionBasedIndices = !"false".equals(element.getAttribute("use-ifunction-based-ndices"));
+        useFunctionBasedIndices = !"false".equals(element.getAttribute("use-function-based-indices"));
         joinStyle = element.getAttribute("join-style");
         if (fkStyle == null || fkStyle.length() == 0) {
             fkStyle = "name_constraint";

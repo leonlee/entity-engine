@@ -9,6 +9,7 @@ import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.model.FunctionDefinitionBuilder;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -43,6 +44,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -99,11 +101,19 @@ public class TestDatabaseUtil {
         modelField.setColName("nicecolumn");
         modelField.setName("fieldname");
         modelEntity.addField(modelField);
-        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", "lower(fieldname)", true, "lower_vname", "long-varchar");
+        final FunctionDefinitionBuilder builder = createFunctionDefinitionBuilder(true);
+        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", true, builder);
         modelEntity.addFunctionBasedIndex(modelFBIndex);
         final String mesg = du.createFunctionBasedIndices(modelEntity);
         assertNull("unexpected error", mesg);
         verify(statement).executeUpdate("CREATE UNIQUE INDEX fbindex ON TESTABLE (lower(fieldname))");
+    }
+
+    private FunctionDefinitionBuilder createFunctionDefinitionBuilder(boolean supportsFunctionIndexes) {
+        final FunctionDefinitionBuilder builder = mock(FunctionDefinitionBuilder.class);
+        when(builder.getFunctionDefinition(any(DatabaseType.class))).thenReturn("lower(fieldname)");
+        when(builder.supportsFunctionBasedIndices(any(DatabaseType.class))).thenReturn(supportsFunctionIndexes);
+        return builder;
     }
 
     @Test
@@ -123,7 +133,10 @@ public class TestDatabaseUtil {
         modelField.setColName("nicecolumn");
         modelField.setName("fieldname");
         modelEntity.addField(modelField);
-        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", "lower(fieldname)", false, "lower_vname", "long-varchar");
+        final FunctionDefinitionBuilder builder = createFunctionDefinitionBuilder(false);
+        when(builder.getVirtualColumn(any(DatabaseType.class))).thenReturn("lower_vname");
+        when(builder.getType()).thenReturn("long-varchar");
+        final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", false, builder);
         modelEntity.addFunctionBasedIndex(modelFBIndex);
         final String mesg = du.createFunctionBasedIndices(modelEntity);
         assertNull("unexpected error", mesg);

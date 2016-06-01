@@ -231,8 +231,8 @@ public class DatabaseUtil {
                     for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); )
                     {
                         ModelFunctionBasedIndex fbIndex = iter.next();
-                        ModelField mf = fbIndex.getVirtualColumnModelField();
-                        if ( mf != null){
+                        ModelField mf = fbIndex.getVirtualColumnModelField(datasourceInfo.getDatabaseTypeFromJDBCConnection());
+                        if (mf != null) {
                             fieldColNames.put(mf.getColName().toUpperCase(), mf);
                             virtualColumnNames.put(mf.getColName().toUpperCase(), mf);
                         }
@@ -1438,7 +1438,7 @@ public class DatabaseUtil {
 
     public String addVirtualColumn(ModelEntity entity, ModelFunctionBasedIndex index) {
         if (entity == null || index == null) {
-            return "ModelEntity or ModelFunctionBasedIndex where null, cannot add column";
+            return "ModelEntity or ModelFunctionBasedIndex were null, cannot add column";
         }
         if (entity instanceof ModelViewEntity) {
             return "ERROR: Cannot add column for a view entity";
@@ -1455,14 +1455,15 @@ public class DatabaseUtil {
         if (type == null) {
             return "Field type [" + type + "] not found for field [" + index.getName() + "] of entity [" + entity.getEntityName() + "], not adding column.";
         }
+        DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
         StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" ADD ");
-        sqlBuf.append(index.getVirtualColumn());
+        sqlBuf.append(index.getVirtualColumn(dbType));
         sqlBuf.append(" ");
         sqlBuf.append(type.getSqlType());
         sqlBuf.append(" AS (");
-        sqlBuf.append(index.getFunction());
+        sqlBuf.append(index.getFunction(dbType));
         sqlBuf.append(")");
         String sql = sqlBuf.toString();
         if (Debug.infoOn()) {
@@ -1779,9 +1780,9 @@ public class DatabaseUtil {
         return indexSqlBuf.toString();
     }
 
-    private StringBuilder generateIndexClause(ModelEntity entity, boolean isUnique, String indexName, String mainCols) {
+    private StringBuilder generateIndexClause(ModelEntity entity, boolean unique, String indexName, String mainCols) {
         StringBuilder indexSqlBuf = new StringBuilder("CREATE ");
-        if (isUnique) {
+        if (unique) {
             indexSqlBuf.append("UNIQUE ");
         }
         indexSqlBuf.append("INDEX ");
@@ -2074,7 +2075,7 @@ public class DatabaseUtil {
         } catch (GenericEntityException e) {
             return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
-        String createFBIndexSql = makeFunctionBasedIndexClause(entity, fbIndex, supportsFunctionBasedIndices(connection));
+        String createFBIndexSql = makeFunctionBasedIndexClause(entity, fbIndex, datasourceInfo.getDatabaseTypeFromJDBCConnection(connection));
         if (Debug.verboseOn()) {
             Debug.logVerbose("[createFunctionBasedIndex] index sql=" + createFBIndexSql);
         }
@@ -2082,20 +2083,13 @@ public class DatabaseUtil {
         return executeStatement(connection, createFBIndexSql);
     }
 
-    private boolean supportsFunctionBasedIndices(Connection connection) {
-        final DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
-        return DatabaseTypeFactory.ORACLE_10G == dbType || DatabaseTypeFactory.ORACLE_8I == dbType
-                || DatabaseTypeFactory.POSTGRES  == dbType|| DatabaseTypeFactory.POSTGRES_7_2 == dbType
-                || DatabaseTypeFactory.POSTGRES_7_3 == dbType;
-    }
-
-    public String makeFunctionBasedIndexClause(ModelEntity entity, ModelFunctionBasedIndex fbIndex, boolean supportsFunctionalBasedIndices) {
+    public String makeFunctionBasedIndexClause(ModelEntity entity, ModelFunctionBasedIndex fbIndex, DatabaseType databaseType) {
         String indexOver;
-        if (supportsFunctionalBasedIndices) {
-            indexOver = fbIndex.getFunction();
+        if (fbIndex.supportsFunctionBasedIndices(databaseType)) {
+            indexOver = fbIndex.getFunction(databaseType);
         } else {
             addVirtualColumn(entity, fbIndex);
-            indexOver = fbIndex.getVirtualColumn();
+            indexOver = fbIndex.getVirtualColumn(databaseType);
         }
         StringBuilder indexSqlBuf = generateIndexClause(entity, fbIndex.getUnique(), fbIndex.getName(), indexOver);
         return indexSqlBuf.toString();

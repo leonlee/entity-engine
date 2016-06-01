@@ -1,8 +1,17 @@
 package org.ofbiz.core.entity.model;
 
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+
+import javax.annotation.Nullable;
+import java.lang.reflect.Constructor;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.ofbiz.core.util.UtilXml.childElementList;
+import static org.ofbiz.core.util.UtilXml.firstChildElement;
 
 /**
  * Generic Entity - Relation model function-based-index class
@@ -13,51 +22,37 @@ public class ModelFunctionBasedIndex {
     /**
      * reference to the entity this index refers to
      */
-    protected ModelEntity mainEntity;
+    private final ModelEntity mainEntity;
 
     /**
      * the index name, used for the database index name
      */
-    protected String name;
+    private final String name;
 
     /**
      * the function to base the index on
      */
-    protected String function;
+    private String function;
 
     /**
      * specifies whether or not this index should include the unique constraint
      */
-    protected boolean unique;
+    private final boolean unique;
 
+    private final FunctionDefinitionBuilder builder;
+    
     /**
-     * the virtual column name, used for databases that do not support function based indexes
+     * the function return type, used for databases that do not support function based indexes
      */
-    protected String virtualColumn;
+    private String type;
 
 
-    /**
-     * the virtual column type, used for databases that do not support function based indexes
-     */
-    protected String type;
-
-
-    /**
-     * Default Constructor
-     */
-    public ModelFunctionBasedIndex() {
-        name = "";
-        unique = false;
-        function = "";
-    }
-
-    public ModelFunctionBasedIndex(ModelEntity mainEntity, String name, String function, boolean unique, String virtualColumn, String type) {
+    public ModelFunctionBasedIndex(ModelEntity mainEntity, String name, boolean unique, FunctionDefinitionBuilder builder) {
         this.mainEntity = mainEntity;
         this.name = name;
-        this.function = function;
         this.unique = unique;
-        this.virtualColumn = virtualColumn;
-        this.type = type;
+        this.builder = builder;
+        this.type = builder.getType();
     }
 
     /**
@@ -69,16 +64,33 @@ public class ModelFunctionBasedIndex {
         this.name = UtilXml.checkEmpty(indexElement.getAttribute("name"));
         this.unique = "true".equals(UtilXml.checkEmpty(indexElement.getAttribute("unique")));
         this.function = UtilXml.checkEmpty(indexElement.getAttribute("function"));
+        Element builderElement = firstChildElement(indexElement, "builder");
+        String builderClass = builderElement.getAttribute("class");
+        Element functionDefinitionElement = firstChildElement(builderElement, "function-definition");
+        this.type = functionDefinitionElement.getAttribute("type");
+        String virtualColumn = functionDefinitionElement.getAttribute("virtual-column");
+        String argList = functionDefinitionElement.getAttribute("arg-list");
+        List<String> columns = childElementList(functionDefinitionElement, "column")
+                .stream()
+                .map(new Function<Element, String>() {
+                    @Override
+                    public String apply(Element element) {
+                        return element.getAttribute("name");
+                    }
+                })
+                .collect(Collectors.toList());
+        this.builder = getFunctionDefinitionBuilder(builderClass, virtualColumn, type, columns, argList);
+    }
 
-        NodeList virtualColumnsList = indexElement.getElementsByTagName("virtual-column");
-        for (int i = 0; i < virtualColumnsList.getLength(); i++) {
-            Element indexFieldElement = (Element) virtualColumnsList.item(i);
-
-            if (indexFieldElement.getParentNode() == indexElement) {
-                this.virtualColumn = indexFieldElement.getAttribute("name");
-                this.type = indexFieldElement.getAttribute("type");
-            }
+    private FunctionDefinitionBuilder getFunctionDefinitionBuilder(String clazz, String virtualColumn, String type, List<String> columns, @Nullable String argsList) {
+        FunctionDefinitionBuilder builder;
+        try {
+            Constructor cons = Class.forName(clazz).getConstructor(String.class, String.class, List.class, String.class);
+            builder = (FunctionDefinitionBuilder)cons.newInstance(virtualColumn, type, columns, argsList);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
         }
+        return builder;
     }
 
     /**
@@ -88,8 +100,8 @@ public class ModelFunctionBasedIndex {
         return this.name;
     }
 
-    public String getFunction() {
-        return function;
+    public String getFunction(DatabaseType dbType) {
+        return builder.getFunctionDefinition(dbType);
     }
 
     /**
@@ -99,8 +111,8 @@ public class ModelFunctionBasedIndex {
         return this.unique;
     }
 
-    public String getVirtualColumn() {
-        return virtualColumn;
+    public String getVirtualColumn(DatabaseType dbType) {
+        return builder.getVirtualColumn(dbType);
     }
 
     public String getType() {
@@ -114,8 +126,9 @@ public class ModelFunctionBasedIndex {
         return this.mainEntity;
     }
 
-    public ModelField getVirtualColumnModelField() {
+    public ModelField getVirtualColumnModelField(DatabaseType dbType) {
         ModelField modelField = null;
+        String virtualColumn = builder.getVirtualColumn(dbType);
         if (virtualColumn != null) {
             modelField = new ModelField();
             modelField.setName(virtualColumn);
@@ -125,4 +138,7 @@ public class ModelFunctionBasedIndex {
         return modelField;
     }
 
+    public boolean supportsFunctionBasedIndices(DatabaseType databaseType) {
+        return builder.supportsFunctionBasedIndices(databaseType);
+    }
 }
