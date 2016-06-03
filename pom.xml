@@ -59,6 +59,7 @@
         <junit.version>4.12</junit.version>
         <mockito.version>1.10.19</mockito.version>
         <utt.version>0.0.3</utt.version>
+        <javadoc.additional.params>-Xdoclint:none</javadoc.additional.params>
     </properties>
 
     <dependencyManagement>
