@@ -90,15 +90,20 @@
                 name CDATA #REQUIRED >
 
         <!-- ==================== function-based-index ===================== -->
-        <!ELEMENT function-based-index ( virtual-column )>
+        <!ELEMENT function-based-index ( builder )>
         <!ATTLIST function-based-index
                 name CDATA #REQUIRED
-                unique ( true | false ) "false"
-                function CDATA #REQUIRED>
-        <!ELEMENT virtual-column EMPTY>
-        <!ATTLIST virtual-column
-                name CDATA #REQUIRED
-                type CDATA #REQUIRED>
+                unique ( true | false ) "false">
+        <!ELEMENT builder (function-definition) >
+        <!ATTLIST builder
+                class CDATA #REQUIRED>
+        <!ELEMENT function-definition (column+)>
+        <!ATTLIST function-definition
+                virtual-column CDATA #REQUIRED
+                type CDATA #REQUIRED
+                arg-list CDATA #IMPLIED>
+        <!ELEMENT column EMPTY>
+        <!ATTLIST column name CDATA #REQUIRED>
 
         <!-- ================== view-entity ===================== -->
         <!ELEMENT view-entity ( description?, member-entity+, alias+, view-link*, relation* )>
