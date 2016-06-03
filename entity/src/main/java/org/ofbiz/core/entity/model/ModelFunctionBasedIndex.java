@@ -72,12 +72,7 @@ public class ModelFunctionBasedIndex {
         String argList = functionDefinitionElement.getAttribute("arg-list");
         List<String> columns = childElementList(functionDefinitionElement, "column")
                 .stream()
-                .map(new Function<Element, String>() {
-                    @Override
-                    public String apply(Element element) {
-                        return element.getAttribute("name");
-                    }
-                })
+                .map(element -> element.getAttribute("name"))
                 .collect(Collectors.toList());
         this.builder = getFunctionDefinitionBuilder(builderClass, virtualColumn, type, columns, argList);
     }

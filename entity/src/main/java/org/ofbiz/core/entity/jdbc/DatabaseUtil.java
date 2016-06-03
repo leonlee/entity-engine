@@ -1438,7 +1438,7 @@ public class DatabaseUtil {
 
     public String addVirtualColumn(ModelEntity entity, ModelFunctionBasedIndex index) {
         if (entity == null || index == null) {
-            return "ModelEntity or ModelFunctionBasedIndex were null, cannot add column";
+            return "Either ModelEntity or ModelFunctionBasedIndex was null; cannot add column";
         }
         if (entity instanceof ModelViewEntity) {
             return "ERROR: Cannot add column for a view entity";

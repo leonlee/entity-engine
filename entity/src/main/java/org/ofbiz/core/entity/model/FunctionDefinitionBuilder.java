@@ -7,10 +7,26 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- *
  *  Base class for creating a function definition.  The main purpose is to return
  *  different function definitions based on database type, for instance the substr function
  *  is different in each of our supported databases.
+ *
+ *  You should provide an override of this class for your function definition, for example
+ *  <pre>
+ *  {@code
+ *     public class LowerFunctionDefinitionBuilder extends FunctionDefinitionBuilder  {
+ *
+ *          public LowerFunctionDefinitionBuilder(String virtualColumn, String type, List<String> columns, @Nullable String argsList) {
+ *              super(virtualColumn, type, columns, argsList);
+ *          }
+ *
+ *          public String getFunctionDefinition(DatabaseType databaseType) {
+ *              String column = columns.get(0);
+ *              return "lower(" + column +")";
+ *          }
+ *      }
+ *  }
+ *  </pre>
  */
 public abstract class FunctionDefinitionBuilder {
 
@@ -33,9 +49,13 @@ public abstract class FunctionDefinitionBuilder {
         this.argsList = argsList;
     }
 
+    /**
+     * @return the name of the vitrtual column to create in the databse.  Only those databases that do not support function based
+     * indexes need to create a column, so return null for supported databases.
+     */
     @Nullable
     public String getVirtualColumn(DatabaseType dbType) {
-        if (supportsFunctionBasedIndices(dbType)) {
+        if (!supportsFunctionBasedIndices(dbType)) {
             return virtualColumn;
         }
         return null;
