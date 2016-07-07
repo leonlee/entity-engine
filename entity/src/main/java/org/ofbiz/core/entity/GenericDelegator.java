@@ -47,6 +47,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
@@ -2462,10 +2463,7 @@ public class GenericDelegator implements DelegatorInterface {
         if (sequencer == null) {
             synchronized (this) {
                 if (sequencer == null) {
-                    String helperName = getEntityHelperName("SequenceValueItem");
-                    ModelEntity seqEntity = getModelEntity("SequenceValueItem");
-
-                    sequencer = new SequenceUtil(helperName, seqEntity, "seqName", "seqId");
+                    sequencer = getDefaultSequencer();
                 }
             }
         }
@@ -2481,6 +2479,22 @@ public class GenericDelegator implements DelegatorInterface {
     public void setSequencer(final SequenceUtil sequencer) {
         checkIfLocked();
         this.sequencer = sequencer;
+    }
+
+    private SequenceUtil getDefaultSequencer() {
+        String sequenceGeneratorClassName = getDelegatorInfo().sequenceGeneratorClassName;
+        String helperName = getEntityHelperName("SequenceValueItem");
+        ModelEntity seqEntity = getModelEntity("SequenceValueItem");
+        final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        try {
+            Class<?> sgClass = loader.loadClass(sequenceGeneratorClassName);
+            Constructor<?> sgConstructor = sgClass.getConstructor(String.class, ModelEntity.class, String.class, String.class);
+            return (SequenceUtil) sgConstructor.newInstance(helperName, seqEntity, "seqName", "seqId");
+        } catch (ReflectiveOperationException e) {
+            Debug.logWarning(e, "Something went wrong when instantiating " + sequenceGeneratorClassName +
+                    ".  Falling back to using org.ofbiz.core.entity.SequenceUtil");
+        }
+        return new SequenceUtil(helperName, seqEntity, "seqName", "seqId");
     }
 
     /**

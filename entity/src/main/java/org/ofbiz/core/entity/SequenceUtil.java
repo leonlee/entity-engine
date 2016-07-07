@@ -51,11 +51,11 @@ public class SequenceUtil {
     public static final String module = SequenceUtil.class.getName();
 
     Map<String, SequenceBank> sequences = new Hashtable<String, SequenceBank>();
-    String helperName;
-    ModelEntity seqEntity;
-    String tableName;
-    String nameColName;
-    String idColName;
+    protected String helperName;
+    protected ModelEntity seqEntity;
+    protected String tableName;
+    protected String nameColName;
+    protected String idColName;
 
     private SequenceUtil() {
     }
@@ -327,7 +327,7 @@ public class SequenceUtil {
         }
     }
 
-    private void closeQuietly(Connection connection) {
+    protected void closeQuietly(Connection connection) {
         try {
             if (connection != null) {
                 connection.close();
@@ -337,7 +337,7 @@ public class SequenceUtil {
         }
     }
 
-    private void closeQuietly(PreparedStatement stmt) {
+    protected void closeQuietly(PreparedStatement stmt) {
         try {
             if (stmt != null) {
                 stmt.close();
@@ -347,7 +347,7 @@ public class SequenceUtil {
         }
     }
 
-    private void closeQuietly(ResultSet rs) {
+    protected void closeQuietly(ResultSet rs) {
         try {
             if (rs != null) {
                 rs.close();

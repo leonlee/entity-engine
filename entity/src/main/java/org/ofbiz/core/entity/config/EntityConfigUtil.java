@@ -323,6 +323,7 @@ public class EntityConfigUtil {
         public boolean useDistributedCacheClear;
         public String distributedCacheClearClassName;
         public String distributedCacheClearUserLoginId;
+        public String sequenceGeneratorClassName;
         public Map<String, String> groupMap = new HashMap<String, String>();
 
         public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map<String, String> groupMap) {
@@ -330,6 +331,11 @@ public class EntityConfigUtil {
             this.entityModelReader = entityModelReader;
             this.entityGroupReader = entityGroupReader;
             this.groupMap = groupMap;
+        }
+
+        public DelegatorInfo(String name, String entityModelReader, String entityGroupReader, Map<String, String> groupMap, String sequenceGeneratorClassName) {
+            this(name, entityModelReader, entityGroupReader, groupMap);
+            this.sequenceGeneratorClassName = sequenceGeneratorClassName;;
         }
 
         public DelegatorInfo(Element element) {
@@ -353,6 +359,10 @@ public class EntityConfigUtil {
 
             for (Element groupMapElement : groupMapList) {
                 groupMap.put(groupMapElement.getAttribute("group-name"), groupMapElement.getAttribute("datasource-name"));
+            }
+            this.sequenceGeneratorClassName = element.getAttribute("sequence-generator-class-name");
+            if (UtilValidate.isEmpty(sequenceGeneratorClassName)) {
+                this.sequenceGeneratorClassName = "org.ofbiz.core.entity.SequenceUtil";
             }
         }
     }
