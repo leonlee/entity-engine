@@ -36,7 +36,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 /**
  * Sequence Utility to get unique sequences from named sequence banks
@@ -90,6 +93,15 @@ public class SequenceUtil {
             bank = constructSequenceBank(seqName);
         }
         return bank.getNextSeqId();
+    }
+
+    public List<Long> getNextSeqIds(String seqName, int quantity) {
+        SequenceBank bank = sequences.get(seqName);
+
+        if (bank == null) {
+            bank = constructSequenceBank(seqName);
+        }
+        return bank.getNextSeqIds(quantity);
     }
 
     /**
@@ -146,6 +158,10 @@ public class SequenceUtil {
             }
         }
 
+        public synchronized List<Long> getNextSeqIds(int quantity) {
+            return LongStream.range(0, quantity).map(i -> this.getNextSeqId()).boxed().collect(Collectors.toList());
+        }
+
         protected synchronized void fillBank() {
             // no need to get a new bank, SeqIds available
             if (curSeqId < maxSeqId) return;
@@ -182,12 +198,9 @@ public class SequenceUtil {
 
             try {
                 connection = ConnectionFactory.getConnection(parentUtil.helperName);
-            } catch (SQLException sqle) {
+            } catch (SQLException | GenericEntityException sqle) {
                 Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
                 Debug.logWarning(sqle.getMessage(), module);
-            } catch (GenericEntityException e) {
-                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
-                Debug.logWarning(e.getMessage(), module);
             }
 
             PreparedStatement selectPstmt = null;
