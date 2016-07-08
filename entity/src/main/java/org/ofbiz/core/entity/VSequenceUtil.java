@@ -53,12 +53,9 @@ public class VSequenceUtil extends SequenceUtil {
 
         try {
             connection = ConnectionFactory.getConnection(helperName);
-        } catch (SQLException sqle) {
+        } catch (SQLException | GenericEntityException sqle) {
             Debug.logWarning("[VSequenceUtil.getNextSeqId]: Unable to establish a connection with the database... Error was:", module);
             Debug.logWarning(sqle.getMessage(), module);
-        } catch (GenericEntityException e) {
-            Debug.logWarning("[VSequenceUtil.getNextSeqId]: Unable to establish a connection with the database... Error was:", module);
-            Debug.logWarning(e.getMessage(), module);
         }
 
         PreparedStatement selectPstmt = null;
@@ -75,13 +72,13 @@ public class VSequenceUtil extends SequenceUtil {
             selectPstmt.setString(1, seqName);
             rs = selectPstmt.executeQuery();
             if (rs.next()) {
-                nextSeq = rs.getLong(idColName) + 1;
-                rs.updateLong(idColName, nextSeq);
+                nextSeq = rs.getLong(idColName);
+                rs.updateLong(idColName, nextSeq + 1);
                 rs.updateRow();
             } else {
                 rs.moveToInsertRow();
                 rs.updateString(nameColName, seqName);
-                rs.updateLong(idColName, nextSeq);
+                rs.updateLong(idColName, nextSeq + 1);
                 rs.insertRow();
             }
             // Updateable result sets will always result in database locks, so we don't
