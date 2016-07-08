@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Can't declare a DOCTYPE location that will satisfy both IDEA and Maven -->
+
+<fieldtypemodel>
+    <!-- ===================== field-type-def ==================== -->
+    <!-- General Types -->
+    <field-type-def type="blob" sql-type="OTHER" java-type="java.lang.Object"/>
+
+    <field-type-def type="date-time" sql-type="TIMESTAMP" java-type="java.sql.Timestamp"/>
+    <field-type-def type="date" sql-type="DATE" java-type="java.sql.Date"/>
+    <field-type-def type="time" sql-type="TIME" java-type="java.sql.Time"/>
+
+    <field-type-def type="currency-amount" sql-type="DOUBLE" java-type="Double">
+        <validate name="isSignedDouble"/>
+    </field-type-def>
+    <field-type-def type="floating-point" sql-type="DOUBLE" java-type="Double">
+        <validate name="isSignedDouble"/>
+    </field-type-def>
+    <field-type-def type="numeric" sql-type="BIGINT" java-type="Long">
+        <validate name="isSignedLong"/>
+    </field-type-def>
+    <field-type-def type="integer" sql-type="INTEGER" java-type="Integer">
+        <validate name="isSignedLong"/>
+    </field-type-def>
+
+    <field-type-def type="id" sql-type="VARCHAR(20)" java-type="String"/>
+    <field-type-def type="id-long" sql-type="VARCHAR(60)" java-type="String"/>
+    <field-type-def type="id-vlong" sql-type="VARCHAR(250)" java-type="String"/>
+
+    <field-type-def type="indicator" sql-type="CHAR(1)" java-type="String"/>
+    <field-type-def type="very-short" sql-type="VARCHAR(10)" java-type="String"/>
+    <field-type-def type="short-varchar" sql-type="VARCHAR(60)" java-type="String"/>
+    <field-type-def type="long-varchar" sql-type="VARCHAR(255)" java-type="String"/>
+    <field-type-def type="very-long" sql-type="VARCHAR(4000)" java-type="String"/>
+    <field-type-def type="extremely-long" sql-type="CLOB" java-type="String"/>
+
+    <field-type-def type="comment" sql-type="VARCHAR(255)" java-type="String"/>
+    <field-type-def type="description" sql-type="VARCHAR(255)" java-type="String"/>
+    <field-type-def type="name" sql-type="VARCHAR(60)" java-type="String"/>
+    <field-type-def type="value" sql-type="VARCHAR(255)" java-type="String"/>
+
+    <!-- Specialized Types -->
+    <field-type-def type="credit-card-number" sql-type="VARCHAR(40)" java-type="String">
+        <validate name="isAnyCard"/>
+    </field-type-def>
+    <field-type-def type="credit-card-date" sql-type="VARCHAR(20)" java-type="String">
+        <validate name="isDateAfterToday"/>
+    </field-type-def>
+    <field-type-def type="email" sql-type="VARCHAR(255)" java-type="String">
+        <validate name="isEmail"/>
+    </field-type-def>
+    <field-type-def type="url" sql-type="VARCHAR(255)" java-type="String"/>
+    <field-type-def type="id-ne" sql-type="VARCHAR(20)" java-type="String">
+        <validate name="isNotEmpty"/>
+    </field-type-def>
+    <field-type-def type="id-long-ne" sql-type="VARCHAR(60)" java-type="String">
+        <validate name="isNotEmpty"/>
+    </field-type-def>
+    <field-type-def type="id-vlong-ne" sql-type="VARCHAR(250)" java-type="String">
+        <validate name="isNotEmpty"/>
+    </field-type-def>
+    <field-type-def type="tel-number" sql-type="VARCHAR(60)" java-type="String">
+        <validate name="isInternationalPhoneNumber"/>
+    </field-type-def>
+
+</fieldtypemodel>
