@@ -85,7 +85,7 @@ public class VSequenceUtil extends SequenceUtil {
             manualTx.remove();
         }
         resumeTransaction(suspendedTransaction);
-        return LongStream.range(nextSeq, quantity).boxed().collect(Collectors.toList());
+        return LongStream.range(nextSeq, nextSeq + quantity).boxed().collect(Collectors.toList());
     }
 
     private Transaction suspendActiveTransaction() {
