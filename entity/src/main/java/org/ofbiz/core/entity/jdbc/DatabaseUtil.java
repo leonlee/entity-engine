@@ -25,6 +25,7 @@ package org.ofbiz.core.entity.jdbc;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.ConnectionProvider;
@@ -49,6 +50,7 @@ import org.ofbiz.core.util.UtilValidate;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -84,12 +86,16 @@ public class DatabaseUtil {
             .put("VARCHAR2", "NVARCHAR2")
             .put("NVARCHAR", "NTEXT")
             .build();
+    private static final String SEQUENCE_VALUE_ITEM = "SequenceValueItem";
 
     protected final String helperName;
     protected final ModelFieldTypeReader modelFieldTypeReader;
     protected final DatasourceInfo datasourceInfo;
 
     private final ConnectionProvider connectionProvider;
+    private String sequenceTableName = null;
+    private String sequenceValueColumn = null;
+    private String sequenceIdColumn = null;
 
     /**
      * Constructs with the name of a helper that is used to load {@link org.ofbiz.core.entity.config.DatasourceInfo} from
@@ -202,7 +208,11 @@ public class DatabaseUtil {
             curEnt++;
             ModelEntity entity = modelEntityIter.next();
             String entityName = entity.getEntityName();
-
+            if (entityName.equals(SEQUENCE_VALUE_ITEM)) {
+                sequenceTableName = entity.getTableName(datasourceInfo);
+                sequenceValueColumn = entity.getField("seqName").getColName();
+                sequenceIdColumn = entity.getField("seqId").getColName();
+            }
             // if this is a view entity, do not check it...
             if (entity instanceof ModelViewEntity) {
                 verbose("(" + timer.timeSinceLast() + "ms) NOT Checking #" + curEnt + "/" + totalEnt + " View Entity " + entityName, messages);
@@ -553,8 +563,59 @@ public class DatabaseUtil {
                 Debug.logInfo("Created " + numIndicesCreated + " indices");
             }
         }
+        // make sure each table has a sequence
+        List<ModelEntity> entitiesWithNoSequence = sequenceNumbersMissing(modelEntityList);
+        addSequenceNumbers(entitiesWithNoSequence);
 
         timer.timerString("Finished Checking Entity Database");
+    }
+
+    private List<ModelEntity> sequenceNumbersMissing(List<ModelEntity> entities) {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        final List<ModelEntity> unsequencedEntities = Lists.newArrayList();
+        try {
+            connection = getConnection();
+            statement = connection.prepareStatement("SElECT * FROM " + sequenceTableName + " WHERE " + sequenceValueColumn + " =  ?");
+            for (ModelEntity entity : entities) {
+                if (entity.getEntityName() != SEQUENCE_VALUE_ITEM) {
+                    statement.setString(1, entity.getEntityName());
+                    ResultSet rs = null;
+                    try {
+                        rs = statement.executeQuery();
+                        if (!rs.next()) {
+                            unsequencedEntities.add(entity);
+                        }
+                    } finally {
+                        if (rs != null) {
+                            rs.close();
+                        }
+                    }
+                }
+            }
+        } catch (SQLException | GenericEntityException sqle) {
+            Debug.logWarning("Exception thrown while checking sequence numbers... Error was: " + sqle.toString());
+        } finally {
+            cleanup(connection, statement);
+        }
+        return unsequencedEntities;
+    }
+
+    private void addSequenceNumbers(List<ModelEntity> entities) {
+        Connection connection = null;
+        PreparedStatement ps = null;
+        try {
+            connection = getConnection();
+            ps = connection.prepareStatement("INSERT INTO " + sequenceTableName + "("+ sequenceValueColumn + "," + sequenceIdColumn + ") VALUES (?, 10000)");
+            for (ModelEntity entity : entities) {
+                ps.setString(1, entity.getEntityName());
+                ps.execute();
+            }
+        } catch (SQLException | GenericEntityException e) {
+            Debug.logWarning("Exception thrown while adding sequence numbers... Error was: " + e.toString());
+        } finally {
+            cleanup(connection, ps);
+        }
     }
 
     /**
@@ -1746,7 +1807,7 @@ public class DatabaseUtil {
 
     public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
         Connection connection;
-        
+
 
         try {
             connection = getConnection();

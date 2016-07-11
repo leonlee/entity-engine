@@ -103,6 +103,6 @@ public class TestVSequenceUtil {
         });
         startLatch.countDown();;
         doneLatch.await();
-        assertThat(sequenceIds, containsInAnyOrder(expected));
+        assertThat(sequenceIds, containsInAnyOrder(expected.toArray()));
     }
 }
