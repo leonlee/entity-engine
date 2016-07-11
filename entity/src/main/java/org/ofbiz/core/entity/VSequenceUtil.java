@@ -34,58 +34,62 @@ public class VSequenceUtil extends SequenceUtil {
 
     public List<Long> getNextSeqIds(String seqName, int quantity) {
         Connection connection = null;
+        Transaction suspendedTransaction = null;
         manualTx.set(true);
-        Transaction suspendedTransaction = suspendActiveTransaction();
-        long nextSeq = START_SEQ_ID;
-
         try {
-            connection = ConnectionFactory.getConnection(helperName);
-        } catch (SQLException | GenericEntityException sqle) {
-            Debug.logWarning("[VSequenceUtil.getNextSeqId]: Unable to establish a connection with the database... Error was:", module);
-            Debug.logWarning(sqle.getMessage(), module);
-        }
+            suspendedTransaction = suspendActiveTransaction();
+            long nextSeq = START_SEQ_ID;
 
-        PreparedStatement selectPstmt = null;
-        ResultSet rs = null;
-
-        try {
             try {
-                connection.setAutoCommit(false);
-            } catch (SQLException sqle) {
-                manualTx.set(false);
+                connection = ConnectionFactory.getConnection(helperName);
+            } catch (SQLException | GenericEntityException sqle) {
+                Debug.logWarning("[VSequenceUtil.getNextSeqId]: Unable to establish a connection with the database... Error was:", module);
+                Debug.logWarning(sqle.getMessage(), module);
             }
-            selectPstmt = connection.prepareStatement("SELECT * FROM " + tableName + " WHERE " + nameColName + "=? FOR UPDATE",
-                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            selectPstmt.setString(1, seqName);
-            rs = selectPstmt.executeQuery();
-            if (rs.next()) {
-                nextSeq = rs.getLong(idColName);
-                rs.updateLong(idColName, nextSeq + quantity);
-                rs.updateRow();
-            } else {
-                rs.moveToInsertRow();
-                rs.updateString(nameColName, seqName);
-                rs.updateLong(idColName, nextSeq + quantity);
-                rs.insertRow();
+
+            PreparedStatement selectPstmt = null;
+            ResultSet rs = null;
+
+            try {
+                try {
+                    connection.setAutoCommit(false);
+                } catch (SQLException sqle) {
+                    manualTx.set(false);
+                }
+                selectPstmt = connection.prepareStatement("SELECT * FROM " + tableName + " WHERE " + nameColName + "=? FOR UPDATE",
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+                selectPstmt.setString(1, seqName);
+                rs = selectPstmt.executeQuery();
+                if (rs.next()) {
+                    nextSeq = rs.getLong(idColName);
+                    rs.updateLong(idColName, nextSeq + quantity);
+                    rs.updateRow();
+                } else {
+                    rs.moveToInsertRow();
+                    rs.updateString(nameColName, seqName);
+                    rs.updateLong(idColName, nextSeq + quantity);
+                    rs.insertRow();
+                }
+                // Updateable result sets will always result in database locks, so we don't
+                // need to check if another thread has created a sequence.... the method is also
+                // synchronized to protect against the case where no row exists yet
+                if (manualTx.get()) {
+                    connection.commit();
+                }
+            } catch (SQLException e) {
+                Debug.logWarning(e, "[VSequenceUtil.getNextSeqId] SQL Exception", module);
+                return null;
+            } finally {
+                // close all prepared statements and the connection
+                closeQuietly(rs);
+                closeQuietly(selectPstmt);
+                closeQuietly(connection);
+                manualTx.remove();
             }
-            // Updateable result sets will always result in database locks, so we don't
-            // need to check if another thread has created a sequence.... the method is also
-            // synchronized to protect against the case where no row exists yet
-            if (manualTx.get()) {
-                connection.commit();
-            }
-        } catch (SQLException e) {
-            Debug.logWarning(e, "[VSequenceUtil.getNextSeqId] SQL Exception", module);
-            return null;
+            return LongStream.range(nextSeq, nextSeq + quantity).boxed().collect(Collectors.toList());
         } finally {
-            // close all prepared statements and the connection
-            closeQuietly(rs);
-            closeQuietly(selectPstmt);
-            closeQuietly(connection);
-            manualTx.remove();
+            resumeTransaction(suspendedTransaction);
         }
-        resumeTransaction(suspendedTransaction);
-        return LongStream.range(nextSeq, nextSeq + quantity).boxed().collect(Collectors.toList());
     }
 
     private Transaction suspendActiveTransaction() {
