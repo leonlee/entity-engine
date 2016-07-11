@@ -28,11 +28,11 @@ public class VSequenceUtil extends SequenceUtil {
         super(helperName, seqEntity, nameFieldName, idFieldName);
     }
 
-    public synchronized Long getNextSeqId(String seqName) {
+    public Long getNextSeqId(String seqName) {
         return getNextSeqIds(seqName, 1).get(0);
     }
 
-    public synchronized List<Long> getNextSeqIds(String seqName, int quantity) {
+    public List<Long> getNextSeqIds(String seqName, int quantity) {
         Connection connection = null;
         manualTx.set(true);
         Transaction suspendedTransaction = suspendActiveTransaction();
