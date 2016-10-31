@@ -35,14 +35,20 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Generic Entity - Entity Group Definition Reader
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelGroupReader {
 
@@ -151,7 +157,9 @@ public class ModelGroupReader {
         return groupCache;
     }
 
-    /** Gets a group name based on a definition from the specified XML Entity Group descriptor file.
+    /**
+     * Gets a group name based on a definition from the specified XML Entity Group descriptor file.
+     *
      * @param entityName The entityName of the Entity Group definition to use.
      * @return A group name
      */
@@ -164,7 +172,9 @@ public class ModelGroupReader {
             return null;
     }
 
-    /** Creates a Collection with all of the groupNames defined in the specified XML Entity Group Descriptor file.
+    /**
+     * Creates a Collection with all of the groupNames defined in the specified XML Entity Group Descriptor file.
+     *
      * @return A Collection of groupNames Strings
      */
     public Collection<String> getGroupNames() {
@@ -173,7 +183,9 @@ public class ModelGroupReader {
         return new ArrayList<String>(groupNames);
     }
 
-    /** Creates a Collection with names of all of the entities for a given group
+    /**
+     * Creates a Collection with names of all of the entities for a given group
+     *
      * @return A Collection of entityName Strings
      */
     public Collection<String> getEntityNamesByGroup(String groupName) {

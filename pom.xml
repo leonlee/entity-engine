@@ -9,7 +9,7 @@
 
     <groupId>com.atlassian.ofbiz</groupId>
     <artifactId>entityengine-parent</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.2.6-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Atlassian OFBiz Fork</name>
@@ -36,7 +36,7 @@
     </scm>
 
     <properties>
-        <jdkLevel>1.7</jdkLevel>
+        <jdkLevel>1.8</jdkLevel>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Core Dependencies -->
@@ -57,6 +57,8 @@
         <hsql.version>1.8.0.10</hsql.version>
         <junit.version>4.12</junit.version>
         <mockito.version>1.10.19</mockito.version>
+        <utt.version>0.0.3</utt.version>
+        <javadoc.additional.params>-Xdoclint:none</javadoc.additional.params>
     </properties>
 
     <dependencyManagement>
@@ -155,6 +157,11 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.utt</groupId>
+                <artifactId>toolkit</artifactId>
+                <version>${utt.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

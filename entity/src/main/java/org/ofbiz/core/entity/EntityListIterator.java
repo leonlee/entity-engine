@@ -45,9 +45,8 @@ import java.util.ListIterator;
  * Note that you should *not* rely on this for streaming large datasets, as the backing ResultSet will pull the entire
  * dataset into memory anyway. For more information, see <a href="https://extranet.atlassian.com/display/JIRADEV/2015/08/04/PSA%3A+OfBizListIterator+Is+Not+Good+Enough">PSA: OfBizListIterator is not good enough</a>
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@created    July 12, 2002
- *@version    1.0
+ * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @created    July 12, 2002
  */
 public class EntityListIterator implements ListIterator<GenericValue> {
 
@@ -91,25 +90,23 @@ public class EntityListIterator implements ListIterator<GenericValue> {
             } else {
                 throw new GenericEntityException("Unable to determine column case senstivity on field '" + entityFieldName + "'.");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new GenericEntityException("Unable to determine column case senstivity on field '" + entityFieldName + "'.", e);
         }
     }
 
     /**
-     * Get the column index for the given field name. 
+     * Get the column index for the given field name.
      *
      * @param entityFieldName the field name to find.
      * @return the index of the column if found or -1 if not.
      */
-    private int getJdbcColumnIndex(final String entityFieldName)
-    {
+    private int getJdbcColumnIndex(final String entityFieldName) {
         int targetColumnIndex = -1;
         for (int j = 0; j < selectFields.size(); j++) {
             ModelField curField = selectFields.get(j);
             if (curField.getName().equals(entityFieldName)) {
-                targetColumnIndex = j+1;
+                targetColumnIndex = j + 1;
                 break;
             }
         }
@@ -117,7 +114,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     }
 
 
-    /** Sets the cursor position to just after the last result so that previous() will return the last result */
+    /**
+     * Sets the cursor position to just after the last result so that previous() will return the last result
+     */
     public void afterLast() throws GenericEntityException {
         try {
             resultSet.afterLast();
@@ -126,7 +125,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Sets the cursor position to just before the first result so that next() will return the first result */
+    /**
+     * Sets the cursor position to just before the first result so that next() will return the first result
+     */
     public void beforeFirst() throws GenericEntityException {
         try {
             resultSet.beforeFirst();
@@ -135,7 +136,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Sets the cursor position to last result; if result set is empty returns false */
+    /**
+     * Sets the cursor position to last result; if result set is empty returns false
+     */
     public boolean last() throws GenericEntityException {
         try {
             return resultSet.last();
@@ -144,7 +147,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Sets the cursor position to last result; if result set is empty returns false */
+    /**
+     * Sets the cursor position to last result; if result set is empty returns false
+     */
     public boolean first() throws GenericEntityException {
         try {
             return resultSet.first();
@@ -154,15 +159,19 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     }
 
     public void close() throws GenericEntityException {
-        if (closed) throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
+        if (closed)
+            throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
 
         sqlp.close();
         closed = true;
     }
 
-    /** NOTE: Calling this method does return the current value, but so does calling next() or previous(), so calling one of those AND this method will cause the value to be created twice */
+    /**
+     * NOTE: Calling this method does return the current value, but so does calling next() or previous(), so calling one of those AND this method will cause the value to be created twice
+     */
     public GenericValue currentGenericValue() throws GenericEntityException {
-        if (closed) throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
+        if (closed)
+            throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
 
         GenericValue value = new GenericValue(modelEntity);
 
@@ -180,7 +189,8 @@ public class EntityListIterator implements ListIterator<GenericValue> {
     }
 
     public int currentIndex() throws GenericEntityException {
-        if (closed) throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
+        if (closed)
+            throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
 
         try {
             return resultSet.getRow();
@@ -189,13 +199,15 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** performs the same function as the ResultSet.absolute method; 
+    /**
+     * performs the same function as the ResultSet.absolute method;
      * if rowNum is positive, goes to that position relative to the beginning of the list;
      * if rowNum is negative, goes to that position relative to the end of the list;
      * a rowNum of 1 is the same as first(); a rowNum of -1 is the same as last()
      */
     public boolean absolute(int rowNum) throws GenericEntityException {
-        if (closed) throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
+        if (closed)
+            throw new GenericResultSetClosedException("This EntityListIterator has been closed, this operation cannot be performed");
 
         try {
             return resultSet.absolute(rowNum);
@@ -204,7 +216,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** PLEASE NOTE: Because of the nature of the JDBC ResultSet interface this method can be very inefficient; it is much better to just use next() until it returns null */
+    /**
+     * PLEASE NOTE: Because of the nature of the JDBC ResultSet interface this method can be very inefficient; it is much better to just use next() until it returns null
+     */
     public boolean hasNext() {
         try {
             if (resultSet.isLast() || resultSet.isAfterLast()) {
@@ -223,7 +237,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** PLEASE NOTE: Because of the nature of the JDBC ResultSet interface this method can be very inefficient; it is much better to just use previous() until it returns null */
+    /**
+     * PLEASE NOTE: Because of the nature of the JDBC ResultSet interface this method can be very inefficient; it is much better to just use previous() until it returns null
+     */
     public boolean hasPrevious() {
         try {
             if (resultSet.isFirst() || resultSet.isBeforeFirst()) {
@@ -242,7 +258,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Moves the cursor to the next position and returns the GenericValue object for that position; if there is no next, returns null */
+    /**
+     * Moves the cursor to the next position and returns the GenericValue object for that position; if there is no next, returns null
+     */
     public GenericValue next() {
         try {
             if (resultSet.next()) {
@@ -257,7 +275,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Returns the index of the next result, but does not guarantee that there will be a next result */
+    /**
+     * Returns the index of the next result, but does not guarantee that there will be a next result
+     */
     public int nextIndex() {
         try {
             return currentIndex() + 1;
@@ -266,7 +286,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Moves the cursor to the previous position and returns the GenericValue object for that position; if there is no previous, returns null */
+    /**
+     * Moves the cursor to the previous position and returns the GenericValue object for that position; if there is no previous, returns null
+     */
     public GenericValue previous() {
         try {
             if (resultSet.previous()) {
@@ -281,7 +303,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Returns the index of the previous result, but does not guarantee that there will be a previous result */
+    /**
+     * Returns the index of the previous result, but does not guarantee that there will be a previous result
+     */
     public int previousIndex() {
         try {
             return currentIndex() - 1;
@@ -319,8 +343,9 @@ public class EntityListIterator implements ListIterator<GenericValue> {
         }
     }
 
-    /** Gets a partial list of results starting at start and containing at most number elements. 
-     * Start is a one based value, ie 1 is the first element. 
+    /**
+     * Gets a partial list of results starting at start and containing at most number elements.
+     * Start is a one based value, ie 1 is the first element.
      */
     public List<GenericValue> getPartialList(int start, int number) throws GenericEntityException {
         try {

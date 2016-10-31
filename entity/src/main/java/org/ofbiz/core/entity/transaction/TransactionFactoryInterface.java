@@ -25,27 +25,28 @@
 package org.ofbiz.core.entity.transaction;
 
 
-import javax.transaction.*;
-import java.sql.*;
-import org.w3c.dom.Element;
+import org.ofbiz.core.entity.GenericEntityException;
 
-import org.ofbiz.core.entity.*;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * TyrexTransactionFactory - central source for Tyrex JTA objects
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@version    1.0
- *@created    July 1, 2001, 5:03 PM
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
+ * @created July 1, 2001, 5:03 PM
  */
 public interface TransactionFactoryInterface {
 
     public TransactionManager getTransactionManager();
 
     public UserTransaction getUserTransaction();
-    
+
     public String getTxMgrName();
-    
+
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException;
 
     /**

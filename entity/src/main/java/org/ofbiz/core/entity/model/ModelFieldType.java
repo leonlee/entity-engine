@@ -33,31 +33,46 @@ import java.util.List;
 /**
  * Generic Entity - FieldType model class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ModelFieldType {
 
-    /** The type of the Field */
+    /**
+     * The type of the Field
+     */
     protected String type = null;
 
-    /** The java-type of the Field */
+    /**
+     * The java-type of the Field
+     */
     protected String javaType = null;
 
-    /** The sql-type of the Field */
+    /**
+     * The sql-type of the Field
+     */
     protected String sqlType = null;
 
-    /** The sql-type-alias of the Field, this is optional */
+    /**
+     * The sql-type-alias of the Field, this is optional
+     */
     protected String sqlTypeAlias = null;
 
-    /** validators to be called when an update is done */
+    /**
+     * validators to be called when an update is done
+     */
     protected List<String> validators = new ArrayList<String>();
 
-    /** Default Constructor */
-    public ModelFieldType() {}
+    /**
+     * Default Constructor
+     */
+    public ModelFieldType() {
+    }
 
-    /** XML Constructor */
+    /**
+     * XML Constructor
+     */
     public ModelFieldType(Element fieldTypeElement) {
         this.type = UtilXml.checkEmpty(fieldTypeElement.getAttribute("type"));
         this.javaType = UtilXml.checkEmpty(fieldTypeElement.getAttribute("java-type"));
@@ -73,32 +88,44 @@ public class ModelFieldType {
         }
     }
 
-    /** The type of the Field */
+    /**
+     * The type of the Field
+     */
     public String getType() {
         return this.type;
     }
 
-    /** The java-type of the Field */
+    /**
+     * The java-type of the Field
+     */
     public String getJavaType() {
         return this.javaType;
     }
 
-    /** The sql-type of the Field */
+    /**
+     * The sql-type of the Field
+     */
     public String getSqlType() {
         return this.sqlType;
     }
 
-    /** The sql-type-alias of the Field */
+    /**
+     * The sql-type-alias of the Field
+     */
     public String getSqlTypeAlias() {
         return this.sqlTypeAlias;
     }
 
-    /** validators to be called when an update is done */
+    /**
+     * validators to be called when an update is done
+     */
     public List<String> getValidators() {
         return this.validators;
     }
 
-    /** A simple function to derive the max length of a String created from the field value, based on the sql-type
+    /**
+     * A simple function to derive the max length of a String created from the field value, based on the sql-type
+     *
      * @return max length of a String representing the Field value
      */
     public int stringLength() {

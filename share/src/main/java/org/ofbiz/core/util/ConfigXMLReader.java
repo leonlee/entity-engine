@@ -39,9 +39,9 @@ import java.util.Set;
 /**
  * ConfigXMLReader.java - Reads and parses the XML site config files.
  *
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class ConfigXMLReader {
 
@@ -52,7 +52,9 @@ public class ConfigXMLReader {
     public static UtilCache<URL, Map<String, Object>> headCache = new UtilCache<URL, Map<String, Object>>("webapp.ConfigXMLReader.Config");
     public static UtilCache<URL, Map<String, Map<String, String>>> handlerCache = new UtilCache<URL, Map<String, Map<String, String>>>("webapp.ConfigXMLReader.Handler");
 
-    /** Site Config Variables */
+    /**
+     * Site Config Variables
+     */
     public static final String DEFAULT_ERROR_PAGE = "errorpage";
     public static final String SITE_OWNER = "owner";
     public static final String SECURITY_CLASS = "security-class";
@@ -60,7 +62,9 @@ public class ConfigXMLReader {
     public static final String PREPROCESSOR = "preprocessor";
     public static final String POSTPROCESSOR = "postprocessor";
 
-    /** URI Config Variables */
+    /**
+     * URI Config Variables
+     */
     public static final String INCLUDE = "include";
     public static final String INCLUDE_FILE = "file";
     public static final String INCLUDE_URL = "url";
@@ -89,7 +93,9 @@ public class ConfigXMLReader {
     public static final String RESPONSE_TYPE = "type";
     public static final String RESPONSE_VALUE = "value";
 
-    /** View Config Variables */
+    /**
+     * View Config Variables
+     */
     public static final String VIEW_MAPPING = "view-map";
     public static final String VIEW_NAME = "name";
     public static final String VIEW_PAGE = "page";
@@ -99,13 +105,17 @@ public class ConfigXMLReader {
     public static final String VIEW_ENCODING = "encoding";
     public static final String VIEW_DESCRIPTION = "description";
 
-    /** Handler Config Variables */
+    /**
+     * Handler Config Variables
+     */
     public static final String HANDLER = "handler";
     public static final String HANDLER_NAME = "name";
     public static final String HANDLER_TYPE = "type";
     public static final String HANDLER_CLASS = "class";
 
-    /** Loads the XML file and returns the root element */
+    /**
+     * Loads the XML file and returns the root element
+     */
     public static Element loadDocument(URL location) {
         Document document = null;
 
@@ -124,7 +134,9 @@ public class ConfigXMLReader {
         return null;
     }
 
-    /** Gets a HashMap of request mappings. */
+    /**
+     * Gets a HashMap of request mappings.
+     */
     public static HashMap<String, HashMap<String, String>> getRequestMap(URL xml) {
         HashMap<String, HashMap<String, String>> requestMap = requestCache.get(xml);
 
@@ -144,7 +156,9 @@ public class ConfigXMLReader {
         return requestMap;
     }
 
-    /** Gets a HashMap of request mappings. */
+    /**
+     * Gets a HashMap of request mappings.
+     */
     public static HashMap<String, HashMap<String, String>> loadRequestMap(URL xml) {
         HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
         Element root = loadDocument(xml);
@@ -318,9 +332,11 @@ public class ConfigXMLReader {
         return map;
     }
 
-    /** Gets a HashMap of view mappings. */
+    /**
+     * Gets a HashMap of view mappings.
+     */
     public static Map<String, Map<String, String>> getViewMap(URL xml) {
-        Map<String, Map<String, String>> viewMap =  viewCache.get(xml);
+        Map<String, Map<String, String>> viewMap = viewCache.get(xml);
 
         if (viewMap == null) // don't want to block here
         {
@@ -338,7 +354,9 @@ public class ConfigXMLReader {
         return viewMap;
     }
 
-    /** Gets a HashMap of view mappings. */
+    /**
+     * Gets a HashMap of view mappings.
+     */
     public static Map<String, Map<String, String>> loadViewMap(URL xml) {
         HashMap<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
         Element root = loadDocument(xml);
@@ -445,7 +463,7 @@ public class ConfigXMLReader {
         Set<String> debugSet = map.keySet();
 
         for (String request : debugSet) {
-            Map<String, String> thisURI =  map.get(request);
+            Map<String, String> thisURI = map.get(request);
 
             Debug.logVerbose(request, module);
 
@@ -463,9 +481,11 @@ public class ConfigXMLReader {
         return map;
     }
 
-    /** Gets a HashMap of site configuration variables. */
+    /**
+     * Gets a HashMap of site configuration variables.
+     */
     public static Map<String, Object> getConfigMap(URL xml) {
-        Map<String, Object> configMap =  headCache.get(xml);
+        Map<String, Object> configMap = headCache.get(xml);
 
         if (configMap == null) // don't want to block here
         {
@@ -483,7 +503,9 @@ public class ConfigXMLReader {
         return configMap;
     }
 
-    /** Gets a HashMap of site configuration variables. */
+    /**
+     * Gets a HashMap of site configuration variables.
+     */
     public static Map<String, Object> loadConfigMap(URL xml) {
         HashMap<String, Object> map = new HashMap<String, Object>();
         Element root = loadDocument(xml);
@@ -647,7 +669,9 @@ public class ConfigXMLReader {
         return map;
     }
 
-    /** Gets a HashMap of handler mappings. */
+    /**
+     * Gets a HashMap of handler mappings.
+     */
     public static Map<String, Map<String, String>> getHandlerMap(URL xml) {
         Map<String, Map<String, String>> handlerMap = handlerCache.get(xml);
 
@@ -732,7 +756,9 @@ public class ConfigXMLReader {
             return "";
     }
 
-    /** Not used right now */
+    /**
+     * Not used right now
+     */
     public static String getSubTagValue(Node node, String subTagName) {
         String returnString = "";
 

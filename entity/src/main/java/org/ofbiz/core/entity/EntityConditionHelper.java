@@ -13,7 +13,7 @@ public class EntityConditionHelper {
      * Traverses input EntityCondition and checks of predicate is true for each leaf EntityExpr (that does not contain
      * sub-conditions)
      *
-     * @param input EntityCondition to be checked
+     * @param input     EntityCondition to be checked
      * @param predicate to be applied to each leaf EntityExpr
      * @return false if at least for one EntityExpr predicate was not true
      */
@@ -45,7 +45,7 @@ public class EntityConditionHelper {
      * Traverses input EntityCondition and each leaf EntityExpr (that does not contain sub-conditions) is transformed
      * with function
      *
-     * @param input EntityCondition to be transformed
+     * @param input    EntityCondition to be transformed
      * @param function to be applied to each leaf EntityExpr
      * @return rewritten EntityCondition of the same structure except for leaf expressions transformed by function
      */

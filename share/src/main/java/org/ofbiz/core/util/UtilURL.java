@@ -29,9 +29,9 @@ import java.net.URL;
 /**
  * URL Utilities - Simple Class for flexibly working with properties files
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class UtilURL {
 

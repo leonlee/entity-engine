@@ -22,8 +22,7 @@ import java.util.Properties;
  * <p/>
  * If all this fails it will use a NO-OP interceptor factory and hence do nothing.
  */
-public class SQLInterceptorSupport
-{
+public class SQLInterceptorSupport {
     /**
      * The name of the ofbiz-database.properties key for {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory}
      */
@@ -32,15 +31,11 @@ public class SQLInterceptorSupport
     private static final Properties CONFIGURATION;
     private static final SQLInterceptorFactory interceptorFactory;
 
-    static
-    {
+    static {
         CONFIGURATION = new Properties();
-        try
-        {
+        try {
             CONFIGURATION.load(ClassLoaderUtils.getResourceAsStream("ofbiz-database.properties", SQLInterceptorSupport.class));
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             Debug.logError("Unable to find ofbiz-database.properties file. Using default values for ofbiz configuration.");
         }
         interceptorFactory = loadInterceptorFactoryClass();
@@ -54,15 +49,12 @@ public class SQLInterceptorSupport
      * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in play
      * @return a NON NULL {@link org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor}
      */
-    public static SQLInterceptor getNonNullSQLInterceptor(String ofbizHelperName)
-    {
-        if (interceptorFactory == null)
-        {
+    public static SQLInterceptor getNonNullSQLInterceptor(String ofbizHelperName) {
+        if (interceptorFactory == null) {
             throw new IllegalStateException("How can this happen? interceptorFactory must be non null by design");
         }
         SQLInterceptor sqlInterceptor = interceptorFactory.newSQLInterceptor(ofbizHelperName);
-        if (sqlInterceptor == null)
-        {
+        if (sqlInterceptor == null) {
             sqlInterceptor = NoopSQLInterceptorFactory.NOOP_INTERCEPTOR;
         }
         return sqlInterceptor;
@@ -76,13 +68,11 @@ public class SQLInterceptorSupport
      * @param ofbizHelperName the name of the {@link org.ofbiz.core.entity.GenericHelper} in playl
      * @return a NON NULL {@link SQLConnectionInterceptor}
      */
-    public static SQLConnectionInterceptor getNonNullSQLConnectionInterceptor(String ofbizHelperName)
-    {
+    public static SQLConnectionInterceptor getNonNullSQLConnectionInterceptor(String ofbizHelperName) {
         return new SafeDelegatingSqlConnectionInterceptor(getNonNullDelegate(ofbizHelperName));
     }
 
-    private static SQLConnectionInterceptor getNonNullDelegate(String ofbizHelperName)
-    {
+    private static SQLConnectionInterceptor getNonNullDelegate(String ofbizHelperName) {
         final SQLInterceptor sqlInterceptor = getNonNullSQLInterceptor(ofbizHelperName);
         if (sqlInterceptor instanceof SQLConnectionInterceptor) {
             return (SQLConnectionInterceptor) sqlInterceptor;
@@ -90,24 +80,18 @@ public class SQLInterceptorSupport
         return new DelegatingNoOpSQLConnectionInterceptor(sqlInterceptor);
     }
 
-    private static SQLInterceptorFactory loadInterceptorFactoryClass()
-    {
+    private static SQLInterceptorFactory loadInterceptorFactoryClass() {
         SQLInterceptorFactory interceptorFactory = NoopSQLInterceptorFactory.NOOP_INTERCEPTOR_FACTORY;
 
         String className = CONFIGURATION.getProperty(INTERCEPTOR_FACTORY_CLASS_NAME_KEY);
-        if (className != null)
-        {
-            try
-            {
+        if (className != null) {
+            try {
                 Class<?> interceptorFactoryClass = ClassLoaderUtils.loadClass(className, SQLInterceptorSupport.class);
-                if (SQLInterceptorFactory.class.isAssignableFrom(interceptorFactoryClass))
-                {
+                if (SQLInterceptorFactory.class.isAssignableFrom(interceptorFactoryClass)) {
                     // create a new instance
                     interceptorFactory = (SQLInterceptorFactory) interceptorFactoryClass.newInstance();
                 }
-            }
-            catch (ClassNotFoundException | InstantiationException | IllegalAccessException e)
-            {
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
                 Debug.logError(e, "Unable to load SQLInterceptorFactory class. " + className);
             }
         }
@@ -122,31 +106,25 @@ public class SQLInterceptorSupport
 
         private final SQLInterceptor sqlInterceptor;
 
-        public DelegatingNoOpSQLConnectionInterceptor(SQLInterceptor delegate)
-        {
+        public DelegatingNoOpSQLConnectionInterceptor(SQLInterceptor delegate) {
             this.sqlInterceptor = delegate;
         }
 
-        public void onConnectionTaken(Connection connection, ConnectionPoolState connectionPoolState)
-        {
+        public void onConnectionTaken(Connection connection, ConnectionPoolState connectionPoolState) {
         }
 
-        public void onConnectionReplaced(Connection connection, ConnectionPoolState connectionPoolState)
-        {
+        public void onConnectionReplaced(Connection connection, ConnectionPoolState connectionPoolState) {
         }
 
-        public void beforeExecution(String sqlString, List<String> parameterValues, Statement statement)
-        {
+        public void beforeExecution(String sqlString, List<String> parameterValues, Statement statement) {
             sqlInterceptor.beforeExecution(sqlString, parameterValues, statement);
         }
 
-        public void afterSuccessfulExecution(String sqlString, List<String> parameterValues, Statement statement, ResultSet resultSet, int rowsUpdated)
-        {
+        public void afterSuccessfulExecution(String sqlString, List<String> parameterValues, Statement statement, ResultSet resultSet, int rowsUpdated) {
             sqlInterceptor.afterSuccessfulExecution(sqlString, parameterValues, statement, resultSet, rowsUpdated);
         }
 
-        public void onException(String sqlString, List<String> parameterValues, Statement statement, SQLException sqlException)
-        {
+        public void onException(String sqlString, List<String> parameterValues, Statement statement, SQLException sqlException) {
             sqlInterceptor.onException(sqlString, parameterValues, statement, sqlException);
         }
     }

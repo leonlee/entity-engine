@@ -37,10 +37,10 @@ import java.util.Map;
 /**
  * Configurable Debug logging wrapper class
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public final class Debug {
     public static final boolean useLog4J = true;
@@ -60,7 +60,7 @@ public final class Debug {
     public static final Level[] levelObjs = {Level.INFO, Level.DEBUG, Level.DEBUG, Level.INFO, Level.INFO, Level.WARN, Level.ERROR, Level.FATAL};
 
     protected static Map<String, Integer> levelStringMap = new HashMap<String, Integer>();
-    
+
     protected static PrintStream printStream = System.out;
     protected static PrintWriter printWriter = new PrintWriter(printStream);
 
@@ -76,7 +76,7 @@ public final class Debug {
         levelStringMap.put("error", Debug.ERROR);
         levelStringMap.put("fatal", Debug.FATAL);
         levelStringMap.put("always", Debug.ALWAYS);
-        
+
         // initialize Log4J
         PropertyConfigurator.configure(FlexibleProperties.makeFlexibleProperties(UtilURL.fromResource("debug")));
 
@@ -109,13 +109,17 @@ public final class Debug {
         }
     }
 
-    /** Gets an Integer representing the level number from a String representing the level name; will return null if not found */
+    /**
+     * Gets an Integer representing the level number from a String representing the level name; will return null if not found
+     */
     public static Integer getLevelFromString(String levelName) {
         if (levelName == null) return null;
         return levelStringMap.get(levelName.toLowerCase());
     }
-    
-    /** Gets an int representing the level number from a String representing the level name; if level not found defaults to Debug.INFO */
+
+    /**
+     * Gets an int representing the level number from a String representing the level name; if level not found defaults to Debug.INFO
+     */
     public static int getLevelFromStringWithDefault(String levelName) {
         Integer levelInt = getLevelFromString(levelName);
         if (levelInt == null) {
@@ -124,7 +128,7 @@ public final class Debug {
             return levelInt;
         }
     }
-    
+
     public static void log(int level, Throwable t, String msg, String module) {
         log(level, t, msg, module, "org.ofbiz.core.util.Debug");
     }

@@ -21,7 +21,7 @@
  *  OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  *  THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
- 
+
 package org.ofbiz.core.util;
 
 import java.sql.Timestamp;
@@ -32,10 +32,10 @@ import java.util.Map;
 
 /**
  * MapComparator.java
- * 
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @created    Oct 14, 2002
- * @version    2.0
+ *
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version 2.0
+ * @created Oct 14, 2002
  */
 public class MapComparator<K> implements Comparator<Map<K, ?>> {
 
@@ -43,6 +43,7 @@ public class MapComparator<K> implements Comparator<Map<K, ?>> {
 
     /**
      * Method MapComparator.
+     *
      * @param keys List of Map keys to sort on
      */
     public MapComparator(List<? extends K> keys) {
@@ -112,12 +113,12 @@ public class MapComparator<K> implements Comparator<Map<K, ?>> {
     public boolean equals(Object obj) {
         return obj.equals(this);
     }
-    
+
     private boolean testValue(Map<K, ?> map, K key) {
         if (!map.containsKey(key))
             return false;
         if (map.get(key) == null)
             return false;
         return true;
-    }    
+    }
 }

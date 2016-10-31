@@ -1,121 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  To refer to this DTD in your XML file, use the following declaration:
-<!DOCTYPE entitymodel PUBLIC "-//OFBiz//DTD Entity Model//EN" "http://www.ofbiz.org/dtds/entitymodel.dtd">
--->
+        <!--
+          To refer to this DTD in your XML file, use the following declaration:
+        <!DOCTYPE entitymodel PUBLIC "-//OFBiz//DTD Entity Model//EN" "http://www.ofbiz.org/dtds/entitymodel.dtd">
+        -->
 
-<!--
- *  Copyright (c) 2001-2003 The Open For Business Project - www.ofbiz.org
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a
- *  copy of this software and associated documentation files (the "Software"),
- *  to deal in the Software without restriction, including without limitation
- *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
- *  and/or sell copies of the Software, and to permit persons to whom the
- *  Software is furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included
- *  in all copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- *  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- *  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- *  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
- *  OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- *  THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        <!--
+         *  Copyright (c) 2001-2003 The Open For Business Project - www.ofbiz.org
+         *
+         *  Permission is hereby granted, free of charge, to any person obtaining a
+         *  copy of this software and associated documentation files (the "Software"),
+         *  to deal in the Software without restriction, including without limitation
+         *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+         *  and/or sell copies of the Software, and to permit persons to whom the
+         *  Software is furnished to do so, subject to the following conditions:
+         *
+         *  The above copyright notice and this permission notice shall be included
+         *  in all copies or substantial portions of the Software.
+         *
+         *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+         *  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+         *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+         *  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+         *  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+         *  OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+         *  THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-*This is the DTD for the Open For Business Generic Entity Model entity definition XML file.
-*This DTD is meant to be as simple as possible, and is modelled from the standard ejb deployment descriptor ejb-jar.xml.
--->
+        *This is the DTD for the Open For Business Generic Entity Model entity definition XML file.
+        *This DTD is meant to be as simple as possible, and is modelled from the standard ejb deployment descriptor ejb-jar.xml.
+        -->
 
-<!-- ====================== Root Element ======================= -->
-<!ELEMENT entitymodel ( title?, description?, copyright?, author?, version?, ( entity | view-entity )* )>
+        <!-- ====================== Root Element ======================= -->
+        <!ELEMENT entitymodel ( title?, description?, copyright?, author?, version?, ( entity | view-entity )* )>
 
-<!-- ================= Children of entitymodel =================== -->
-<!ELEMENT title ( #PCDATA  )>
-<!ELEMENT description ( #PCDATA  )>
-<!ELEMENT copyright ( #PCDATA  )>
-<!ELEMENT author ( #PCDATA  )>
-<!ELEMENT version ( #PCDATA  )>
+        <!-- ================= Children of entitymodel =================== -->
+        <!ELEMENT title ( #PCDATA  )>
+        <!ELEMENT description ( #PCDATA  )>
+        <!ELEMENT copyright ( #PCDATA  )>
+        <!ELEMENT author ( #PCDATA  )>
+        <!ELEMENT version ( #PCDATA  )>
 
-<!-- ================== entity ===================== -->
-<!ELEMENT entity ( description?, field+, prim-key*, relation*, index* )>
-<!-- see the children of entitymodel section for description, etc. -->
-<!ATTLIST entity
-	entity-name CDATA #REQUIRED
-	table-name CDATA #IMPLIED
-	package-name CDATA #REQUIRED
-	dependent-on CDATA #IMPLIED
-	enable-lock ( true | false ) "false"
-	never-cache ( true | false ) "false"
-	title CDATA #IMPLIED
-	copyright CDATA #IMPLIED
-	author CDATA #IMPLIED
-	version CDATA #IMPLIED >
-<!ELEMENT prim-key EMPTY>
-<!ATTLIST prim-key
-	field CDATA #REQUIRED >
-<!-- ==================== field ===================== -->
-<!ELEMENT field ( validate* )>
-<!ATTLIST field
-	name CDATA #REQUIRED
-	col-name CDATA #IMPLIED
-	type CDATA #REQUIRED >
-<!ELEMENT validate EMPTY>
-<!ATTLIST validate
-	name CDATA #REQUIRED >
+        <!-- ================== entity ===================== -->
+        <!ELEMENT entity ( description?, field+, prim-key*, relation*, index*, function-based-index* )>
+        <!-- see the children of entitymodel section for description, etc. -->
+        <!ATTLIST entity
+                entity-name CDATA #REQUIRED
+                table-name CDATA #IMPLIED
+                package-name CDATA #REQUIRED
+                dependent-on CDATA #IMPLIED
+                enable-lock ( true | false ) "false"
+                never-cache ( true | false ) "false"
+                title CDATA #IMPLIED
+                copyright CDATA #IMPLIED
+                author CDATA #IMPLIED
+                version CDATA #IMPLIED >
+        <!ELEMENT prim-key EMPTY>
+        <!ATTLIST prim-key
+                field CDATA #REQUIRED >
+        <!-- ==================== field ===================== -->
+        <!ELEMENT field ( validate* )>
+        <!ATTLIST field
+                name CDATA #REQUIRED
+                col-name CDATA #IMPLIED
+                type CDATA #REQUIRED >
+        <!ELEMENT validate EMPTY>
+        <!ATTLIST validate
+                name CDATA #REQUIRED >
 
-<!-- ==================== relation ====================== -->
-<!-- specifies whether or not the relation is a dependent one; ie if the related entity can exist without the main entity -->
-<!ELEMENT relation ( key-map+ )>
-<!ATTLIST relation
-	type ( one | many | one-nofk ) #REQUIRED
-	title CDATA #IMPLIED
-	rel-entity-name CDATA #REQUIRED
-	fk-name CDATA #IMPLIED >
-<!ELEMENT key-map EMPTY>
-<!ATTLIST key-map
-	field-name CDATA #REQUIRED
-	const-value CDATA #IMPLIED 
-	rel-field-name CDATA #IMPLIED >
+        <!-- ==================== relation ====================== -->
+        <!-- specifies whether or not the relation is a dependent one; ie if the related entity can exist without the main entity -->
+        <!ELEMENT relation ( key-map+ )>
+        <!ATTLIST relation
+                type ( one | many | one-nofk ) #REQUIRED
+                title CDATA #IMPLIED
+                rel-entity-name CDATA #REQUIRED
+                fk-name CDATA #IMPLIED >
+        <!ELEMENT key-map EMPTY>
+        <!ATTLIST key-map
+                field-name CDATA #REQUIRED
+                const-value CDATA #IMPLIED
+                rel-field-name CDATA #IMPLIED >
 
-<!-- ==================== index ===================== -->
-<!ELEMENT index ( index-field+ )>
-<!ATTLIST index
-	name CDATA #REQUIRED
-	unique ( true | false ) "false" >
-<!ELEMENT index-field EMPTY>
-<!ATTLIST index-field
-	name CDATA #REQUIRED >
+        <!-- ==================== index ===================== -->
+        <!ELEMENT index ( index-field+ )>
+        <!ATTLIST index
+                name CDATA #REQUIRED
+                unique ( true | false ) "false" >
+        <!ELEMENT index-field EMPTY>
+        <!ATTLIST index-field
+                name CDATA #REQUIRED >
 
-<!-- ================== view-entity ===================== -->
-<!ELEMENT view-entity ( description?, member-entity+, alias+, view-link*, relation* )>
-<!-- see the children of entitymodel section for description, etc. -->
-<!ATTLIST view-entity
-	entity-name CDATA #REQUIRED
-	package-name CDATA #REQUIRED
-	dependent-on CDATA #IMPLIED
-	never-cache ( true | false ) "false"
-	title CDATA #IMPLIED
-	copyright CDATA #IMPLIED
-	author CDATA #IMPLIED
-	version CDATA #IMPLIED >
-<!ELEMENT member-entity EMPTY>
-<!ATTLIST member-entity
-	entity-alias CDATA #REQUIRED
-	entity-name CDATA #REQUIRED >
-<!ELEMENT alias EMPTY>
-<!ATTLIST alias
-	entity-alias CDATA #REQUIRED
-	name CDATA #REQUIRED
-	field CDATA #IMPLIED
-	prim-key CDATA #IMPLIED
-	group-by ( true | false ) "false"
-	function ( min | max | sum | avg | count | count-distinct | upper | lower ) #IMPLIED>
-<!ELEMENT view-link ( key-map+ )>
-<!ATTLIST view-link
-	entity-alias CDATA #REQUIRED
-	rel-entity-alias CDATA #REQUIRED
-	rel-optional ( true | false ) "false" >
+        <!-- ==================== function-based-index ===================== -->
+        <!ELEMENT function-based-index ( builder )>
+        <!ATTLIST function-based-index
+                name CDATA #REQUIRED
+                unique ( true | false ) "false">
+        <!ELEMENT builder (function-definition) >
+        <!ATTLIST builder
+                class CDATA #REQUIRED>
+        <!ELEMENT function-definition (column+)>
+        <!ATTLIST function-definition
+                virtual-column CDATA #REQUIRED
+                type CDATA #REQUIRED
+                arg-list CDATA #IMPLIED>
+        <!ELEMENT column EMPTY>
+        <!ATTLIST column name CDATA #REQUIRED>
+
+        <!-- ================== view-entity ===================== -->
+        <!ELEMENT view-entity ( description?, member-entity+, alias+, view-link*, relation* )>
+        <!-- see the children of entitymodel section for description, etc. -->
+        <!ATTLIST view-entity
+                entity-name CDATA #REQUIRED
+                package-name CDATA #REQUIRED
+                dependent-on CDATA #IMPLIED
+                never-cache ( true | false ) "false"
+                title CDATA #IMPLIED
+                copyright CDATA #IMPLIED
+                author CDATA #IMPLIED
+                version CDATA #IMPLIED >
+        <!ELEMENT member-entity EMPTY>
+        <!ATTLIST member-entity
+                entity-alias CDATA #REQUIRED
+                entity-name CDATA #REQUIRED >
+        <!ELEMENT alias EMPTY>
+        <!ATTLIST alias
+                entity-alias CDATA #REQUIRED
+                name CDATA #REQUIRED
+                field CDATA #IMPLIED
+                prim-key CDATA #IMPLIED
+                group-by ( true | false ) "false"
+                function ( min | max | sum | avg | count | count-distinct | upper | lower ) #IMPLIED>
+        <!ELEMENT view-link ( key-map+ )>
+        <!ATTLIST view-link
+                entity-alias CDATA #REQUIRED
+                rel-entity-alias CDATA #REQUIRED
+                rel-optional ( true | false ) "false" >
 

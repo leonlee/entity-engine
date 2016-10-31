@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <entity-engine-xml xmlns:otherignoredprefix="blah">
-    <Project id="23" key="BAZ" counter="567" />
+    <Project id="23" key="BAZ" counter="567"/>
     <!-- Everything up to the dash will be ignored -->
-    <ignoredprefix-Project id="24" key="BAR" counter="568" />
-    <Project id="25" key="FOO" counter="600" />
+    <ignoredprefix-Project id="24" key="BAR" counter="568"/>
+    <Project id="25" key="FOO" counter="600"/>
     <!-- Everything up to the colon will be ignored -->
     <otherignoredprefix:Issue id="25">
         <!-- Model fields can be read from child elements like this -->

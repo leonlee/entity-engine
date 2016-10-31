@@ -1,5 +1,16 @@
 package org.ofbiz.core.entity;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
+import org.junit.Before;
+import org.junit.Test;
+import org.ofbiz.core.entity.model.ModelEntity;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -13,19 +24,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-
-import javax.xml.parsers.ParserConfigurationException;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
-import org.junit.Before;
-import org.junit.Test;
-import org.ofbiz.core.entity.model.ModelEntity;
-import org.xml.sax.SAXException;
 
 import static java.lang.Thread.currentThread;
 import static java.util.Arrays.asList;
@@ -53,8 +51,7 @@ import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
 /**
  * Integration test of GenericDelegator using an in-memory database and real collaborators.
  */
-public class TestGenericDelegator
-{
+public class TestGenericDelegator {
     // These names are from the test XML files in src/test/resources
     private static final String DELEGATOR_NAME = "default";
     private static final String ENTITY_GROUP_NAME = "default";
@@ -68,7 +65,7 @@ public class TestGenericDelegator
     private static final String SEQUENCE_ENTITY = "SequenceValueItem";
 
     // Be sure to list all entities in the "default" group here
-    private static final String[] ENTITIES = { ISSUE_ENTITY, SEQUENCE_ENTITY, PROJECT_ENTITY };
+    private static final String[] ENTITIES = {ISSUE_ENTITY, SEQUENCE_ENTITY, PROJECT_ENTITY};
     private static final int PROJECT_ID_1 = 23;
 
     private GenericDelegator genericDelegator;
@@ -133,8 +130,7 @@ public class TestGenericDelegator
         assertProject(projectId, projectKey, issueCount, project);
     }
 
-    private Map<String, Object> getProjectFields(final long projectId, final String projectKey, final long issueCount)
-    {
+    private Map<String, Object> getProjectFields(final long projectId, final String projectKey, final long issueCount) {
         return ImmutableMap.<String, Object>of(
                 ID_FIELD, projectId,
                 PROJECT_KEY_FIELD, projectKey,
@@ -162,8 +158,7 @@ public class TestGenericDelegator
         final Map<String, ModelEntity> entities = genericDelegator.getModelEntityMapByGroup(ENTITY_GROUP_NAME);
 
         // Check
-        for (final String entityName : ENTITIES)
-        {
+        for (final String entityName : ENTITIES) {
             assertThat(entities, hasEntry(is(entityName), modelEntity(entityName)));
         }
         assertEquals(3, entities.size());
@@ -190,7 +185,7 @@ public class TestGenericDelegator
 
     @Test
     public void getEntityHelperNameShouldReturnNullForNullModelEntity() {
-        assertNull(genericDelegator.getEntityHelperName((ModelEntity)null));
+        assertNull(genericDelegator.getEntityHelperName((ModelEntity) null));
     }
 
     @Test
@@ -249,8 +244,7 @@ public class TestGenericDelegator
     }
 
     private void assertProject(final long expectedId, final String expectedKey, final long expectedIssueCount,
-            final GenericEntity actualProject)
-    {
+                               final GenericEntity actualProject) {
         assertNotNull(actualProject);
         assertEquals(PROJECT_ENTITY, actualProject.getEntityName());
         assertEquals(expectedId, actualProject.getLong(ID_FIELD).longValue());
@@ -261,7 +255,7 @@ public class TestGenericDelegator
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotBeAbleToCreateWithNullPrimaryKey() throws Exception {
-        genericDelegator.create((GenericPK)null, false);
+        genericDelegator.create((GenericPK) null, false);
     }
 
     @Test
@@ -396,7 +390,7 @@ public class TestGenericDelegator
         assertEquals(issue, entities.get(1));
     }
 
-    private Map<String,?> getIssueFields(final long id, final String key) {
+    private Map<String, ?> getIssueFields(final long id, final String key) {
         return ImmutableMap.of(ID_FIELD, id, ISSUE_KEY_FIELD, key);
     }
 
@@ -417,7 +411,7 @@ public class TestGenericDelegator
 
     @Test
     public void gettingFromAndCacheWithNullEntityNameShouldReturnNull() {
-        assertNull(genericDelegator.getFromAndCache((String)null, singletonMap(ID_FIELD, 789L)));
+        assertNull(genericDelegator.getFromAndCache((String) null, singletonMap(ID_FIELD, 789L)));
     }
 
     @Test
@@ -457,8 +451,7 @@ public class TestGenericDelegator
     }
 
     private List<GenericValue> loadTestEntitiesFromXml(final String xmlFilename)
-            throws SAXException, ParserConfigurationException, IOException
-    {
+            throws SAXException, ParserConfigurationException, IOException {
         final Class<?> loadingClass = getClass();
         final URL xmlUrl = loadingClass.getResource(xmlFilename);
         assertNotNull(
@@ -481,9 +474,7 @@ public class TestGenericDelegator
         try {
             genericDelegator.readXmlDocument(xmlFileUrl);
             fail("Expected a " + IllegalArgumentException.class);
-        }
-        catch (final IllegalArgumentException e)
-        {
+        } catch (final IllegalArgumentException e) {
             assertEquals("Root node was not <entity-engine-xml>", e.getMessage());
         }
     }
@@ -509,7 +500,7 @@ public class TestGenericDelegator
     public void shouldBeAbleToFindUsingLikeOperator() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        
+
         // Invoke
         final List<GenericValue> matchingProjects = genericDelegator.findByCondition(
                 PROJECT_ENTITY, PROJECT_KEY_LIKE_B_PERCENT, null, singletonList(ID_FIELD));
@@ -597,48 +588,39 @@ public class TestGenericDelegator
 
         // Invoke
         final List<GenericValue> transformedEntities = genericDelegator.transform(
-                PROJECT_ENTITY, invalidIdCondition, null, ISSUE_COUNT_FIELD, new Transformation()
-        {
-            @Override
-            public void transform(final GenericValue entity)
-            {
-                // Doesn't matter what we do here
-            }
-        });
+                PROJECT_ENTITY, invalidIdCondition, null, ISSUE_COUNT_FIELD, new Transformation() {
+                    @Override
+                    public void transform(final GenericValue entity) {
+                        // Doesn't matter what we do here
+                    }
+                });
 
         // Check
         assertEquals(Collections.<GenericValue>emptyList(), transformedEntities);
     }
 
-    private static List<Matcher<? super ModelEntity>> modelEntities(final String... expectedNames)
-    {
+    private static List<Matcher<? super ModelEntity>> modelEntities(final String... expectedNames) {
         final ImmutableList.Builder<Matcher<? super ModelEntity>> list = ImmutableList.builder();
-        for (String expectedName : expectedNames)
-        {
+        for (String expectedName : expectedNames) {
             list.add(modelEntity(expectedName));
         }
         return list.build();
     }
 
-    private static Matcher<ModelEntity> modelEntity(final String expectedName)
-    {
-        return new TypeSafeMatcher<ModelEntity>()
-        {
+    private static Matcher<ModelEntity> modelEntity(final String expectedName) {
+        return new TypeSafeMatcher<ModelEntity>() {
             @Override
-            protected boolean matchesSafely(ModelEntity modelEntity)
-            {
+            protected boolean matchesSafely(ModelEntity modelEntity) {
                 return expectedName.equals(modelEntity.getEntityName());
             }
 
             @Override
-            public void describeTo(Description description)
-            {
+            public void describeTo(Description description) {
                 description.appendText("ModelEntity").appendValue(expectedName);
             }
 
             @Override
-            protected void describeMismatchSafely(ModelEntity item, Description mismatchDescription)
-            {
+            protected void describeMismatchSafely(ModelEntity item, Description mismatchDescription) {
                 mismatchDescription.appendText("ModelEntity").appendValue(item.getEntityName());
             }
         };
@@ -657,8 +639,7 @@ public class TestGenericDelegator
         private GenericEntityException ex;
 
         private IssueCountIncrementer(final CountDownLatch startLatch, final CountDownLatch endLatch,
-                final GenericDelegator delegator, final int projectId)
-        {
+                                      final GenericDelegator delegator, final int projectId) {
             this.delegator = delegator;
             this.endLatch = endLatch;
             this.projectId = projectId;
@@ -678,8 +659,7 @@ public class TestGenericDelegator
         private void waitForTheGoSignal() {
             try {
                 startLatch.await();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
         }
@@ -688,8 +668,7 @@ public class TestGenericDelegator
             try {
                 transformedEntities.addAll(
                         delegator.transform(PROJECT_ENTITY, selectCondition, null, ISSUE_COUNT_FIELD, transformation));
-            }
-            catch (final GenericEntityException ex) {
+            } catch (final GenericEntityException ex) {
                 this.ex = ex;
             }
         }
@@ -698,8 +677,7 @@ public class TestGenericDelegator
             endLatch.countDown();
         }
 
-        private long getNewIssueCount() throws GenericEntityException
-        {
+        private long getNewIssueCount() throws GenericEntityException {
             final Thread currentThread = currentThread();
             if (ex != null) {
                 throw new IllegalStateException("Error in thread " + currentThread, ex);

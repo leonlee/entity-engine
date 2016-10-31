@@ -7,8 +7,7 @@ import java.util.Properties;
 /**
  * JDBC datasource descriptor
  */
-public class JdbcDatasourceInfo
-{
+public class JdbcDatasourceInfo {
     private final String uri;
     private final String driverClassName;
     private final String username;
@@ -18,8 +17,7 @@ public class JdbcDatasourceInfo
     private final ConnectionPoolInfo connectionPoolInfo;
 
     public JdbcDatasourceInfo(final String uri, final String driverClassName, final String username, final String password,
-            final String isolationLevel, final Properties connectionProperties, final ConnectionPoolInfo connectionPoolInfo)
-    {
+                              final String isolationLevel, final Properties connectionProperties, final ConnectionPoolInfo connectionPoolInfo) {
         this.uri = uri;
         this.driverClassName = driverClassName;
         this.username = username;
@@ -29,44 +27,36 @@ public class JdbcDatasourceInfo
         this.connectionPoolInfo = connectionPoolInfo;
     }
 
-    public String getUri()
-    {
+    public String getUri() {
         return uri;
     }
 
-    public String getDriverClassName()
-    {
+    public String getDriverClassName() {
         return driverClassName;
     }
 
-    public String getUsername()
-    {
+    public String getUsername() {
         return username;
     }
 
-    public String getPassword()
-    {
+    public String getPassword() {
         return password;
     }
 
-    public String getIsolationLevel()
-    {
+    public String getIsolationLevel() {
         return isolationLevel;
     }
 
-    public Properties getConnectionProperties()
-    {
+    public Properties getConnectionProperties() {
         return connectionProperties;
     }
 
-    public ConnectionPoolInfo getConnectionPoolInfo()
-    {
+    public ConnectionPoolInfo getConnectionPoolInfo() {
         return connectionPoolInfo;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("JdbcDatasourceInfo");
         sb.append("{uri='").append(uri).append('\'');

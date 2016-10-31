@@ -30,15 +30,21 @@ import org.ofbiz.core.util.UtilDateTime;
 import org.ofbiz.core.util.UtilMisc;
 import org.ofbiz.core.util.UtilValidate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 /**
  * Helper methods when dealing with Entities, especially ones that follow certain conventions
  *
- *@author     Eric Pabst
- *@created    Tue Aug 07 01:10:32 MDT 2001
- *@version    1.0
+ * @author Eric Pabst
+ * @version 1.0
+ * @created Tue Aug 07 01:10:32 MDT 2001
  */
 public class EntityUtil {
 
@@ -67,61 +73,63 @@ public class EntityUtil {
     }
 
     /**
-     *returns the values that are currently active.
+     * returns the values that are currently active.
      *
-     *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
-     *@return List of GenericValue's that are currently active
+     * @param datedValues GenericValue's that have "fromDate" and "thruDate" fields
+     * @return List of GenericValue's that are currently active
      */
     public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues) {
         return filterByDate(datedValues, UtilDateTime.nowTimestamp(), "fromDate", "thruDate", true);
     }
 
     /**
-     *returns the values that are currently active.
+     * returns the values that are currently active.
      *
-     *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
-     *@param allAreSame Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
-     *@return List of GenericValue's that are currently active
+     * @param datedValues GenericValue's that have "fromDate" and "thruDate" fields
+     * @param allAreSame  Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
+     * @return List of GenericValue's that are currently active
      */
     public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, boolean allAreSame) {
         return filterByDate(datedValues, UtilDateTime.nowTimestamp(), "fromDate", "thruDate", allAreSame);
     }
 
     /**
-     *returns the values that are active at the moment.
+     * returns the values that are active at the moment.
      *
-     *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
-     *@param moment the moment in question
-     *@return List of GenericValue's that are active at the moment
+     * @param datedValues GenericValue's that have "fromDate" and "thruDate" fields
+     * @param moment      the moment in question
+     * @return List of GenericValue's that are active at the moment
      */
     public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.util.Date moment) {
         return filterByDate(datedValues, new java.sql.Timestamp(moment.getTime()), "fromDate", "thruDate", true);
     }
 
     /**
-     *returns the values that are active at the moment.
+     * returns the values that are active at the moment.
      *
-     *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
-     *@param moment the moment in question
-     *@return List of GenericValue's that are active at the moment
+     * @param datedValues GenericValue's that have "fromDate" and "thruDate" fields
+     * @param moment      the moment in question
+     * @return List of GenericValue's that are active at the moment
      */
     public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.sql.Timestamp moment) {
         return filterByDate(datedValues, moment, "fromDate", "thruDate", true);
     }
 
     /**
-     *returns the values that are active at the moment.
+     * returns the values that are active at the moment.
      *
-     *@param datedValues GenericValue's that have "fromDate" and "thruDate" fields
-     *@param moment the moment in question
-     *@param allAreSame Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
-     *@return List of GenericValue's that are active at the moment
+     * @param datedValues GenericValue's that have "fromDate" and "thruDate" fields
+     * @param moment      the moment in question
+     * @param allAreSame  Specifies whether all values in the List are of the same entity; this can help speed things up a fair amount since we only have to see if the from and thru date fields are valid once
+     * @return List of GenericValue's that are active at the moment
      */
     public static <T extends GenericEntity> List<T> filterByDate(List<T> datedValues, java.sql.Timestamp moment, String fromDateName, String thruDateName, boolean allAreSame) {
         if (datedValues == null) return null;
         if (moment == null) return datedValues;
-        if (fromDateName == null) throw new IllegalArgumentException("You must specify the name of the fromDate field to use this method");
-        if (thruDateName == null) throw new IllegalArgumentException("You must specify the name of the thruDate field to use this method");
+        if (fromDateName == null)
+            throw new IllegalArgumentException("You must specify the name of the fromDate field to use this method");
+        if (thruDateName == null)
+            throw new IllegalArgumentException("You must specify the name of the thruDate field to use this method");
 
         List<T> result = new LinkedList<T>();
         Iterator<T> iter = datedValues.iterator();
@@ -134,9 +142,11 @@ public class EntityUtil {
                 T datedValue = iter.next();
 
                 fromDateField = datedValue.getModelEntity().getField(fromDateName);
-                if (fromDateField == null) throw new IllegalArgumentException("\"" + fromDateName + "\" is not a field of " + datedValue.getEntityName());
+                if (fromDateField == null)
+                    throw new IllegalArgumentException("\"" + fromDateName + "\" is not a field of " + datedValue.getEntityName());
                 thruDateField = datedValue.getModelEntity().getField(thruDateName);
-                if (fromDateField == null) throw new IllegalArgumentException("\"" + thruDateName + "\" is not a field of " + datedValue.getEntityName());
+                if (fromDateField == null)
+                    throw new IllegalArgumentException("\"" + thruDateName + "\" is not a field of " + datedValue.getEntityName());
 
                 java.sql.Timestamp fromDate = (java.sql.Timestamp) datedValue.dangerousGetNoCheckButFast(fromDateField);
                 java.sql.Timestamp thruDate = (java.sql.Timestamp) datedValue.dangerousGetNoCheckButFast(thruDateField);
@@ -157,7 +167,7 @@ public class EntityUtil {
         } else {
             // if not all values are known to be of the same entity, must check each one...
             while (iter.hasNext()) {
-                T datedValue =  iter.next();
+                T datedValue = iter.next();
                 java.sql.Timestamp fromDate = datedValue.getTimestamp(fromDateName);
                 java.sql.Timestamp thruDate = datedValue.getTimestamp(thruDateName);
 
@@ -171,11 +181,11 @@ public class EntityUtil {
     }
 
     /**
-     *returns the values that match the values in fields
+     * returns the values that match the values in fields
      *
-     *@param values List of GenericValues
-     *@param fields the field-name/value pairs that must match
-     *@return List of GenericValue's that match the values in fields
+     * @param values List of GenericValues
+     * @param fields the field-name/value pairs that must match
+     * @return List of GenericValue's that match the values in fields
      */
     public static <T extends GenericEntity> List<T> filterByAnd(List<? extends T> values, Map<String, ?> fields) {
         if (values == null) return null;
@@ -197,11 +207,11 @@ public class EntityUtil {
     }
 
     /**
-     *returns the values that match the exprs in list
+     * returns the values that match the exprs in list
      *
-     *@param values List of GenericValues
-     *@param exprs the expressions that must validate to true
-     *@return List of GenericValue's that match the values in fields
+     * @param values List of GenericValues
+     * @param exprs  the expressions that must validate to true
+     * @return List of GenericValue's that match the values in fields
      */
     public static <T extends GenericValue> List<T> filterByAnd(List<T> values, List<? extends EntityExpr> exprs) {
         if (values == null) return null;
@@ -303,12 +313,12 @@ public class EntityUtil {
     }
 
     /**
-     *returns the values in the order specified
+     * returns the values in the order specified
      *
-     *@param values List of GenericValues
-     *@param order The fields of the named entity to order the query by;
-     *      optionally add a " ASC" for ascending or " DESC" for descending
-     *@return List of GenericValue's in the proper order
+     * @param values List of GenericValues
+     * @param order  The fields of the named entity to order the query by;
+     *               optionally add a " ASC" for ascending or " DESC" for descending
+     * @return List of GenericValue's in the proper order
      */
     public static <T extends GenericValue> List<T> orderBy(List<T> values, List<String> orderBy) {
         if (values == null) return null;
@@ -365,7 +375,8 @@ public class EntityUtil {
 
         private OrderByComparator(List<String> orderBy, int startIndex) {
             if (orderBy == null) throw new IllegalArgumentException("orderBy may not be empty");
-            if (startIndex >= orderBy.size()) throw new IllegalArgumentException("startIndex may not be greater than or equal to orderBy size");
+            if (startIndex >= orderBy.size())
+                throw new IllegalArgumentException("startIndex may not be greater than or equal to orderBy size");
             String fieldAndDirection = orderBy.get(startIndex);
             String upper = fieldAndDirection.trim().toUpperCase();
 
@@ -421,7 +432,7 @@ public class EntityUtil {
                 OrderByComparator that = (OrderByComparator) obj;
 
                 return this.field.equals(that.field) && (this.descending == that.descending)
-                    && UtilValidate.areEqual(this.next, that.next);
+                        && UtilValidate.areEqual(this.next, that.next);
             } else {
                 return false;
             }

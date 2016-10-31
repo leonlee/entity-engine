@@ -30,12 +30,11 @@ import java.io.PrintWriter;
 /**
  * Base OFBiz Exception, provides nested exceptions, etc
  *
- *@author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- *@created    November 5, 2001
- *@version    1.0
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version 1.0
+ * @created November 5, 2001
  */
-public class GeneralException extends Exception
-{
+public class GeneralException extends Exception {
     /**
      * Creates new <code>GeneralException</code> without detail message.
      */
@@ -45,6 +44,7 @@ public class GeneralException extends Exception
 
     /**
      * Constructs an <code>GeneralException</code> with the specified detail message.
+     *
      * @param msg the detail message.
      */
     public GeneralException(String msg) {
@@ -53,6 +53,7 @@ public class GeneralException extends Exception
 
     /**
      * Constructs an <code>GeneralException</code> with the specified detail message and nested Exception.
+     *
      * @param msg the detail message.
      */
     public GeneralException(String msg, Throwable nested) {
@@ -66,7 +67,9 @@ public class GeneralException extends Exception
         super(nested);
     }
 
-    /** Returns the detail message, including the message from the nested exception if there is one. */
+    /**
+     * Returns the detail message, including the message from the nested exception if there is one.
+     */
     public String getMessage() {
         final Throwable nested = getCause();
         if (nested != null)
@@ -75,9 +78,10 @@ public class GeneralException extends Exception
             return super.getMessage();
     }
 
-    /** Returns the detail message, NOT including the message from the nested exception. */
-    public String getNonNestedMessage()
-    {
+    /**
+     * Returns the detail message, NOT including the message from the nested exception.
+     */
+    public String getNonNestedMessage() {
         return super.getMessage();
     }
 
@@ -89,8 +93,7 @@ public class GeneralException extends Exception
      * that this behaviour is not consistent with that of {@link GeneralRuntimeException}.
      * </p>
      */
-    public Throwable getNested()
-    {
+    public Throwable getNested() {
         final Throwable nested = getCause();
         if (nested == null)
             return this;
@@ -99,17 +102,23 @@ public class GeneralException extends Exception
 
     // The following pointless stubs are retained only to preserve binary compatibility.
 
-    /** Prints the composite message to System.err. */
+    /**
+     * Prints the composite message to System.err.
+     */
     public void printStackTrace() {
         super.printStackTrace();
     }
 
-    /** Prints the composite message and the embedded stack trace to the specified stream ps. */
+    /**
+     * Prints the composite message and the embedded stack trace to the specified stream ps.
+     */
     public void printStackTrace(PrintStream ps) {
         super.printStackTrace(ps);
     }
 
-    /** Prints the composite message and the embedded stack trace to the specified print writer pw. */
+    /**
+     * Prints the composite message and the embedded stack trace to the specified print writer pw.
+     */
     public void printStackTrace(PrintWriter pw) {
         super.printStackTrace(pw);
     }

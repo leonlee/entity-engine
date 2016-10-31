@@ -23,20 +23,29 @@
  */
 package org.ofbiz.core.util;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * UtilMisc - Misc Utility Functions
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author     <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a> 
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class UtilMisc {
 
-    /** 
+    /**
      * Get an iterator from a collection, returning null if collection is null
+     *
      * @param col The collection to be turned in to an iterator
      * @return The resulting Iterator
      */
@@ -47,8 +56,9 @@ public class UtilMisc {
             return col.iterator();
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1) {
@@ -59,8 +69,9 @@ public class UtilMisc {
          return fields;*/
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2) {
@@ -72,8 +83,9 @@ public class UtilMisc {
          return fields;*/
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3) {
@@ -86,12 +98,13 @@ public class UtilMisc {
          return fields;*/
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3,
-        Object value3, String name4, Object value4) {
+                                            Object value3, String name4, Object value4) {
         return new UtilMisc.SimpleMap(name1, value1, name2, value2, name3, value3, name4, value4);
 
         /* Map fields = new HashMap();
@@ -102,12 +115,13 @@ public class UtilMisc {
          return fields;*/
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
-        String name4, Object value4, String name5, Object value5) {
+                                            String name4, Object value4, String name5, Object value5) {
         Map<String, Object> fields = new HashMap<String, Object>();
 
         fields.put(name1, value1);
@@ -118,12 +132,13 @@ public class UtilMisc {
         return fields;
     }
 
-    /** 
+    /**
      * Create a map from passed nameX, valueX parameters
+     *
      * @return The resulting Map
      */
     public static Map<String, Object> toMap(String name1, Object value1, String name2, Object value2, String name3, Object value3,
-        String name4, Object value4, String name5, Object value5, String name6, Object value6) {
+                                            String name4, Object value4, String name5, Object value5, String name6, Object value6) {
         Map<String, Object> fields = new HashMap<String, Object>();
 
         fields.put(name1, value1);
@@ -134,17 +149,18 @@ public class UtilMisc {
         fields.put(name6, value6);
         return fields;
     }
-    
+
     /**
      * Sort a List of Maps by specified consistent keys.
+     *
      * @param listOfMaps List of Map objects to sort.
-     * @param sortKeys List of Map keys to sort by.
+     * @param sortKeys   List of Map keys to sort by.
      * @return a new List of sorted Maps.
      */
-    public static <K,V> List<Map<K, V>> sortMaps(List<Map<K, V>> listOfMaps, List<? extends K> sortKeys) {
+    public static <K, V> List<Map<K, V>> sortMaps(List<Map<K, V>> listOfMaps, List<? extends K> sortKeys) {
         if (listOfMaps == null || sortKeys == null)
             return null;
-        List<Map<K,V>> toSort = new LinkedList<Map<K,V>>(listOfMaps);
+        List<Map<K, V>> toSort = new LinkedList<Map<K, V>>(listOfMaps);
         try {
             MapComparator<K> mc = new MapComparator<K>(sortKeys);
             Collections.sort(toSort, mc);
@@ -155,22 +171,24 @@ public class UtilMisc {
         return toSort;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1) {
+    public static <T> List<T> toList(T obj1) {
         List<T> list = new ArrayList<T>(1);
 
         list.add(obj1);
         return list;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1, T obj2) {
+    public static <T> List<T> toList(T obj1, T obj2) {
         List<T> list = new ArrayList<T>(2);
 
         list.add(obj1);
@@ -178,11 +196,12 @@ public class UtilMisc {
         return list;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1, T obj2, T obj3) {
+    public static <T> List<T> toList(T obj1, T obj2, T obj3) {
         List<T> list = new ArrayList<T>(3);
 
         list.add(obj1);
@@ -191,11 +210,12 @@ public class UtilMisc {
         return list;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4) {
+    public static <T> List<T> toList(T obj1, T obj2, T obj3, T obj4) {
         List<T> list = new ArrayList<T>(4);
 
         list.add(obj1);
@@ -205,11 +225,12 @@ public class UtilMisc {
         return list;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5) {
+    public static <T> List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5) {
         List<T> list = new ArrayList<T>(5);
 
         list.add(obj1);
@@ -220,11 +241,12 @@ public class UtilMisc {
         return list;
     }
 
-    /** 
+    /**
      * Create a list from passed objX parameters
+     *
      * @return The resulting List
      */
-    public static <T>List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5, T obj6) {
+    public static <T> List<T> toList(T obj1, T obj2, T obj3, T obj4, T obj5, T obj6) {
         List<T> list = new ArrayList<T>(6);
 
         list.add(obj1);
@@ -247,30 +269,33 @@ public class UtilMisc {
 
     /**
      * Parse a locale string Locale object
+     *
      * @param localeString The locale string (en_US)
      * @return Locale The new Locale object
      */
     public static Locale parseLocale(String localeString) {
         if (localeString == null || localeString.length() == 0)
             return null;
-        
+
         List<String> splitList = StringUtil.split(localeString, "_");
         if (splitList.size() != 2)
             return null;
-            
+
         String language = splitList.get(0);
         String country = splitList.get(1);
 
         return new Locale(language, country);
     }
-    
-    /** This is meant to be very quick to create and use for small sized maps, perfect for how we usually use UtilMisc.toMap */
+
+    /**
+     * This is meant to be very quick to create and use for small sized maps, perfect for how we usually use UtilMisc.toMap
+     */
     protected static class SimpleMap implements Map<String, Object>, java.io.Serializable {
         protected Map<String, Object> realMapIfNeeded = null;
 
         String[] names;
         Object[] values;
-        
+
         public SimpleMap() {
             names = new String[0];
             values = new Object[0];
@@ -459,7 +484,7 @@ public class UtilMisc {
                 return outString.toString();
             }
         }
-        
+
         public int hashCode() {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.hashCode();
@@ -467,28 +492,28 @@ public class UtilMisc {
                 int hashCode = 0;
                 for (int i = 0; i < names.length; i++) {
                     //note that this calculation is done based on the calc specified in the Java java.util.Map interface
-                    int tempNum = (names[i] == null   ? 0 : names[i].hashCode()) ^
+                    int tempNum = (names[i] == null ? 0 : names[i].hashCode()) ^
                             (values[i] == null ? 0 : values[i].hashCode());
                     hashCode += tempNum;
                 }
                 return hashCode;
             }
         }
-        
+
         public boolean equals(Object obj) {
             if (realMapIfNeeded != null) {
                 return realMapIfNeeded.equals(obj);
             } else {
-                Map<?,?> mapObj = (Map<?, ?>) obj;
-                
+                Map<?, ?> mapObj = (Map<?, ?>) obj;
+
                 //first check the size
                 if (mapObj.size() != names.length) return false;
-                
+
                 //okay, same size, now check each entry
                 for (int i = 0; i < names.length; i++) {
                     //first check the name
                     if (!mapObj.containsKey(names[i])) return false;
-                    
+
                     //if that passes, check the value
                     Object mapValue = mapObj.get(names[i]);
                     if (mapValue == null) {
@@ -497,7 +522,7 @@ public class UtilMisc {
                         if (!mapValue.equals(values[i])) return false;
                     }
                 }
-                
+
                 return true;
             }
         }

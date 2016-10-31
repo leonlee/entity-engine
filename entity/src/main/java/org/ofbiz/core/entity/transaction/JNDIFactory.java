@@ -24,31 +24,43 @@
 
 package org.ofbiz.core.entity.transaction;
 
-import java.util.*;
-import javax.naming.*;
-import javax.transaction.*;
-import java.sql.*;
-import java.util.concurrent.Callable;
-import javax.sql.*;
-
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-
-import org.ofbiz.core.entity.*;
-import org.ofbiz.core.entity.config.*;
-import org.ofbiz.core.config.*;
+import org.apache.log4j.Logger;
+import org.ofbiz.core.config.GenericConfigException;
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.TransactionUtil;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.config.JndiDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolInfoSynthesizer;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
-import org.ofbiz.core.util.*;
+import org.ofbiz.core.util.Debug;
+import org.ofbiz.core.util.GeneralException;
+import org.ofbiz.core.util.JNDIContextFactory;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+import javax.sql.XADataSource;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 /**
  * Central source for Tyrex JTA objects from JNDI
  *
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
 public class JNDIFactory implements TransactionFactoryInterface {
-    
+
+    private static final Logger log = Logger.getLogger(JNDIFactory.class);
+
     // Debug module name
     public static final String module = JNDIFactory.class.getName();
 
@@ -129,17 +141,32 @@ public class JNDIFactory implements TransactionFactoryInterface {
         }
         return userTransaction;
     }
-    
+
     public String getTxMgrName() {
         return "jndi";
     }
-    
+
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
         if (datasourceInfo.getJndiDatasource() != null) {
             JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();
-            Connection con = getJndiConnection(helperName, jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
+            Connection con = null;
+            try {
+                con = getJndiConnection(helperName, jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
+            } catch (AbstractMethodError err) {
+
+                log.warn("*********************************************** IMPORTANT  ************************************************");
+                log.warn("                                                                                                           ");
+                log.warn("  We found that you may experience problems with database connectivity because your database driver        ");
+                log.warn("  is not fully JDBC 4 compatible. As a workaround of this problem we suggest adding a validation query     ");
+                log.warn("  to your database resource configuration in Tomcat's server.xml file:\n");
+                log.warn("                           validationQuery=\"select 1;\"                                         \n");
+                log.warn("  or to update your database driver to version which fully supports JDBC 4.                                  ");
+                log.warn("  More information about this problem can be found here: https://jira.atlassian.com/browse/JRA-59768       ");
+                log.warn("                                                                                                           ");
+                log.warn("***********************************************************************************************************");
+            }
             if (con != null) return con;
         }
         if (datasourceInfo.getJdbcDatasource() != null) {
@@ -150,7 +177,7 @@ public class JNDIFactory implements TransactionFactoryInterface {
             return null;
         }
     }
-    
+
     private static Connection getJndiConnection(String helperName, String jndiName, String jndiServerName) throws SQLException, GenericEntityException {
         Object ds;
 
@@ -197,13 +224,13 @@ public class JNDIFactory implements TransactionFactoryInterface {
                         XADataSource xads = (XADataSource) ds;
 
                         trackerCache.put(helperName, new ConnectionTracker());
-                        return trackConnection(helperName,xads);
+                        return trackConnection(helperName, xads);
                     } else {
                         if (Debug.infoOn()) Debug.logInfo("Got DataSource for name " + jndiName, module);
                         DataSource nds = (DataSource) ds;
 
                         trackerCache.put(helperName, new ConnectionTracker(ConnectionPoolInfoSynthesizer.synthesizeConnectionPoolInfo(nds)));
-                        return trackConnection(helperName,nds);
+                        return trackConnection(helperName, nds);
                     }
                 } else {
                     Debug.logError("Datasource returned was NULL.", module);
@@ -217,37 +244,28 @@ public class JNDIFactory implements TransactionFactoryInterface {
         return null;
     }
 
-    private static Connection trackConnection(final String helperName, final XADataSource xads)
-    {
+    private static Connection trackConnection(final String helperName, final XADataSource xads) {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return TransactionUtil.enlistConnection(xads.getXAConnection());
             }
         });
     }
 
-    private static Connection trackConnection(final String helperName, final DataSource nds)
-    {
+    private static Connection trackConnection(final String helperName, final DataSource nds) {
         ConnectionTracker connectionTracker = trackerCache.get(helperName);
-        return connectionTracker.trackConnection(helperName, new Callable<Connection>()
-        {
-            public Connection call() throws Exception
-            {
+        return connectionTracker.trackConnection(helperName, new Callable<Connection>() {
+            public Connection call() throws Exception {
                 return nds.getConnection();
             }
         });
     }
 
 
-
-    public void removeDatasource(final String helperName)
-    {
+    public void removeDatasource(final String helperName) {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
-        if (datasourceInfo.getJndiDatasource() == null && datasourceInfo.getJdbcDatasource() != null)
-        {
+        if (datasourceInfo.getJndiDatasource() == null && datasourceInfo.getJdbcDatasource() != null) {
             // If a JDBC connection was configured, then there may be one here
             ConnectionFactory.removeDatasource(helperName);
         }

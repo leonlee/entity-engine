@@ -24,48 +24,42 @@
 
 package org.ofbiz.core.entity.transaction;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import javax.transaction.Transaction;
-import javax.transaction.TransactionManager;
-import javax.transaction.UserTransaction;
-
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.util.Debug;
 
+import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
+import javax.transaction.UserTransaction;
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
 
 /**
  * A dumb, non-working transaction manager.
- * 
- * @author     <a href="mailto:plightbo@hotmail.com">Pat Lightbody</a>
- * @author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @version    $Revision: 1.1 $
- * @since      2.0
+ *
+ * @author <a href="mailto:plightbo@hotmail.com">Pat Lightbody</a>
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version $Revision: 1.1 $
+ * @since 2.0
  */
-public class DumbFactory implements TransactionFactoryInterface
-{
-    public TransactionManager getTransactionManager()
-    {
+public class DumbFactory implements TransactionFactoryInterface {
+    public TransactionManager getTransactionManager() {
         return DumbTransactionManager.INSTANCE;
     }
 
-    public UserTransaction getUserTransaction()
-    {
+    public UserTransaction getUserTransaction() {
         return DumbUserTransaction.INSTANCE;
     }
-    
-    public String getTxMgrName()
-    {
+
+    public String getTxMgrName() {
         return "dumb";
     }
-    
-    public Connection getConnection(String helperName) throws SQLException, GenericEntityException
-    {
+
+    public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         final DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         if (datasourceInfo.getJdbcDatasource() == null) {
             Debug.logError("Dumb/Empty is the configured transaction manager but no inline-jdbc element was specified in the "
@@ -76,59 +70,64 @@ public class DumbFactory implements TransactionFactoryInterface
         return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
     }
 
-    public void removeDatasource(final String helperName)
-    {
+    public void removeDatasource(final String helperName) {
         ConnectionFactory.removeDatasource(helperName);
     }
 
-    static class DumbTransactionManager implements TransactionManager
-    {
+    static class DumbTransactionManager implements TransactionManager {
         static final DumbTransactionManager INSTANCE = new DumbTransactionManager();
 
-        public void begin() {}
-        public void commit() {}
+        public void begin() {
+        }
 
-        public int getStatus()
-        {
+        public void commit() {
+        }
+
+        public int getStatus() {
             return STATUS_NO_TRANSACTION;
         }
 
-        public Transaction getTransaction()
-        {
+        public Transaction getTransaction() {
             return null;
         }
 
-        public void resume(Transaction transaction) {}
+        public void resume(Transaction transaction) {
+        }
 
-        public void rollback() {}
+        public void rollback() {
+        }
 
-        public void setRollbackOnly() {}
+        public void setRollbackOnly() {
+        }
 
-        public void setTransactionTimeout(int i) {}
+        public void setTransactionTimeout(int i) {
+        }
 
-        public Transaction suspend()
-        {
+        public Transaction suspend() {
             return null;
         }
     }
 
-    static class DumbUserTransaction implements UserTransaction
-    {
+    static class DumbUserTransaction implements UserTransaction {
         static final DumbUserTransaction INSTANCE = new DumbUserTransaction();
 
-        public void begin() {}
+        public void begin() {
+        }
 
-        public void commit() {}
+        public void commit() {
+        }
 
-        public int getStatus()
-        {
+        public int getStatus() {
             return STATUS_NO_TRANSACTION;
         }
 
-        public void rollback() {}
+        public void rollback() {
+        }
 
-        public void setRollbackOnly() {}
+        public void setRollbackOnly() {
+        }
 
-        public void setTransactionTimeout(int i) {}
+        public void setTransactionTimeout(int i) {
+        }
     }
 }

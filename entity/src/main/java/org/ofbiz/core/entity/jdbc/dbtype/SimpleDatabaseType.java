@@ -11,6 +11,7 @@ public class SimpleDatabaseType extends AbstractDatabaseType {
     protected SimpleDatabaseType(String name, String fieldTypeName, String[] productNamePrefix) {
         super(name, fieldTypeName, productNamePrefix);
     }
+
     /**
      * This implementation of the method only checks the productName returned by the driver
      * against a list of potential product name prefixes.

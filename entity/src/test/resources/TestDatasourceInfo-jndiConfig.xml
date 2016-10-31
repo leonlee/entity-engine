@@ -1,4 +1,4 @@
 <ofbiz-datasource name="default" field-type-name="postgres72"
                   helper-class="org.ofbiz.core.entity.GenericHelperDAO">
-  <jndi-jdbc jndi-server-name="default" jndi-name="java:comp/env/jdbc/JiraDS"/>
+    <jndi-jdbc jndi-server-name="default" jndi-name="java:comp/env/jdbc/JiraDS"/>
 </ofbiz-datasource>

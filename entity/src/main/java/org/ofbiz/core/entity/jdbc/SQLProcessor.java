@@ -23,6 +23,18 @@
  */
 package org.ofbiz.core.entity.jdbc;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.ofbiz.core.entity.ConnectionFactory;
+import org.ofbiz.core.entity.GenericDataSourceException;
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.GenericTransactionException;
+import org.ofbiz.core.entity.TransactionUtil;
+import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
+import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
+import org.ofbiz.core.util.Debug;
+
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.transaction.Status;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,20 +51,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.concurrent.NotThreadSafe;
-import javax.transaction.Status;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import org.ofbiz.core.entity.ConnectionFactory;
-import org.ofbiz.core.entity.GenericDataSourceException;
-import org.ofbiz.core.entity.GenericEntityException;
-import org.ofbiz.core.entity.GenericTransactionException;
-import org.ofbiz.core.entity.TransactionUtil;
-import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
-import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
-import org.ofbiz.core.util.Debug;
-
 /**
  * SQLProcessor - provides utility functions to ease database access
  *
@@ -61,11 +59,9 @@ import org.ofbiz.core.util.Debug;
  * @since 2.0
  */
 @NotThreadSafe  // You really ought to just assume this for everything in entity engine...
-public class SQLProcessor
-{
+public class SQLProcessor {
 
-    public enum CommitMode
-    {
+    public enum CommitMode {
         /**
          * The SQLProcessor is in read only mode and only SELECT statements may be issued
          */
@@ -134,8 +130,7 @@ public class SQLProcessor
      * @param helperName The datasource helper (see entityengine.xml &lt;datasource name=".."&gt;)
      * @param commitMode the {@link org.ofbiz.core.entity.jdbc.SQLProcessor.CommitMode} to use
      */
-    SQLProcessor(String helperName, CommitMode commitMode)
-    {
+    SQLProcessor(String helperName, CommitMode commitMode) {
         this.helperName = helperName;
         this._manualTX = true;
         this._connection = null;
@@ -154,8 +149,7 @@ public class SQLProcessor
      *
      * @param helperName The datasource helper (see entityengine.xml &lt;datasource name=".."&gt;)
      */
-    public SQLProcessor(String helperName)
-    {
+    public SQLProcessor(String helperName) {
         this(helperName, CommitMode.EXPLICIT_COMMIT);
     }
 
@@ -169,8 +163,7 @@ public class SQLProcessor
      * @param helperName The datasource helper (see entityengine.xml &lt;datasource name=".."&gt;)
      * @param connection The connection to be used
      */
-    public SQLProcessor(String helperName, Connection connection)
-    {
+    public SQLProcessor(String helperName, Connection connection) {
         this(helperName, CommitMode.NOT_INVOLVED);
         this._connection = connection;
 
@@ -181,8 +174,7 @@ public class SQLProcessor
     /**
      * @return the {@link CommitMode} the SQLProcessor is in
      */
-    public CommitMode getCommitMode()
-    {
+    public CommitMode getCommitMode() {
         return _commitMode;
     }
 
@@ -191,21 +183,15 @@ public class SQLProcessor
      *
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public void commit() throws GenericDataSourceException
-    {
-        if (_connection == null)
-        {
+    public void commit() throws GenericDataSourceException {
+        if (_connection == null) {
             return;
         }
 
-        if (_manualTX)
-        {
-            try
-            {
+        if (_manualTX) {
+            try {
                 _connection.commit();
-            }
-            catch (SQLException sqle)
-            {
+            } catch (SQLException sqle) {
                 rollback();
                 Debug.logWarning("[SQLProcessor.commit]: SQL Exception occurred on commit. Error was:" + sqle);
                 throw new GenericDataSourceException("SQL Exception occurred on commit", sqle);
@@ -218,34 +204,23 @@ public class SQLProcessor
      *
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public void rollback() throws GenericDataSourceException
-    {
-        if (_connection == null)
-        {
+    public void rollback() throws GenericDataSourceException {
+        if (_connection == null) {
             return;
         }
 
-        try
-        {
-            if (_manualTX)
-            {
+        try {
+            if (_manualTX) {
                 _connection.rollback();
-            }
-            else
-            {
-                try
-                {
+            } else {
+                try {
                     TransactionUtil.setRollbackOnly();
-                }
-                catch (GenericTransactionException e)
-                {
+                } catch (GenericTransactionException e) {
                     Debug.logError(e, "Error setting rollback only");
                     throw new GenericDataSourceException("Error setting rollback only", e);
                 }
             }
-        }
-        catch (SQLException sqle2)
-        {
+        } catch (SQLException sqle2) {
             Debug.logWarning("[SQLProcessor.rollback]: SQL Exception while rolling back insert. Error was:" + sqle2,
                     module);
             Debug.logWarning(sqle2, module);
@@ -257,14 +232,10 @@ public class SQLProcessor
      *
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public void close() throws GenericDataSourceException
-    {
-        try
-        {
+    public void close() throws GenericDataSourceException {
+        try {
             smartCommit(_connection);
-        }
-        finally
-        {
+        } finally {
             // Hold onto _sql and _parameterValues so we can report if somebody tries to close us again...
             closeResultSet();
             closePreparedStatement();
@@ -272,73 +243,54 @@ public class SQLProcessor
         }
     }
 
-    private void closeResultSet()
-    {
+    private void closeResultSet() {
         final ResultSet rs = _rs;
-        if (rs == null)
-        {
+        if (rs == null) {
             return;
         }
         _rs = null;
 
-        try
-        {
+        try {
             rs.close();
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             Debug.logWarning(sqle, "Error closing ResultSet", module);
         }
     }
 
-    private void closePreparedStatement()
-    {
+    private void closePreparedStatement() {
         final PreparedStatement ps = _ps;
-        if (ps == null)
-        {
+        if (ps == null) {
             return;
         }
         _ps = null;
 
-        try
-        {
+        try {
             ps.close();
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             Debug.logWarning(sqle, "Error closing PreparedStatement", module);
         }
     }
 
-    private void closeConnection()
-    {
+    private void closeConnection() {
         // If we don't have a connection guard, then we didn't open the connection ourselves, so we shouldn't close it
         final ConnectionGuard guard = _guard;
-        if (guard == null)
-        {
+        if (guard == null) {
             return;
         }
 
-        // Since we are properly closing the connection, ensure that the GC won't enqueue our guard (or that if by
-        // some strange race condition it does, that this would be harmless).
-        final Connection connection = _connection;
-        _guard = null;
-        _connection = null;
+        // JDEV-35590: Ensure that guard gets cleared before we let go of the reference to the connection.
+        guard.clear();
 
-        try
-        {
-            if (connection != null)
-            {
+        final Connection connection = _connection;
+        try {
+            if (connection != null) {
                 connection.close();
             }
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             Debug.logWarning(sqle, "Error closing Connection", module);
-        }
-        finally
-        {
-            guard.clear();
+        } finally {
+            _guard = null;
+            _connection = null;
         }
     }
 
@@ -350,14 +302,11 @@ public class SQLProcessor
      * @param connection the connection in play
      * @throws GenericDataSourceException if something goes wrong
      */
-    private void smartCommit(final Connection connection) throws GenericDataSourceException
-    {
-        if (connection == null)
-        {
+    private void smartCommit(final Connection connection) throws GenericDataSourceException {
+        if (connection == null) {
             return;
         }
-        if (_commitMode != CommitMode.EXPLICIT_COMMIT)
-        {
+        if (_commitMode != CommitMode.EXPLICIT_COMMIT) {
             return;
         }
         commit();
@@ -369,15 +318,12 @@ public class SQLProcessor
      * @return The connection created
      * @throws GenericEntityException if an SQLException occurs
      */
-    public Connection getConnection() throws GenericEntityException
-    {
-        if (_connection != null)
-        {
+    public Connection getConnection() throws GenericEntityException {
+        if (_connection != null) {
             return _connection;
         }
 
-        if (TransactionUtil.isTransactionActive())
-        {
+        if (TransactionUtil.isTransactionActive()) {
             // Ensure that we do not do commits as we do not own the connection
             _manualTX = false;
             _commitMode = CommitMode.EXTERNAL_COMMIT;
@@ -390,60 +336,40 @@ public class SQLProcessor
         ConnectionGuard.closeAbandonedProcessors();
 
         _manualTX = true;
-        try
-        {
+        try {
             _connection = ConnectionFactory.getConnection(helperName);
             _guard = guard(_connection);
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             throw new GenericDataSourceException("Unable to establish a connection with the database.", sqle);
         }
 
-        if (Debug.verboseOn())
-        {
+        if (Debug.verboseOn()) {
             int isoLevel = -999;
-            try
-            {
+            try {
                 isoLevel = _connection.getTransactionIsolation();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 Debug.logError(e, "Problems getting the connection's isolation level", module);
             }
-            if (isoLevel == Connection.TRANSACTION_NONE)
-            {
+            if (isoLevel == Connection.TRANSACTION_NONE) {
                 Debug.logVerbose("Transaction isolation level set to 'None'.", module);
-            }
-            else if (isoLevel == Connection.TRANSACTION_READ_COMMITTED)
-            {
+            } else if (isoLevel == Connection.TRANSACTION_READ_COMMITTED) {
                 Debug.logVerbose("Transaction isolation level set to 'ReadCommited'.", module);
-            }
-            else if (isoLevel == Connection.TRANSACTION_READ_UNCOMMITTED)
-            {
+            } else if (isoLevel == Connection.TRANSACTION_READ_UNCOMMITTED) {
                 Debug.logVerbose("Transaction isolation level set to 'ReadUncommitted'.", module);
-            }
-            else if (isoLevel == Connection.TRANSACTION_REPEATABLE_READ)
-            {
+            } else if (isoLevel == Connection.TRANSACTION_REPEATABLE_READ) {
                 Debug.logVerbose("Transaction isolation level set to 'RepeatableRead'.", module);
-            }
-            else if (isoLevel == Connection.TRANSACTION_SERIALIZABLE)
-            {
+            } else if (isoLevel == Connection.TRANSACTION_SERIALIZABLE) {
                 Debug.logVerbose("Transaction isolation level set to 'Serializable'.", module);
             }
         }
 
         // we need to normalise the connection's autoCommit status
         smartSetAutoCommit(_connection);
-        try
-        {
-            if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE)
-            {
+        try {
+            if (TransactionUtil.getStatus() == Status.STATUS_ACTIVE) {
                 _manualTX = false;
             }
-        }
-        catch (GenericTransactionException e)
-        {
+        } catch (GenericTransactionException e) {
             // nevermind, don't worry about it, but print the exc anyway
             Debug.logWarning("[SQLProcessor.getConnection]: Exception was thrown trying to check " +
                     "transaction status: " + e.toString(), module);
@@ -453,8 +379,7 @@ public class SQLProcessor
     }
 
     @VisibleForTesting
-    ConnectionGuard guard(Connection connection)
-    {
+    ConnectionGuard guard(Connection connection) {
         return ConnectionGuard.register(this, connection);
     }
 
@@ -469,20 +394,15 @@ public class SQLProcessor
      *
      * @param connection the Connection in play
      */
-    private void smartSetAutoCommit(final Connection connection)
-    {
+    private void smartSetAutoCommit(final Connection connection) {
         // if we are in read only mode, then there is no need to perform tweak autoCommit at all!
-        if (_commitMode == CommitMode.READONLY)
-        {
+        if (_commitMode == CommitMode.READONLY) {
             return;
         }
 
-        if (_commitMode == CommitMode.AUTO_COMMIT)
-        {
+        if (_commitMode == CommitMode.AUTO_COMMIT) {
             doSetAutoCommit(connection, true);
-        }
-        else
-        {
+        } else {
             doSetAutoCommit(connection, false);
         }
     }
@@ -493,18 +413,13 @@ public class SQLProcessor
      * @param connection the JDBC connection
      * @param autoCommit the desired autoCommit state
      */
-    private void doSetAutoCommit(final Connection connection, final boolean autoCommit)
-    {
+    private void doSetAutoCommit(final Connection connection, final boolean autoCommit) {
         // always try to set auto commit to false, but if we can't then later on we won't commit
-        try
-        {
-            if (connection.getAutoCommit() != autoCommit)
-            {
+        try {
+            if (connection.getAutoCommit() != autoCommit) {
                 connection.setAutoCommit(autoCommit);
             }
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             _manualTX = false;
             _commitMode = CommitMode.NOT_INVOLVED;
         }
@@ -517,8 +432,7 @@ public class SQLProcessor
      * @param sql The SQL statement to be executed
      * @throws GenericEntityException if an SQLException occurs
      */
-    public void prepareStatement(String sql) throws GenericEntityException
-    {
+    public void prepareStatement(String sql) throws GenericEntityException {
         this.prepareStatement(sql, false, 0, 0);
     }
 
@@ -534,41 +448,32 @@ public class SQLProcessor
      * @throws GenericEntityException if an SQLException occurs
      */
     public void prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
-            final int resultSetConcurrency) throws GenericEntityException
-    {
-        if (Debug.verboseOn())
-        {
+                                 final int resultSetConcurrency) throws GenericEntityException {
+        if (Debug.verboseOn()) {
             Debug.logVerbose("[SQLProcessor.prepareStatement] sql=" + sql, module);
         }
 
         final Connection connection = getConnection();
         final ConnectionGuard guard = _guard;
-        try
-        {
+        try {
             // If the guard is null, then the connection we are using belongs to somebody else, so how it gets
             // cleaned up is not our problem.  However, if we allocated the connection and then this SQLProcessor
             // gets abandoned to GC without closing it, then we want to be able to report the last SQL that was
             // requested on the connection, as knowing the kind of work the connection was used for may help us
             // track down the code that leaked it.
-            if (guard != null)
-            {
+            if (guard != null) {
                 guard.setSql(sql);
             }
 
             _sql = sql;
             _parameterValues = new ArrayList<>();
             _ind = 1;
-            if (specifyTypeAndConcur)
-            {
+            if (specifyTypeAndConcur) {
                 _ps = connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
-            }
-            else
-            {
+            } else {
                 _ps = connection.prepareStatement(sql);
             }
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while executing the following:" + sql, sqle);
         }
     }
@@ -579,41 +484,31 @@ public class SQLProcessor
      * lifecycle.  So to be safe we do it for every call to beforeExecution() and protect it in each of the following
      * helpers with a null check.
      */
-    private void beforeExecution()
-    {
-        if (_connection instanceof ConnectionWithSQLInterceptor)
-        {
-            _sqlInterceptor = ((ConnectionWithSQLInterceptor)_connection).getNonNullSQLInterceptor();
-        }
-        else
-        {
+    private void beforeExecution() {
+        if (_connection instanceof ConnectionWithSQLInterceptor) {
+            _sqlInterceptor = ((ConnectionWithSQLInterceptor) _connection).getNonNullSQLInterceptor();
+        } else {
             _sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         }
         _sqlInterceptor.beforeExecution(_sql, _parameterValues, _ps);
     }
 
-    private void afterExecution(int rowsUpdated)
-    {
-        if (_sqlInterceptor != null)
-        {
+    private void afterExecution(int rowsUpdated) {
+        if (_sqlInterceptor != null) {
             _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, null, rowsUpdated);
             _sqlInterceptor = null;
         }
     }
 
-    private void afterExecution()
-    {
-        if (_sqlInterceptor != null)
-        {
+    private void afterExecution() {
+        if (_sqlInterceptor != null) {
             _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, _rs, -1);
             _sqlInterceptor = null;
         }
     }
 
-    private void onException(final SQLException sqle)
-    {
-        if (_sqlInterceptor != null)
-        {
+    private void onException(final SQLException sqle) {
+        if (_sqlInterceptor != null) {
             _sqlInterceptor.onException(_sql, _parameterValues, _ps, sqle);
             _sqlInterceptor = null;
         }
@@ -625,18 +520,14 @@ public class SQLProcessor
      * @return The result set of the query
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public ResultSet executeQuery() throws GenericDataSourceException
-    {
-        try
-        {
+    public ResultSet executeQuery() throws GenericDataSourceException {
+        try {
             beforeExecution();
 
             _rs = _ps.executeQuery();
 
             afterExecution();
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             onException(sqle);
 
             throw new GenericDataSourceException("SQL Exception while executing the following:" + _sql, sqle);
@@ -651,8 +542,7 @@ public class SQLProcessor
      * @return The result set of the query
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public ResultSet executeQuery(String sql) throws GenericEntityException
-    {
+    public ResultSet executeQuery(String sql) throws GenericEntityException {
         prepareStatement(sql);
         return executeQuery();
     }
@@ -663,12 +553,10 @@ public class SQLProcessor
      * @return The number of rows updated
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public int executeUpdate() throws GenericDataSourceException
-    {
+    public int executeUpdate() throws GenericDataSourceException {
         validateCommitMode();
 
-        try
-        {
+        try {
             beforeExecution();
 
             int rc = _ps.executeUpdate();
@@ -676,9 +564,7 @@ public class SQLProcessor
             afterExecution(rc);
 
             return rc;
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             onException(sqle);
 
             throw new GenericDataSourceException("SQL Exception while executing the following:" + _sql, sqle);
@@ -692,16 +578,14 @@ public class SQLProcessor
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements
      * @throws GenericDataSourceException if an SQLException occurs or (2) 0 for SQL statements that return nothing
      */
-    public int executeUpdate(String sql) throws GenericDataSourceException
-    {
+    public int executeUpdate(String sql) throws GenericDataSourceException {
         validateCommitMode();
 
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         List<String> emptyList = Collections.emptyList();
 
         Statement stmt = null;
-        try
-        {
+        try {
             // Note: NPE if no one has called getConnection() yet!  This is inconsistent with the prepareStatement(),
             // which will go ahead and allocate a new connection for you.
             stmt = _connection.createStatement();
@@ -709,8 +593,7 @@ public class SQLProcessor
             // If there is a connection guard, record the SQL we are executing for debugging purposes if the
             // connection gets leaked.
             final ConnectionGuard guard = _guard;
-            if (guard != null)
-            {
+            if (guard != null) {
                 guard.setSql(sql);
             }
 
@@ -720,32 +603,22 @@ public class SQLProcessor
 
             sqlInterceptor.afterSuccessfulExecution(sql, emptyList, stmt, null, rc);
             return rc;
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             sqlInterceptor.onException(sql, emptyList, stmt, sqle);
             throw new GenericDataSourceException("SQL Exception while executing the following:" + sql, sqle);
-        }
-        finally
-        {
-            if (stmt != null)
-            {
-                try
-                {
+        } finally {
+            if (stmt != null) {
+                try {
                     stmt.close();
-                }
-                catch (SQLException sqle)
-                {
+                } catch (SQLException sqle) {
                     Debug.logWarning("Unable to close 'statement': " + sqle.getMessage(), module);
                 }
             }
         }
     }
 
-    private void validateCommitMode()
-    {
-        if (_commitMode == CommitMode.READONLY)
-        {
+    private void validateCommitMode() {
+        if (_commitMode == CommitMode.READONLY) {
             throw new IllegalStateException(
                     "The current CommitMode is READ ONLY and you are trying to perform an UPDATE");
         }
@@ -757,14 +630,10 @@ public class SQLProcessor
      * @return true, if there more records available
      * @throws GenericDataSourceException if an SQLException occurs
      */
-    public boolean next() throws GenericDataSourceException
-    {
-        try
-        {
+    public boolean next() throws GenericDataSourceException {
+        try {
             return _rs.next();
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while executing the following:" + _sql, sqle);
         }
     }
@@ -774,8 +643,7 @@ public class SQLProcessor
      *
      * @return ResultSet
      */
-    public ResultSet getResultSet()
-    {
+    public ResultSet getResultSet() {
         return _rs;
     }
 
@@ -784,8 +652,7 @@ public class SQLProcessor
      *
      * @return PreparedStatement
      */
-    public PreparedStatement getPreparedStatement()
-    {
+    public PreparedStatement getPreparedStatement() {
         return _ps;
     }
 
@@ -797,17 +664,13 @@ public class SQLProcessor
      * @param aListener The callback function object
      * @throws GenericEntityException if an SQLException occurs
      */
-    public void execQuery(String sql, ExecQueryCallbackFunctionIF aListener) throws GenericEntityException
-    {
-        if (_connection == null)
-        {
+    public void execQuery(String sql, ExecQueryCallbackFunctionIF aListener) throws GenericEntityException {
+        if (_connection == null) {
             getConnection();
         }
 
-        try
-        {
-            if (Debug.verboseOn())
-            {
+        try {
+            if (Debug.verboseOn()) {
                 Debug.logVerbose("[SQLProcessor.execQuery]: " + sql, module);
             }
             executeQuery(sql);
@@ -816,32 +679,25 @@ public class SQLProcessor
             // each row...
             boolean keepGoing = true;
 
-            while (keepGoing && _rs.next())
-            {
+            while (keepGoing && _rs.next()) {
                 keepGoing = aListener.processNextRow(_rs);
             }
 
-            if (_manualTX)
-            {
+            if (_manualTX) {
                 _connection.commit();
             }
 
-        }
-        catch (SQLException sqle)
-        {
+        } catch (SQLException sqle) {
             Debug.logWarning("[SQLProcessor.execQuery]: SQL Exception while executing the following:\n" +
                     sql + "\nError was:", module);
             Debug.logWarning(sqle.getMessage(), module);
             throw new GenericEntityException("SQL Exception while executing the following:" + _sql, sqle);
-        }
-        finally
-        {
+        } finally {
             close();
         }
     }
 
-    private void recordParameter(final Object field)
-    {
+    private void recordParameter(final Object field) {
         _parameterValues.add(String.valueOf(field));
     }
 
@@ -851,14 +707,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(String field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(String field) throws SQLException {
+        if (field != null) {
             _ps.setString(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.VARCHAR);
         }
         recordParameter(field);
@@ -872,14 +724,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Timestamp field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(java.sql.Timestamp field) throws SQLException {
+        if (field != null) {
             _ps.setTimestamp(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.TIMESTAMP);
         }
         recordParameter(field);
@@ -893,14 +741,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Time field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(java.sql.Time field) throws SQLException {
+        if (field != null) {
             _ps.setTime(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.TIME);
         }
         recordParameter(field);
@@ -914,14 +758,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Date field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(java.sql.Date field) throws SQLException {
+        if (field != null) {
             _ps.setDate(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.DATE);
         }
         recordParameter(field);
@@ -935,14 +775,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Integer field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Integer field) throws SQLException {
+        if (field != null) {
             _ps.setInt(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.NUMERIC);
         }
         recordParameter(field);
@@ -956,14 +792,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Long field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Long field) throws SQLException {
+        if (field != null) {
             _ps.setLong(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.NUMERIC);
         }
         recordParameter(field);
@@ -977,14 +809,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Float field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Float field) throws SQLException {
+        if (field != null) {
             _ps.setFloat(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.NUMERIC);
         }
         recordParameter(field);
@@ -998,14 +826,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Double field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Double field) throws SQLException {
+        if (field != null) {
             _ps.setDouble(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.NUMERIC);
         }
         recordParameter(field);
@@ -1019,14 +843,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Boolean field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Boolean field) throws SQLException {
+        if (field != null) {
             _ps.setBoolean(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.NULL);
         }
         recordParameter(field);
@@ -1040,14 +860,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Object field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Object field) throws SQLException {
+        if (field != null) {
             _ps.setObject(_ind, field, Types.JAVA_OBJECT);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.JAVA_OBJECT);
         }
         recordParameter(field);
@@ -1061,14 +877,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Blob field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Blob field) throws SQLException {
+        if (field != null) {
             _ps.setBlob(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.BLOB);
         }
         recordParameter("BLOB");
@@ -1082,14 +894,10 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Clob field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setValue(Clob field) throws SQLException {
+        if (field != null) {
             _ps.setClob(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.CLOB);
         }
         recordParameter("CLOB");
@@ -1106,14 +914,10 @@ public class SQLProcessor
      * @param field the field value
      * @throws SQLException if something goes wrong
      */
-    public void setBlob(byte[] field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setBlob(byte[] field) throws SQLException {
+        if (field != null) {
             _ps.setBinaryStream(_ind, new ByteArrayInputStream(field));
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.BLOB);
         }
 
@@ -1129,14 +933,10 @@ public class SQLProcessor
      * @param field the field value
      * @throws SQLException if something goes wrong
      */
-    public void setByteArray(byte[] field) throws SQLException
-    {
-        if (field != null)
-        {
+    public void setByteArray(byte[] field) throws SQLException {
+        if (field != null) {
             _ps.setBytes(_ind, field);
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.LONGVARBINARY);
         }
 
@@ -1151,12 +951,9 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setBinaryStream(Object field) throws SQLException
-    {
-        if (field != null)
-        {
-            try
-            {
+    public void setBinaryStream(Object field) throws SQLException {
+        if (field != null) {
+            try {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 ObjectOutputStream oos = new ObjectOutputStream(os);
                 oos.writeObject(field);
@@ -1167,14 +964,10 @@ public class SQLProcessor
                 ByteArrayInputStream is = new ByteArrayInputStream(buf);
                 _ps.setBinaryStream(_ind, is, buf.length);
                 is.close();
-            }
-            catch (IOException ex)
-            {
+            } catch (IOException ex) {
                 throw new SQLException(ex);
             }
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.BLOB);
         }
         recordParameter("BLOB");
@@ -1191,25 +984,18 @@ public class SQLProcessor
      * @param field the field value in play
      * @throws SQLException if somethings goes wrong
      */
-    public void setByteArrayData(Object field) throws SQLException
-    {
-        if (field != null)
-        {
-            try
-            {
+    public void setByteArrayData(Object field) throws SQLException {
+        if (field != null) {
+            try {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
                 ObjectOutputStream oos = new ObjectOutputStream(os);
                 oos.writeObject(field);
                 oos.close();
                 _ps.setBytes(_ind, os.toByteArray());
-            }
-            catch (IOException ex)
-            {
+            } catch (IOException ex) {
                 throw new SQLException(ex);
             }
-        }
-        else
-        {
+        } else {
             _ps.setNull(_ind, Types.LONGVARBINARY);
         }
         recordParameter("BLOB");
@@ -1219,8 +1005,7 @@ public class SQLProcessor
 
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql +
                 ",parameters=" + _parameterValues + ']';
     }

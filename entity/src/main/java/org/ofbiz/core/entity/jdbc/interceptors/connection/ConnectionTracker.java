@@ -3,7 +3,6 @@ package org.ofbiz.core.entity.jdbc.interceptors.connection;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.jdbc.SQLInterceptorSupport;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
-import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -14,8 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * A class to track information about {@link Connection}s that come from the connection pool.
  * It also will invoke {@link SQLConnectionInterceptor}s with information about the Connection as it is used.
  */
-public class ConnectionTracker
-{
+public class ConnectionTracker {
     /**
      * A symbolic constant for the the ConnectionPoolInfo is now known
      */
@@ -24,8 +22,7 @@ public class ConnectionTracker
     private final ConnectionPoolInfo connectionPoolInfo;
     private final AtomicInteger borrowedCount = new AtomicInteger(0);
 
-    public ConnectionTracker()
-    {
+    public ConnectionTracker() {
         this(UNKNOWN_CONNECTION_POOL_INFO);
     }
 
@@ -34,38 +31,31 @@ public class ConnectionTracker
      *
      * @param connectionPoolInfo the static information about the connection pool
      */
-    public ConnectionTracker(final ConnectionPoolInfo connectionPoolInfo)
-    {
+    public ConnectionTracker(final ConnectionPoolInfo connectionPoolInfo) {
         this.connectionPoolInfo = connectionPoolInfo != null ? connectionPoolInfo : UNKNOWN_CONNECTION_POOL_INFO;
     }
 
     /**
      * Called to track the connection as it is pulled from the underlying connection pool.
      *
-     * @param helperName the OfBiz helper name
+     * @param helperName        the OfBiz helper name
      * @param getConnectionCall a callable that returns a connection
      * @return the connection that was returned by the callable
      */
-    public Connection trackConnection(final String helperName, final Callable<java.sql.Connection> getConnectionCall)
-    {
-        try
-        {
+    public Connection trackConnection(final String helperName, final Callable<java.sql.Connection> getConnectionCall) {
+        try {
             long then = System.nanoTime();
             Connection connection = getConnectionCall.call();
             return informInterceptor(helperName, connection, connectionPoolInfo, System.nanoTime() - then);
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new RuntimeException("Unable to obtain a connection from the underlying connection pool", e);
         }
     }
 
-    private Connection informInterceptor(final String helperName, final Connection connection, final ConnectionPoolInfo connectionPoolInfo, final long timeTakenNanos)
-    {
+    private Connection informInterceptor(final String helperName, final Connection connection, final ConnectionPoolInfo connectionPoolInfo, final long timeTakenNanos) {
         // connections can be null so we have to handle that.   Its unlikely but the code path can make it so.
-        if (connection == null)
-        {
+        if (connection == null) {
             return null;
         }
         final int count = borrowedCount.incrementAndGet();
@@ -79,75 +69,63 @@ public class ConnectionTracker
         return new DelegatingConnectionImpl(connection, connectionPoolInfo, sqlConnectionInterceptor);
     }
 
-    private class DelegatingConnectionImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor
-    {
+    private class DelegatingConnectionImpl extends DelegatingConnection implements ConnectionWithSQLInterceptor {
         private final ConnectionPoolInfo connectionPoolInfo;
         private final SQLConnectionInterceptor sqlConnectionInterceptor;
 
-        public DelegatingConnectionImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor)
-        {
+        public DelegatingConnectionImpl(final Connection delegate, ConnectionPoolInfo connectionPoolInfo, final SQLConnectionInterceptor sqlConnectionInterceptor) {
             super(delegate);
             this.connectionPoolInfo = connectionPoolInfo;
             this.sqlConnectionInterceptor = sqlConnectionInterceptor;
         }
 
         @Override
-        public void close() throws SQLException
-        {
+        public void close() throws SQLException {
             super.close();
             final int count = borrowedCount.decrementAndGet();
             sqlConnectionInterceptor.onConnectionReplaced(this, new ConnectionPoolStateImpl(0, count, connectionPoolInfo));
         }
 
-        public SQLInterceptor getNonNullSQLInterceptor()
-        {
+        public SQLInterceptor getNonNullSQLInterceptor() {
             return sqlConnectionInterceptor;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return "DelegatingConnectionImpl[connectionPoolInfo=" + connectionPoolInfo +
                     ",sqlConnectionInterceptor=" + sqlConnectionInterceptor + ']';
         }
     }
 
-    private static class ConnectionPoolStateImpl implements ConnectionPoolState
-    {
+    private static class ConnectionPoolStateImpl implements ConnectionPoolState {
         private final long timeToBorrowNanos;
         private final int borrowCount;
         private final ConnectionPoolInfo connectionPoolInfo;
 
-        private ConnectionPoolStateImpl(long timeToBorrowNanos, int borrowCount, ConnectionPoolInfo connectionPoolInfo)
-        {
+        private ConnectionPoolStateImpl(long timeToBorrowNanos, int borrowCount, ConnectionPoolInfo connectionPoolInfo) {
             this.timeToBorrowNanos = timeToBorrowNanos;
             this.borrowCount = borrowCount;
             this.connectionPoolInfo = connectionPoolInfo;
         }
 
-        public long getTimeToBorrowNanos()
-        {
+        public long getTimeToBorrowNanos() {
             return timeToBorrowNanos;
         }
 
-        public long getTimeToBorrow()
-        {
+        public long getTimeToBorrow() {
             return timeToBorrowNanos / 1000000L;
         }
 
-        public int getBorrowedCount()
-        {
+        public int getBorrowedCount() {
             return borrowCount;
         }
 
-        public ConnectionPoolInfo getConnectionPoolInfo()
-        {
+        public ConnectionPoolInfo getConnectionPoolInfo() {
             return connectionPoolInfo;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return "ConnectionPoolStateImpl[timeToBorrowNanos=" + timeToBorrowNanos +
                     ",borrowCount=" + borrowCount +
                     ",connectionPoolInfo=" + connectionPoolInfo + ']';

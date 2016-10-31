@@ -33,23 +33,23 @@ import java.util.List;
  * Represents the conditions to be used to constrain a query
  * <br>An EntityCondition can represent various type of constraints, including:
  * <ul>
- *  <li>EntityConditionList: a list of EntityConditions, combined with the operator specified
- *  <li>EntityExpr: for simple expressions or expressions that combine EntityConditions
- *  <li>EntityExprList: a list of EntityExprs, combined with the operator specified
- *  <li>EntityFieldMap: a map of fields where the field (key) equals the value, combined with the operator specified
+ * <li>EntityConditionList: a list of EntityConditions, combined with the operator specified
+ * <li>EntityExpr: for simple expressions or expressions that combine EntityConditions
+ * <li>EntityExprList: a list of EntityExprs, combined with the operator specified
+ * <li>EntityFieldMap: a map of fields where the field (key) equals the value, combined with the operator specified
  * </ul>
  * These can be used in various combinations using the EntityExpr object.
  *
- *@author     <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- *@since    July 12, 2002
- *@version    1.0
+ * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
+ * @version 1.0
+ * @since July 12, 2002
  */
 public abstract class EntityCondition implements Serializable {
 
     /**
      * Creates a string for use in a WHERE clause, based on this condition.
      *
-     * @param modelEntity the entity being queried for (required)
+     * @param modelEntity           the entity being queried for (required)
      * @param entityConditionParams a non-null list to which this method will add any required bind values
      * @return a non-null string
      */
@@ -68,11 +68,9 @@ public abstract class EntityCondition implements Serializable {
      * Returns the number of SQL parameters that would be generated for this condition.
      *
      * @param modelEntity the entity being queried for (required)
-     *
      * @return the number of SQL parameters.
      */
-    public int getParameterCount(ModelEntity modelEntity)
-    {
+    public int getParameterCount(ModelEntity modelEntity) {
         List<EntityConditionParam> paramList = new ArrayList<EntityConditionParam>();
         makeWhereString(modelEntity, paramList);
         return paramList.size();
