@@ -134,7 +134,7 @@ public class GenericDelegator implements DelegatorInterface {
     protected DistributedCacheClear distributedCacheClear;
     protected ModelGroupReader modelGroupReader;
     protected ModelReader modelReader;
-    protected SequenceUtil sequencer;
+    protected volatile SequenceUtil sequencer;
     protected String delegatorName;
     protected UtilCache<GenericEntity, GenericValue> primaryKeyCache;
     protected UtilCache<GenericPK, List<GenericValue>> andCache;
@@ -2450,14 +2450,8 @@ public class GenericDelegator implements DelegatorInterface {
         return tagName;
     }
 
-    /**
-     * Get the next guaranteed unique seq id from the sequence with the given sequence name;
-     * if the named sequence doesn't exist, it will be created.
-     *
-     * @param seqName The name of the sequence to get the next seq id from
-     * @return Long with the next seq id for the given sequence name
-     */
-    public Long getNextSeqId(String seqName) {
+    @Override
+    public Long getNextSeqId(String seqName, boolean clusterMode) {
         checkIfLocked();
         if (sequencer == null) {
             synchronized (this) {
@@ -2465,7 +2459,13 @@ public class GenericDelegator implements DelegatorInterface {
                     String helperName = getEntityHelperName("SequenceValueItem");
                     ModelEntity seqEntity = getModelEntity("SequenceValueItem");
 
-                    sequencer = new SequenceUtil(helperName, seqEntity, "seqName", "seqId");
+                    sequencer = new SequenceUtil(
+                            helperName,
+                            seqEntity,
+                            "seqName",
+                            "seqId",
+                            clusterMode || getDelegatorInfo().useDistributedCacheClear
+                    );
                 }
             }
         }

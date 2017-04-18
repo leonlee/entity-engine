@@ -319,6 +319,10 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
+    public Long getNextSeqId(String seqName, boolean clusterMode) {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
     public UtilCache<GenericEntity, GenericValue> getPrimaryKeyCache() {
         throw new UnsupportedOperationException(MESSAGE);
     }

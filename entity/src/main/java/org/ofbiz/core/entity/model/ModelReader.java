@@ -56,7 +56,7 @@ import java.util.Map;
 public class ModelReader {
 
     public static final String module = ModelReader.class.getName();
-    public static UtilCache<String, ModelReader> readers = new UtilCache<String, ModelReader>("entity.ModelReader", 0, 0);
+    public static final UtilCache<String, ModelReader> readers = new UtilCache<String, ModelReader>("entity.ModelReader", 0, 0);
 
     protected Map<String, ModelEntity> entityCache = null;
 

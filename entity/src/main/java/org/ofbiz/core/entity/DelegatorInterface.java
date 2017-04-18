@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
 import org.ofbiz.core.entity.model.ModelGroupReader;
@@ -252,7 +253,37 @@ public interface DelegatorInterface {
 
     void putInAndCache(ModelEntity entity, Map<String, ?> fields, List<? extends GenericValue> values);
 
-    Long getNextSeqId(String seqName);
+    /**
+     * Get the next guaranteed unique seq id from the sequence with the given sequence name;
+     * if the named sequence doesn't exist, it will be created.
+     * <p>
+     * This is equivalent of calling {@link #getNextSeqId(String, boolean)} with false as second parameter
+     *
+     * @param seqName The name of the sequence to get the next seq id from
+     * @return Long with the next seq id for the given sequence name
+     */
+    default Long getNextSeqId(String seqName) {
+        return getNextSeqId(seqName, false);
+    }
+
+    /**
+     * Get the next guaranteed unique seq id from the sequence with the given sequence name;
+     * if the named sequence doesn't exist, it will be created.
+     * <p>
+     * If the instance should be running in cluster mode then it will try a SELECT FOR UPDATE approach to retrieving
+     * the next bank of sequence ids, to avoid potential collisions with other nodes.
+     * <p>
+     * If not in cluster mode, this is not required, and the existing JVM synchronization locking is enough.
+     * <p>
+     * It will be in clusterMode if true is passed as a parameter, or if {@link EntityConfigUtil.DelegatorInfo#useDistributedCacheClear}
+     * is enabled
+     *
+     * @param seqName     The name of the sequence to get the next seq id from
+     * @param clusterMode Is this a node in a clustered instance or not
+     * @return Long with the next seq id for the given sequence name
+     * @since v1.3.0
+     */
+    Long getNextSeqId(String seqName, boolean clusterMode);
 
     void setSequencer(SequenceUtil sequencer);
 

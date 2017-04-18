@@ -50,19 +50,26 @@ public class SequenceUtil {
 
     public static final String module = SequenceUtil.class.getName();
 
-    Map<String, SequenceBank> sequences = new Hashtable<String, SequenceBank>();
-    String helperName;
-    ModelEntity seqEntity;
-    String tableName;
-    String nameColName;
-    String idColName;
+    private final Map<String, SequenceBank> sequences = new Hashtable<>();
+    private final String helperName;
+    private final String tableName;
+    private final String nameColName;
+    private final String idColName;
+    private final boolean clustering;
 
-    private SequenceUtil() {
+    /**
+     * Will call {@link #SequenceUtil(String, ModelEntity, String, String, boolean)} with true for clustering parameter.
+     *
+     * @deprecated since v1.3.0. Use constructor {@link #SequenceUtil(String, ModelEntity, String, String, boolean)} instead
+     */
+    @Deprecated
+    public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName) {
+        // by default, if not specified, say that clustering is on to try prevent potential clashes
+        this(helperName, seqEntity, nameFieldName, idFieldName, true);
     }
 
-    public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName) {
+    public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName, boolean clustering) {
         this.helperName = helperName;
-        this.seqEntity = seqEntity;
         if (seqEntity == null) {
             throw new IllegalArgumentException("The sequence model entity was null but is required.");
         }
@@ -81,6 +88,8 @@ public class SequenceUtil {
             throw new IllegalArgumentException("Could not find the field definition for the sequence id field " + idFieldName);
         }
         this.idColName = idField.getColName();
+
+        this.clustering = clustering;
     }
 
     public Long getNextSeqId(String seqName) {
@@ -89,20 +98,16 @@ public class SequenceUtil {
         if (bank == null) {
             bank = constructSequenceBank(seqName);
         }
+
         return bank.getNextSeqId();
     }
 
     /**
      * this is hit if we can't get one from the cache, must be synchronized
      */
-    private synchronized SequenceBank constructSequenceBank(String seqName) {
+    private synchronized SequenceBank constructSequenceBank(final String seqName) {
         // check the cache first in-case someone has already populated 
-        SequenceBank bank = sequences.get(seqName);
-        if (bank == null) {
-            bank = new SequenceBank(seqName, this);
-            sequences.put(seqName, bank);
-        }
-        return bank;
+        return sequences.computeIfAbsent(seqName, key -> new SequenceBank(key, this, clustering));
     }
 
     class SequenceBank {
@@ -113,14 +118,17 @@ public class SequenceUtil {
         public static final int maxWaitNanos = 1000000;  // 1 ms
         public static final int maxTries = 5;
 
-        long curSeqId;
-        long maxSeqId;
-        String seqName;
-        SequenceUtil parentUtil;
+        private volatile long curSeqId;
+        private volatile long maxSeqId;
 
-        public SequenceBank(String seqName, SequenceUtil parentUtil) {
+        private final String seqName;
+        private final SequenceUtil parentUtil;
+        private final boolean clusterMode;
+
+        public SequenceBank(String seqName, SequenceUtil parentUtil, boolean clusterMode) {
             this.seqName = seqName;
             this.parentUtil = parentUtil;
+            this.clusterMode = clusterMode;
             curSeqId = 0;
             maxSeqId = 0;
             fillBank();
@@ -182,12 +190,9 @@ public class SequenceUtil {
 
             try {
                 connection = ConnectionFactory.getConnection(parentUtil.helperName);
-            } catch (SQLException sqle) {
+            } catch (SQLException | GenericEntityException sqle) {
                 Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
                 Debug.logWarning(sqle.getMessage(), module);
-            } catch (GenericEntityException e) {
-                Debug.logWarning("[SequenceUtil.SequenceBank.fillBank]: Unable to establish a connection with the database... Error was:", module);
-                Debug.logWarning(e.getMessage(), module);
             }
 
             PreparedStatement selectPstmt = null;
@@ -212,7 +217,11 @@ public class SequenceUtil {
 
                         // try 1: SELECT the next id
                         if (selectPstmt == null) {
-                            selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
+                            if (clusterMode) {
+                                selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=? FOR UPDATE");
+                            } else {
+                                selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
+                            }
                         }
                         selectPstmt.setString(1, this.seqName);
                         selectPstmt.execute();
