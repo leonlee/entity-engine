@@ -130,24 +130,19 @@ public class GenericDelegator implements DelegatorInterface {
 
     // ----------------------------- Non-statics ------------------------------
 
-    protected DelegatorInfo delegatorInfo;
-    protected DistributedCacheClear distributedCacheClear;
-    protected ModelGroupReader modelGroupReader;
-    protected ModelReader modelReader;
-    protected volatile SequenceUtil sequencer;
-    protected String delegatorName;
-    protected UtilCache<GenericEntity, GenericValue> primaryKeyCache;
-    protected UtilCache<GenericPK, List<GenericValue>> andCache;
-    protected UtilCache<String, List<GenericValue>> allCache;
+    protected final ModelGroupReader modelGroupReader;
+    protected final ModelReader modelReader;
+    protected final String delegatorName;
+    protected final UtilCache<GenericEntity, GenericValue> primaryKeyCache;
+    protected final UtilCache<GenericPK, List<GenericValue>> andCache;
+    protected final UtilCache<String, List<GenericValue>> allCache;
 
     // keeps a list of field key sets used in the by and cache, a Set (of Sets of fieldNames) for each entityName
-    protected Map<String, Set<Set<String>>> andCacheFieldSets = new HashMap<String, Set<Set<String>>>();
+    protected final Map<String, Set<Set<String>>> andCacheFieldSets = new HashMap<>();
 
-    /**
-     * Contructor is protected to enforce creation through the factory method.
-     */
-    protected GenericDelegator() {
-    }
+    protected volatile DelegatorInfo delegatorInfo;
+    protected volatile DistributedCacheClear distributedCacheClear;
+    protected volatile SequenceUtil sequencer;
 
     /**
      * Contructor is protected to enforce creation through the factory method.
@@ -2331,19 +2326,15 @@ public class GenericDelegator implements DelegatorInterface {
 
         if (fieldNameSets == null) {
             synchronized (this) {
-                fieldNameSets = andCacheFieldSets.get(entity.getEntityName());
-                if (fieldNameSets == null) {
-                    // using a HashSet for both the individual fieldNameSets and
-                    // the set of fieldNameSets; this appears to be necessary
-                    // because TreeSet has bugs, or does not support, the compare
-                    // operation which is necessary when inserted a TreeSet
-                    // into a TreeSet.
-                    fieldNameSets = new HashSet<Set<String>>();
-                    andCacheFieldSets.put(entity.getEntityName(), fieldNameSets);
-                }
+                // using a HashSet for both the individual fieldNameSets and
+                // the set of fieldNameSets; this appears to be necessary
+                // because TreeSet has bugs, or does not support, the compare
+                // operation which is necessary when inserted a TreeSet
+                // into a TreeSet.
+                fieldNameSets = andCacheFieldSets.computeIfAbsent(entity.getEntityName(), k -> new HashSet<>());
             }
         }
-        fieldNameSets.add(new HashSet<String>(fields.keySet()));
+        fieldNameSets.add(new HashSet<>(fields.keySet()));
     }
 
     /**
