@@ -2450,12 +2450,20 @@ public class GenericDelegator implements DelegatorInterface {
                     String helperName = getEntityHelperName("SequenceValueItem");
                     ModelEntity seqEntity = getModelEntity("SequenceValueItem");
 
+                    final boolean clustering;
+                    if (clusterMode) {
+                        clustering = true;
+                    } else {
+                        final DelegatorInfo delegatorInfo = getDelegatorInfo();
+                        clustering = delegatorInfo != null && delegatorInfo.useDistributedCacheClear;
+                    }
+
                     sequencer = new SequenceUtil(
                             helperName,
                             seqEntity,
                             "seqName",
                             "seqId",
-                            clusterMode || getDelegatorInfo().useDistributedCacheClear
+                            clustering
                     );
                 }
             }
