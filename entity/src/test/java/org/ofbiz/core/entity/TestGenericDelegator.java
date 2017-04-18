@@ -8,6 +8,7 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.ofbiz.core.entity.model.ModelEntity;
+import org.ofbiz.core.util.Debug;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -21,9 +22,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.Thread.currentThread;
 import static java.util.Arrays.asList;
@@ -52,6 +58,7 @@ import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
  * Integration test of GenericDelegator using an in-memory database and real collaborators.
  */
 public class TestGenericDelegator {
+
     // These names are from the test XML files in src/test/resources
     private static final String DELEGATOR_NAME = "default";
     private static final String ENTITY_GROUP_NAME = "default";
@@ -599,6 +606,65 @@ public class TestGenericDelegator {
         assertEquals(Collections.<GenericValue>emptyList(), transformedEntities);
     }
 
+    @Test
+    public void testSequenceValueItemWithConcurrentThreadsInClusterMode() {
+        String helperName = genericDelegator.getEntityHelperName("SequenceValueItem");
+        ModelEntity seqEntity = genericDelegator.getModelEntity("SequenceValueItem");
+
+        // this is not actually testing a clustered instance, as everything in the same JVM ... but it is testing that
+        // the FOR UPDATE SQL statement  and other associated code paths for this changed parameter is functional in this scenario
+        final SequenceUtil sequencer = new SequenceUtil(helperName, seqEntity, "seqName", "seqId", true);
+
+        doTestSequenceValueItemWithConcurrentThreads(sequencer);
+    }
+
+    @Test
+    public void testSequenceValueItemWithConcurrentThreadsNotInClusterMode() {
+        String helperName = genericDelegator.getEntityHelperName("SequenceValueItem");
+        ModelEntity seqEntity = genericDelegator.getModelEntity("SequenceValueItem");
+
+        final SequenceUtil sequencer = new SequenceUtil(helperName, seqEntity, "seqName", "seqId", false);
+
+        doTestSequenceValueItemWithConcurrentThreads(sequencer);
+    }
+
+    private void doTestSequenceValueItemWithConcurrentThreads(SequenceUtil sequenceUtil) {
+        UUID id = UUID.randomUUID();
+        final String sequenceName = "BogusSequence" + id.toString();
+        final Set<Long> seqIds = new HashSet<>();
+        final AtomicBoolean duplicateFound = new AtomicBoolean(false);
+        final AtomicBoolean nullSeqIdReturned = new AtomicBoolean(false);
+
+        List<Future<Void>> futures = new ArrayList<>();
+        Callable getSeqIdTask = () -> {
+            Long seqId = sequenceUtil.getNextSeqId(sequenceName);
+            if (seqId == null) {
+                nullSeqIdReturned.set(true);
+                return null;
+            }
+            if (!seqIds.add(seqId)) {
+                duplicateFound.set(true);
+            }
+            return null;
+        };
+
+        final ExecutorService executorService = Executors.newFixedThreadPool(20);
+        for (int i = 1; i <= 10000; i++) {
+            futures.add(executorService.submit(getSeqIdTask));
+        }
+
+        for (Future<Void> future : futures) {
+            try {
+                future.get();
+            } catch (Exception e) {
+                Debug.logError(e);
+            }
+        }
+
+        assertFalse("Null sequence id returned", nullSeqIdReturned.get());
+        assertFalse("Duplicate sequence id returned", duplicateFound.get());
+    }
+
     private static List<Matcher<? super ModelEntity>> modelEntities(final String... expectedNames) {
         final ImmutableList.Builder<Matcher<? super ModelEntity>> list = ImmutableList.builder();
         for (String expectedName : expectedNames) {
@@ -696,4 +762,5 @@ public class TestGenericDelegator {
             project.set(ISSUE_COUNT_FIELD, issueCount + 1);
         }
     }
+
 }

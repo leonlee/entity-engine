@@ -26,7 +26,7 @@ For detailed configuration help see:
 
     <entity-group-reader name="main" loader="maincp" location="entitydefs/entitygroup.xml"/>
 
-    <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql18.xml"/>
+    <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql23.xml"/>
 
     <datasource name="defaultDS" field-type-name="hsql"
                 schema-name="PUBLIC"
