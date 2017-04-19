@@ -29,7 +29,7 @@ public class TestLimitHelper {
      *
      * Supported types
      *
-     * <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql18.xml"/>
+     * <field-type name="hsql" loader="maincp" location="entitydefs/fieldtype-hsql23.xml"/>
      * <field-type name="mysql" loader="maincp" location="entitydefs/fieldtype-mysql.xml"/>
      * <field-type name="mssql" loader="maincp" location="entitydefs/fieldtype-mssql.xml"/>
      * <field-type name="oracle" loader="maincp" location="entitydefs/fieldtype-oracle.xml"/>
