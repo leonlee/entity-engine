@@ -1,6 +1,5 @@
 package org.ofbiz.core.entity;
 
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -24,12 +23,7 @@ import java.util.Set;
  * Created: christo 15/09/2006 12:16:27
  */
 public class LockedDatabaseGenericDelegator extends GenericDelegator {
-    private static final Logger log = Logger.getLogger(LockedDatabaseGenericDelegator.class);
     private static final String MESSAGE = "Database is locked";
-
-    public LockedDatabaseGenericDelegator() {
-        log.info("Constructor: must be trouble in the database...");
-    }
 
     protected void absorbList(List<GenericValue> lst) {
         throw new UnsupportedOperationException(MESSAGE);
@@ -212,6 +206,7 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
     }
 
     protected LockedDatabaseGenericDelegator(String delegatorName) throws GenericEntityException {
+        super(delegatorName);
         throw new UnsupportedOperationException(MESSAGE);
     }
 

@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Optional.ofNullable;
 import static org.ofbiz.core.entity.EntityOperator.AND;
 import static org.ofbiz.core.entity.EntityOperator.LIKE;
 import static org.ofbiz.core.entity.EntityOperator.OR;
@@ -94,7 +95,7 @@ public class GenericDelegator implements DelegatorInterface {
                 }
             });
 
-    private static AtomicBoolean isLocked = new AtomicBoolean(false);
+    private static final AtomicBoolean isLocked = new AtomicBoolean(false);
 
     /**
      * Factory method for a GenericDelegator with the given name.
@@ -2450,20 +2451,12 @@ public class GenericDelegator implements DelegatorInterface {
                     String helperName = getEntityHelperName("SequenceValueItem");
                     ModelEntity seqEntity = getModelEntity("SequenceValueItem");
 
-                    final boolean clustering;
-                    if (clusterMode) {
-                        clustering = true;
-                    } else {
-                        final DelegatorInfo delegatorInfo = getDelegatorInfo();
-                        clustering = delegatorInfo != null && delegatorInfo.useDistributedCacheClear;
-                    }
-
                     sequencer = new SequenceUtil(
                             helperName,
                             seqEntity,
                             "seqName",
                             "seqId",
-                            clustering
+                            clusterMode || ofNullable(getDelegatorInfo()).map(info -> info.useDistributedCacheClear).orElse(false)
                     );
                 }
             }

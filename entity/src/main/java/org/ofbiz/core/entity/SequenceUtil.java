@@ -57,17 +57,6 @@ public class SequenceUtil {
     private final String idColName;
     private final boolean clustering;
 
-    /**
-     * Will call {@link #SequenceUtil(String, ModelEntity, String, String, boolean)} with true for clustering parameter.
-     *
-     * @deprecated since v1.3.0. Use constructor {@link #SequenceUtil(String, ModelEntity, String, String, boolean)} instead
-     */
-    @Deprecated
-    public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName) {
-        // by default, if not specified, say that clustering is on to try prevent potential clashes
-        this(helperName, seqEntity, nameFieldName, idFieldName, true);
-    }
-
     public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName, boolean clustering) {
         this.helperName = helperName;
         if (seqEntity == null) {
