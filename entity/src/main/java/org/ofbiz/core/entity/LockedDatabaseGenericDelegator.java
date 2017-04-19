@@ -1,5 +1,6 @@
 package org.ofbiz.core.entity;
 
+import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -22,11 +23,12 @@ import java.util.Set;
  * Copyright All Rights Reserved.
  * Created: christo 15/09/2006 12:16:27
  */
-public class LockedDatabaseGenericDelegator extends GenericDelegator {
+public class LockedDatabaseGenericDelegator implements DelegatorInterface {
+    private static final Logger log = Logger.getLogger(LockedDatabaseGenericDelegator.class);
     private static final String MESSAGE = "Database is locked";
 
-    protected void absorbList(List<GenericValue> lst) {
-        throw new UnsupportedOperationException(MESSAGE);
+    public LockedDatabaseGenericDelegator() {
+        log.info("Constructor: must be trouble in the database...");
     }
 
     public void clearAllCacheLinesByDummyPK(Collection<? extends GenericEntity> dummyPKs) {
@@ -93,10 +95,6 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
-    protected void evalEcaRules(String event, String currentOperation, GenericEntity value, Map<?, ?> eventMap, boolean noEventMapFound, boolean isError) throws GenericEntityException {
-        throw new UnsupportedOperationException(MESSAGE);
-    }
-
     public List<GenericValue> findAll(String entityName) throws GenericEntityException {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -153,6 +151,26 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
         throw new UnsupportedOperationException(MESSAGE);
     }
 
+    @Override
+    public int countByAnd(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
+    @Override
+    public int countByOr(String entityName, String fieldName, List<? extends EntityCondition> expressions, EntityFindOptions findOptions) throws GenericEntityException {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
+    @Override
+    public int countByCondition(String entityName, String fieldName, EntityCondition condition, EntityFindOptions findOptions) throws GenericEntityException {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
+    @Override
+    public int countAll(String entityName) throws GenericEntityException {
+        throw new UnsupportedOperationException(MESSAGE);
+    }
+
     public List<GenericValue> findByLike(String entityName, Map<String, ?> fields) throws GenericEntityException {
         throw new UnsupportedOperationException(MESSAGE);
     }
@@ -202,11 +220,6 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
     }
 
     public EntityListIterator findListIteratorByCondition(String entityName, EntityCondition whereEntityCondition, EntityCondition havingEntityCondition, Collection<String> fieldsToSelect, List<String> orderBy, EntityFindOptions findOptions) throws GenericEntityException {
-        throw new UnsupportedOperationException(MESSAGE);
-    }
-
-    protected LockedDatabaseGenericDelegator(String delegatorName) throws GenericEntityException {
-        super(delegatorName);
         throw new UnsupportedOperationException(MESSAGE);
     }
 
@@ -429,6 +442,16 @@ public class LockedDatabaseGenericDelegator extends GenericDelegator {
 
     public int removeByAnd(String entityName, Map<String, ?> fields, boolean doCacheClear) throws GenericEntityException {
         throw new UnsupportedOperationException(MESSAGE);
+    }
+
+    @Override
+    public int removeByCondition(String entityName, EntityCondition entityCondition) throws GenericEntityException {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public int removeByCondition(String entityName, EntityCondition entityCondition, boolean doCacheClear) throws GenericEntityException {
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     public int removeByPrimaryKey(GenericPK primaryKey) throws GenericEntityException {

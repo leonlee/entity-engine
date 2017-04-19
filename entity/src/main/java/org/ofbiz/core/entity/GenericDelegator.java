@@ -2483,7 +2483,7 @@ public class GenericDelegator implements DelegatorInterface {
         this.sequencer = null;
     }
 
-    protected void absorbList(final List<GenericValue> lst) {
+    private void absorbList(final List<GenericValue> lst) {
         if (lst == null) {
             return;
         }

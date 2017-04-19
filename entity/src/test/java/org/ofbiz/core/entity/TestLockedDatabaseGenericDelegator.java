@@ -9,11 +9,11 @@ import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.mock;
 
 public class TestLockedDatabaseGenericDelegator {
-    private GenericDelegator genericDelegator;
+    private DelegatorInterface delegatorInterface;
 
     @Before
     public void setUp() throws Exception {
-        this.genericDelegator = new LockedDatabaseGenericDelegator();
+        this.delegatorInterface = new LockedDatabaseGenericDelegator();
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -24,6 +24,6 @@ public class TestLockedDatabaseGenericDelegator {
         final List<String> orderBy = emptyList();
 
         // Invoke
-        genericDelegator.transform("Anything", mockEntityCondition, orderBy, "AnyField", mockTransformation);
+        delegatorInterface.transform("Anything", mockEntityCondition, orderBy, "AnyField", mockTransformation);
     }
 }
