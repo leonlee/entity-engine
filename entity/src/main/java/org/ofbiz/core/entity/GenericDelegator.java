@@ -145,6 +145,16 @@ public class GenericDelegator implements DelegatorInterface {
     protected volatile DistributedCacheClear distributedCacheClear;
     protected volatile SequenceUtil sequencer;
 
+    // this is really only for testing and the LockedDatabaseGenericDelegator ..... don't use unless know why!
+    protected GenericDelegator() {
+        modelGroupReader = null;
+        modelReader = null;
+        delegatorName = "";
+        primaryKeyCache = null;
+        andCache = null;
+        allCache = null;
+    }
+
     /**
      * Contructor is protected to enforce creation through the factory method.
      *

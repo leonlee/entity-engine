@@ -23,12 +23,16 @@ import java.util.Set;
  * Copyright All Rights Reserved.
  * Created: christo 15/09/2006 12:16:27
  */
-public class LockedDatabaseGenericDelegator implements DelegatorInterface {
+public class LockedDatabaseGenericDelegator extends GenericDelegator {
     private static final Logger log = Logger.getLogger(LockedDatabaseGenericDelegator.class);
     private static final String MESSAGE = "Database is locked";
 
     public LockedDatabaseGenericDelegator() {
         log.info("Constructor: must be trouble in the database...");
+    }
+
+    public LockedDatabaseGenericDelegator(String delegatorName) {
+        throw new UnsupportedOperationException(MESSAGE);
     }
 
     public void clearAllCacheLinesByDummyPK(Collection<? extends GenericEntity> dummyPKs) {
