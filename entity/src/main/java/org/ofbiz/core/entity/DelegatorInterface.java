@@ -257,13 +257,13 @@ public interface DelegatorInterface {
      * Get the next guaranteed unique seq id from the sequence with the given sequence name;
      * if the named sequence doesn't exist, it will be created.
      * <p>
-     * This is equivalent of calling {@link #getNextSeqId(String, boolean)} with false as second parameter
+     * From v1.3.0 this is equivalent of calling {@link #getNextSeqId(String, boolean)} with true as second parameter.
      *
      * @param seqName The name of the sequence to get the next seq id from
      * @return Long with the next seq id for the given sequence name
      */
     default Long getNextSeqId(String seqName) {
-        return getNextSeqId(seqName, false);
+        return getNextSeqId(seqName, true);
     }
 
     /**
