@@ -45,14 +45,15 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
     boolean hsqlVersionGreaterThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor) && vers[MICRO] >= micro;
-
+        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor)
+                && (!(major == vers[MAJOR] && minor == vers[MINOR]) || vers[MICRO] >= micro);
     }
 
     boolean hsqlVersionLessThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
+        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR])
+                && (!(major == vers[MAJOR] && minor == vers[MINOR]) || vers[MICRO] <= micro);
     }
 
     @Override
