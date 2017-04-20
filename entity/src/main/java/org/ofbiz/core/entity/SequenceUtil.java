@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.util.Debug;
@@ -207,7 +208,12 @@ public class SequenceUtil {
                         // try 1: SELECT the next id
                         if (selectPstmt == null) {
                             if (clusterMode) {
-                                selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=? FOR UPDATE");
+                                if (DatabaseTypeFactory.getTypeForConnection(connection) == DatabaseTypeFactory.MSSQL) {
+                                    // SQL Server does not support FOR UPDATE, so use MS specific locking technique with hints to lock on update, for row only
+                                    selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WITH (UPDLOCK,ROWLOCK) WHERE " + parentUtil.nameColName + "=?");
+                                } else {
+                                    selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=? FOR UPDATE");
+                                }
                             } else {
                                 selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
                             }
