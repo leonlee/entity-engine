@@ -9,4 +9,14 @@ public class MsSqlDatabaseType extends SimpleDatabaseType {
     protected String getChangeColumnTypeStructure() {
         return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN;
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        if (clusterMode) {
+            return "SELECT {0} FROM {1} WITH (UPDLOCK,ROWLOCK) WHERE {2}";
+        } else {
+            return STANDARD_SELECT_SYNTAX;
+        }
+    }
+
 }

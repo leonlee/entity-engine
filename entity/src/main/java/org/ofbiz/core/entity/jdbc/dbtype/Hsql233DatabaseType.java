@@ -1,8 +1,18 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
-public class MySqlDatabaseType extends SimpleDatabaseType {
-    public MySqlDatabaseType() {
-        super("MySQL", "mysql", new String[]{"MySQL"});
+import java.sql.Connection;
+import java.sql.SQLException;
+
+public class Hsql233DatabaseType extends AbstractHsqlDatabaseType {
+
+    public Hsql233DatabaseType() {
+        super("HSQL 2.3.3 and later");
+    }
+
+    @Override
+    public boolean matchesConnection(Connection con) throws SQLException {
+        return productNameMatches(con) &&
+                hsqlVersionGreaterThanOrEqual(con, 2, 3, 3);
     }
 
     @Override
@@ -12,7 +22,7 @@ public class MySqlDatabaseType extends SimpleDatabaseType {
 
     @Override
     public String getDropIndexStructure() {
-        return ALTER_TABLE_DROP_INDEX;
+        return DROP_INDEX_SCHEMA_DOT_INDEX;
     }
 
     @Override

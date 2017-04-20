@@ -14,4 +14,14 @@ public class H2DatabaseType extends SimpleDatabaseType {
     public String getDropIndexStructure() {
         return DROP_INDEX_SCHEMA_DOT_INDEX;
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        if (clusterMode) {
+            return STANDARD_SELECT_FOR_UPDATE_SYNTAX;
+        } else {
+            return STANDARD_SELECT_SYNTAX;
+        }
+    }
+
 }

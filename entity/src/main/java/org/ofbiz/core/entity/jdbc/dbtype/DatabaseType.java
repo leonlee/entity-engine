@@ -12,6 +12,8 @@ import java.sql.SQLException;
  */
 public interface DatabaseType {
 
+    String STANDARD_SELECT_SYNTAX = "SELECT {0} FROM {1} WHERE {2}";
+
     String getName();
 
     String getFieldTypeName();
@@ -47,4 +49,12 @@ public interface DatabaseType {
      * @return the SQL text to drop the index.
      */
     String getDropIndexSQL(String schemaName, String tableName, String indexName);
+
+    /**
+     * Based on the cluster mode parameter, and the capabilities of the database, return the appropriate SELECT
+     * statement for usage.
+     */
+    default String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        return STANDARD_SELECT_SYNTAX;
+    }
 }

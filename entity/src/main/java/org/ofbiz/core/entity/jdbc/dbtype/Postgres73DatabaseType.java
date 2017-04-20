@@ -26,4 +26,5 @@ public class Postgres73DatabaseType extends AbstractPostgresDatabaseType {
     public String getDropIndexStructure() {
         return DROP_INDEX_SCHEMA_DOT_INDEX;
     }
+
 }

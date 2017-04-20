@@ -21,6 +21,7 @@ public class DatabaseTypeFactory {
     public static final DatabaseType CLOUDSCAPE = new SimpleDatabaseType("Cloudscape", "cloudscape", new String[]{"Apache Derby"});
     public static final DatabaseType FIREBIRD = new SimpleDatabaseType("Firebird", "firebird", new String[]{"Firebird"});
     public static final DatabaseType HSQL = new HsqlDatabaseType();
+    public static final DatabaseType HSQL_2_3_3 = new Hsql233DatabaseType();
     public static final DatabaseType H2 = new H2DatabaseType();
     public static final DatabaseType MYSQL = new MySqlDatabaseType();
     public static final DatabaseType MSSQL = new MsSqlDatabaseType();

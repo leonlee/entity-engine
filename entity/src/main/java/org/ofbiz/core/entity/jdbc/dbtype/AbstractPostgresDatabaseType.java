@@ -67,4 +67,14 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
 
         return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        if (clusterMode) {
+            return STANDARD_SELECT_FOR_UPDATE_SYNTAX;
+        } else {
+            return STANDARD_SELECT_SYNTAX;
+        }
+    }
+
 }

@@ -1,8 +1,17 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
-public class HsqlDatabaseType extends SimpleDatabaseType {
+import java.sql.Connection;
+import java.sql.SQLException;
+
+public class HsqlDatabaseType extends AbstractHsqlDatabaseType {
     public HsqlDatabaseType() {
-        super("HSQL", "hsql", new String[]{"HSQL Database Engine"});
+        super("HSQL 2.3.2 and earlier");
+    }
+
+    @Override
+    public boolean matchesConnection(Connection con) throws SQLException {
+        return productNameMatches(con) &&
+                hsqlVersionLessThanOrEqual(con, 2, 3, 2);
     }
 
     @Override
@@ -14,4 +23,10 @@ public class HsqlDatabaseType extends SimpleDatabaseType {
     public String getDropIndexStructure() {
         return DROP_INDEX_SCHEMA_DOT_INDEX;
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        return STANDARD_SELECT_SYNTAX;
+    }
+
 }
