@@ -23,7 +23,6 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
         if (versionTokens.hasMoreElements()) {
             versionNumber[MAJOR] = Integer.parseInt(versionTokens.nextToken());
 
-
             if (versionTokens.hasMoreElements()) {
                 versionNumber[MINOR] = Integer.parseInt(versionTokens.nextToken());
 
@@ -35,6 +34,7 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
 
                 return versionNumber;
             }
+
         }
 
         return null;
@@ -48,13 +48,14 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
     protected boolean hsqlVersionGreaterThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor) && vers[MICRO] >= micro;
+        return vers != null && versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor) && vers[MICRO] >= micro;
+
     }
 
     protected boolean hsqlVersionLessThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
+        return vers != null && versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
     }
 
     @Override

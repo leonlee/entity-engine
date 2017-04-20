@@ -59,13 +59,13 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
     protected boolean postgresVersionGreaterThanOrEqual(Connection con, int major, int minor) throws SQLException {
         int[] vers = getPostgresVersion(con);
 
-        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor);
+        return vers != null && versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor);
     }
 
     protected boolean postgresVersionLessThanOrEqual(Connection con, int major, int minor) throws SQLException {
         int[] vers = getPostgresVersion(con);
 
-        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
+        return vers != null && versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
     }
 
     @Override
