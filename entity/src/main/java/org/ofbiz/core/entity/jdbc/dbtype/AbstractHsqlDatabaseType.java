@@ -3,6 +3,7 @@ package org.ofbiz.core.entity.jdbc.dbtype;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 
 abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
@@ -17,6 +18,7 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
 
     private int[] parseVersionStr(String version) {
         int[] versionNumber = new int[3];
+        Arrays.fill(versionNumber, 0);
 
         StringTokenizer versionTokens = new StringTokenizer(version, ".");
 
@@ -28,16 +30,11 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
 
                 if (versionTokens.hasMoreElements()) {
                     versionNumber[MICRO] = Integer.parseInt(versionTokens.nextToken());
-                } else {
-                    versionNumber[MICRO] = 0;
                 }
-
-                return versionNumber;
             }
-
         }
 
-        return null;
+        return versionNumber;
     }
 
     private int[] getHsqlVersion(Connection con) throws SQLException {
@@ -45,17 +42,17 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
         return parseVersionStr(metaData.getDatabaseProductVersion());
     }
 
-    protected boolean hsqlVersionGreaterThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
+    boolean hsqlVersionGreaterThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return vers != null && versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor) && vers[MICRO] >= micro;
+        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor) && vers[MICRO] >= micro;
 
     }
 
-    protected boolean hsqlVersionLessThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
+    boolean hsqlVersionLessThanOrEqual(Connection con, int major, int minor, int micro) throws SQLException {
         int[] vers = getHsqlVersion(con);
 
-        return vers != null && versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
+        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
     }
 
     @Override

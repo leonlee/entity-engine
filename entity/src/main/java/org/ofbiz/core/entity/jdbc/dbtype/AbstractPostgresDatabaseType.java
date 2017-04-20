@@ -3,6 +3,7 @@ package org.ofbiz.core.entity.jdbc.dbtype;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 
 /**
@@ -26,21 +27,19 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
 
     protected int[] parseVersionStr(String version) {
         int[] versionNumber = new int[2];
+        Arrays.fill(versionNumber, 0);
 
         StringTokenizer versionTokens = new StringTokenizer(version, ".");
 
         if (versionTokens.hasMoreElements()) {
             versionNumber[MAJOR] = Integer.parseInt(versionTokens.nextToken());
 
-
             if (versionTokens.hasMoreElements()) {
                 versionNumber[MINOR] = Integer.parseInt(versionTokens.nextToken());
-
-                return versionNumber;
             }
         }
 
-        return null;
+        return versionNumber;
     }
 
     protected int[] getPostgresVersion(Connection con) throws SQLException {
@@ -59,13 +58,13 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
     protected boolean postgresVersionGreaterThanOrEqual(Connection con, int major, int minor) throws SQLException {
         int[] vers = getPostgresVersion(con);
 
-        return vers != null && versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor);
+        return versionGreaterThanOrEqual(vers[MAJOR], vers[MINOR], major, minor);
     }
 
     protected boolean postgresVersionLessThanOrEqual(Connection con, int major, int minor) throws SQLException {
         int[] vers = getPostgresVersion(con);
 
-        return vers != null && versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
+        return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
     }
 
     @Override
