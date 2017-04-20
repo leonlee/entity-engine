@@ -56,4 +56,14 @@ abstract class AbstractHsqlDatabaseType extends AbstractDatabaseType {
 
         return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]) && vers[MICRO] <= micro;
     }
+
+    @Override
+    protected String getChangeColumnTypeStructure() {
+        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
+    }
+
+    @Override
+    public String getDropIndexStructure() {
+        return DROP_INDEX_SCHEMA_DOT_INDEX;
+    }
 }

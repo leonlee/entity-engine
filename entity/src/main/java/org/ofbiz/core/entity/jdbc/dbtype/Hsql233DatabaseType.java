@@ -16,16 +16,6 @@ public class Hsql233DatabaseType extends AbstractHsqlDatabaseType {
     }
 
     @Override
-    protected String getChangeColumnTypeStructure() {
-        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
-    }
-
-    @Override
-    public String getDropIndexStructure() {
-        return DROP_INDEX_SCHEMA_DOT_INDEX;
-    }
-
-    @Override
     public String getSimpleSelectSqlSyntax(boolean clusterMode) {
         if (clusterMode) {
             return STANDARD_SELECT_FOR_UPDATE_SYNTAX;

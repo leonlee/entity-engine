@@ -15,16 +15,6 @@ public class HsqlDatabaseType extends AbstractHsqlDatabaseType {
     }
 
     @Override
-    protected String getChangeColumnTypeStructure() {
-        return CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY;
-    }
-
-    @Override
-    public String getDropIndexStructure() {
-        return DROP_INDEX_SCHEMA_DOT_INDEX;
-    }
-
-    @Override
     public String getSimpleSelectSqlSyntax(boolean clusterMode) {
         return STANDARD_SELECT_SYNTAX;
     }
