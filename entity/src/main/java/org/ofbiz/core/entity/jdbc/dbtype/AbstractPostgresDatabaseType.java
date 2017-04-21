@@ -45,7 +45,7 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
     protected int[] getPostgresVersion(Connection con) throws SQLException {
         DatabaseMetaData metaData = con.getMetaData();
         try {
-            int[] versionNumber = new int[2];
+            int[] versionNumber = {0, 0};
             versionNumber[MAJOR] = metaData.getDatabaseMajorVersion();
             versionNumber[MINOR] = metaData.getDatabaseMinorVersion();
             return versionNumber;
