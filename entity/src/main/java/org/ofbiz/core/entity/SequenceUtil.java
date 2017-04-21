@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
@@ -36,8 +37,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Sequence Utility to get unique sequences from named sequence banks
@@ -57,6 +60,8 @@ public class SequenceUtil {
     private final String nameColName;
     private final String idColName;
     private final boolean clustering;
+
+    private volatile DatabaseType databaseType;
 
     public SequenceUtil(String helperName, ModelEntity seqEntity, String nameFieldName, String idFieldName, boolean clustering) {
         this.helperName = helperName;
@@ -98,6 +103,14 @@ public class SequenceUtil {
     private synchronized SequenceBank constructSequenceBank(final String seqName) {
         // check the cache first in-case someone has already populated 
         return sequences.computeIfAbsent(seqName, key -> new SequenceBank(key, this, clustering));
+    }
+
+    private Optional<DatabaseType> getDatabaseTypeSingleton(final Connection connection) {
+        // just load the database type once, we are already executed only within a synced block
+        if (databaseType == null) {
+            databaseType = DatabaseTypeFactory.getTypeForConnection(connection);
+        }
+        return Optional.ofNullable(databaseType);
     }
 
     class SequenceBank {
@@ -207,17 +220,14 @@ public class SequenceUtil {
 
                         // try 1: SELECT the next id
                         if (selectPstmt == null) {
-                            if (clusterMode) {
-                                if (DatabaseTypeFactory.getTypeForConnection(connection) == DatabaseTypeFactory.MSSQL) {
-                                    // SQL Server does not support FOR UPDATE, so use MS specific locking technique with hints to lock on update, for row only
-                                    selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WITH (UPDLOCK,ROWLOCK) WHERE " + parentUtil.nameColName + "=?");
-                                } else {
-                                    selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=? FOR UPDATE");
-                                }
-                            } else {
-                                selectPstmt = connection.prepareStatement("SELECT " + parentUtil.idColName + " FROM " + parentUtil.tableName + " WHERE " + parentUtil.nameColName + "=?");
-                            }
+                            final String selectSyntax =
+                                    parentUtil.getDatabaseTypeSingleton(connection)
+                                            .map(databaseType -> databaseType.getSimpleSelectSqlSyntax(clusterMode))
+                                            .orElseGet(() -> DatabaseType.STANDARD_SELECT_SYNTAX);
+
+                            selectPstmt = connection.prepareStatement(MessageFormat.format(selectSyntax, parentUtil.idColName, parentUtil.tableName, parentUtil.nameColName + "=?"));
                         }
+
                         selectPstmt.setString(1, this.seqName);
                         selectPstmt.execute();
 

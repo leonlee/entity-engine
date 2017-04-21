@@ -1269,6 +1269,7 @@ public class DatabaseUtil {
         if (DatabaseTypeFactory.ORACLE_10G == dbType
                 || DatabaseTypeFactory.ORACLE_8I == dbType
                 || DatabaseTypeFactory.HSQL == dbType
+                || DatabaseTypeFactory.HSQL_2_3_3 == dbType
                 || DatabaseTypeFactory.H2 == dbType) {
             rsCols = dbData.getIndexInfo(null, schemaName, tableName.toUpperCase(), false, true);
         } else {

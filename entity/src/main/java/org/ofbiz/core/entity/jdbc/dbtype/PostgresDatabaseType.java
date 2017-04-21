@@ -15,4 +15,5 @@ public class PostgresDatabaseType extends AbstractPostgresDatabaseType {
     public String getSchemaName(Connection con) {
         return null;
     }
+
 }

@@ -25,28 +25,25 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
     }
 
     protected int[] parseVersionStr(String version) {
-        int[] versionNumber = new int[2];
+        int[] versionNumber = {0, 0};
 
         StringTokenizer versionTokens = new StringTokenizer(version, ".");
 
         if (versionTokens.hasMoreElements()) {
             versionNumber[MAJOR] = Integer.parseInt(versionTokens.nextToken());
 
-
             if (versionTokens.hasMoreElements()) {
                 versionNumber[MINOR] = Integer.parseInt(versionTokens.nextToken());
-
-                return versionNumber;
             }
         }
 
-        return null;
+        return versionNumber;
     }
 
     protected int[] getPostgresVersion(Connection con) throws SQLException {
         DatabaseMetaData metaData = con.getMetaData();
         try {
-            int[] versionNumber = new int[2];
+            int[] versionNumber = {0, 0};
             versionNumber[MAJOR] = metaData.getDatabaseMajorVersion();
             versionNumber[MINOR] = metaData.getDatabaseMinorVersion();
             return versionNumber;
@@ -67,4 +64,14 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
 
         return versionGreaterThanOrEqual(major, minor, vers[MAJOR], vers[MINOR]);
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        if (clusterMode) {
+            return STANDARD_SELECT_FOR_UPDATE_SYNTAX;
+        } else {
+            return STANDARD_SELECT_SYNTAX;
+        }
+    }
+
 }

@@ -152,6 +152,24 @@ public class TestDatabaseUtilFieldModifications {
     }
 
     @Test
+    public void testPromotingHsql233Type() throws Exception {
+        mockDataBase(DatabaseTypeFactory.HSQL_2_3_3);
+
+        // mock existing SQL type:
+        columnInfo.columnSize = 20;
+        columnInfo.typeName = "VARCHAR";
+
+        // mock desired type:
+        when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(20)");
+
+        databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, false);
+
+        // update should be performed:
+        verify(statement).executeUpdate(any(String.class));
+        Assert.assertThat(messages, Matchers.<String>hasItem(containsString("has been promoted")));
+    }
+
+    @Test
     public void testPromotingOracleType() throws Exception {
         mockDataBase(DatabaseTypeFactory.ORACLE_10G);
 
@@ -299,6 +317,12 @@ public class TestDatabaseUtilFieldModifications {
     public void testSqlStatementCompositionHsqldb() throws Exception {
 
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.HSQL);
+    }
+
+    @Test
+    public void testSqlStatementCompositionHsqldb233() throws Exception {
+
+        testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.HSQL_2_3_3);
     }
 
     private void testSqlStatementCompositionForDBWithModify(DatabaseType databaseType) throws SQLException {

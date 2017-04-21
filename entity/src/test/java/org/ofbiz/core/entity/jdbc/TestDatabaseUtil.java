@@ -150,6 +150,7 @@ public class TestDatabaseUtil {
                 DatabaseTypeFactory.ORACLE_8I,
                 DatabaseTypeFactory.ORACLE_10G,
                 DatabaseTypeFactory.HSQL,
+                DatabaseTypeFactory.HSQL_2_3_3,
                 DatabaseTypeFactory.H2);
         final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
         for (DatabaseType databaseType : databaseTypes) {

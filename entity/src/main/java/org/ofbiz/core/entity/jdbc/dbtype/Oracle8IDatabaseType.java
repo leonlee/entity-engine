@@ -65,4 +65,14 @@ class Oracle8IDatabaseType extends AbstractDatabaseType {
             return 0;
         }
     }
+
+    @Override
+    public String getSimpleSelectSqlSyntax(boolean clusterMode) {
+        if (clusterMode) {
+            return STANDARD_SELECT_FOR_UPDATE_SYNTAX;
+        } else {
+            return STANDARD_SELECT_SYNTAX;
+        }
+    }
+
 }

@@ -16,6 +16,8 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     protected static final String DROP_INDEX_SCHEMA_DOT_TABLE_DOT_INDEX = "DROP INDEX {schemaName_with_dot}{tableName}.{indexName}";
     protected static final String ALTER_TABLE_DROP_INDEX = "ALTER TABLE {schemaName_with_dot}{tableName} DROP INDEX {indexName}";
 
+    protected static final String STANDARD_SELECT_FOR_UPDATE_SYNTAX = "SELECT {0} FROM {1} WHERE {2} FOR UPDATE";
+
     /**
      * The name that should be used in entityengine.xml (eg. postgres72, oracle10g
      */
