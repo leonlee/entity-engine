@@ -3,7 +3,6 @@ package org.ofbiz.core.entity.jdbc.dbtype;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.StringTokenizer;
 
 /**
@@ -26,8 +25,7 @@ public abstract class AbstractPostgresDatabaseType extends AbstractDatabaseType 
     }
 
     protected int[] parseVersionStr(String version) {
-        int[] versionNumber = new int[2];
-        Arrays.fill(versionNumber, 0);
+        int[] versionNumber = {0, 0};
 
         StringTokenizer versionTokens = new StringTokenizer(version, ".");
 
