@@ -308,7 +308,7 @@ public class GenericDAOTest {
         field.setName("test");
         modelEntity.addField(field);
         Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
-                new EntityExpr("test", IN, ids), modelEntity);
+                                            databaseType,new EntityExpr("test", IN, ids), modelEntity);
 
         assertTrue("Rewrite should be required.", rewrite.isPresent());
         Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
@@ -342,7 +342,7 @@ public class GenericDAOTest {
         EntityExpr expr2 = new EntityExpr("test2", IN, ids);
         EntityExprList outerExpr = new EntityExprList(ImmutableList.of(expr1, expr2), EntityOperator.OR);
         Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
-                outerExpr, modelEntity);
+                databaseType, outerExpr, modelEntity);
 
         assertTrue("Rewrite should be required.", rewrite.isPresent());
         Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
@@ -381,7 +381,7 @@ public class GenericDAOTest {
         field.setName("test");
         modelEntity.addField(field);
         Optional<GenericDAO.WhereRewrite> rewrite = dao.rewriteConditionToUseTemporaryTablesForLargeInClauses(
-                new EntityExpr("test", IN, ids), modelEntity);
+                databaseType, new EntityExpr("test", IN, ids), modelEntity);
 
         assertFalse("Rewrite should not be required.", rewrite.isPresent());
     }
