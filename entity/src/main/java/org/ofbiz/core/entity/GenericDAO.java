@@ -53,6 +53,7 @@ import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -77,7 +78,7 @@ import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
-import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES_7_3;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
@@ -110,8 +111,6 @@ public class GenericDAO {
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
-
-    private static final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
 
     public static synchronized void removeGenericDAO(String helperName) {
         genericDAOs.remove(helperName);
@@ -158,11 +157,6 @@ public class GenericDAO {
         this.datasourceInfo = datasourceInfo;
         this.limitHelper = limitHelper;
         this.countHelper = countHelper;
-    }
-
-    @VisibleForTesting
-    static void resetTemporaryTableCounter() {
-        temporaryTableCounter.set(1);
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -437,7 +431,7 @@ public class GenericDAO {
 
     /**
      * Try to update the given ModelViewEntity by trying to insert/update on the entities of which the view is composed.
-     *
+     * <p>
      * Works fine with standard O/R mapped models, but has some restrictions meeting more complicated view entities.
      * <li>A direct link is required, which means that one of the ModelViewLink field entries must have a value found
      * in the given view entity, for each ModelViewLink</li>
@@ -837,10 +831,8 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
-
-        final InQueryRewritter inQueryRewritter = new InQueryRewritter (databaseType ,whereEntityCondition, modelEntity);
-
-                whereEntityCondition = inQueryRewritter.rewrite();
+        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity);
+        whereEntityCondition = inQueryRewritter.rewriteIfNeeded();
 
         if (Debug.verboseOn()) {
             Debug.logVerbose("Doing selectListIteratorByCondition with whereEntityCondition: " + whereEntityCondition);
@@ -863,7 +855,7 @@ public class GenericDAO {
         inQueryRewritter.createTemporaryTablesIfNeeded(sqlP);
 
         return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams,
-                inQueryRewritter.getCleanUpObject());
+                inQueryRewritter.getTableCleanUpHandler());
     }
 
     @VisibleForTesting
@@ -1566,7 +1558,7 @@ public class GenericDAO {
         }
     }
 
-    private interface TableCleanUp {
+    interface TableCleanUp {
         void cleanUp(final SQLProcessor sqlP) throws GenericEntityException;
     }
 
@@ -1576,11 +1568,13 @@ public class GenericDAO {
      * so in this case we:
      * - create a temporary table
      * - put all the 'IN' values into this table
-     * - rewrite the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
+     * - rewriteIfNeeded the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
      * - run the query
      * - when the list iterator is closed, drop the temporary table
      */
-    public static class InQueryRewritter implements TableCleanUp {
+    static class InQueryRewritter implements TableCleanUp {
+        private static final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
+
         final DatabaseType databaseType;
         final EntityCondition whereEntityCondition;
         final ModelEntity modelEntity;
@@ -1588,7 +1582,7 @@ public class GenericDAO {
         Optional<WhereRewrite> whereRewrite;
         Collection<String> temporaryTableNames;
 
-        public InQueryRewritter(DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity) {
+        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity) {
             this.databaseType = databaseType;
             this.whereEntityCondition = whereEntityCondition;
             this.modelEntity = modelEntity;
@@ -1601,12 +1595,39 @@ public class GenericDAO {
             return whereRewrite.isPresent();
         }
 
-        public EntityCondition rewrite() {
+        EntityCondition rewriteIfNeeded() {
             whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses();
             if (whereRewrite.isPresent()) {
                 return whereRewrite.get().getNewCondition();
             }
             return whereEntityCondition;
+        }
+
+        void createTemporaryTablesIfNeeded(SQLProcessor sqlP) throws GenericEntityException {
+            //Generate any temporary tables required for the query (MS SQL Server only)
+            if (whereRewrite.isPresent()) {
+                for (InReplacement inReplacement : whereRewrite.get().getInReplacements()) {
+                    String temporaryTableName = inReplacement.getTemporaryTableName();
+                    generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
+                    temporaryTableNames.add(temporaryTableName);
+                }
+            }
+        }
+
+        public void cleanUp(final SQLProcessor sqlP) throws GenericEntityException {
+            dropTemporaryTables(sqlP);
+        }
+
+        TableCleanUp getTableCleanUpHandler() {
+            if (isRewritten()) {
+                return this;
+            }
+            return null;
+        }
+
+        @VisibleForTesting
+        static void resetTemporaryTableCounter() {
+            temporaryTableCounter.set(1);
         }
 
         @VisibleForTesting
@@ -1646,28 +1667,16 @@ public class GenericDAO {
             final int parameterCount = whereEntityCondition.getParameterCount(modelEntity);
             return
                     (databaseType == MSSQL && parameterCount > MS_SQL_MAX_PARAMETER_COUNT)
-                            || (databaseType == POSTGRES && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);
+                            || (databaseType == POSTGRES_7_3 && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);
         }
 
         private String generateTemporaryTableName(DatabaseType databaseType) {
             //postgres has limit of 63 characters for table name
-            if (databaseType == POSTGRES) {
+            if (databaseType == POSTGRES_7_3) {
                 return "temp" + temporaryTableCounter.getAndIncrement();
             }
             //SQL server max temporary table name is 116 characters, so this should be fine even if they never clean up
             return "#temp" + temporaryTableCounter.getAndIncrement();
-        }
-
-        public void createTemporaryTablesIfNeeded(SQLProcessor sqlP) throws GenericEntityException {
-            //Generate any temporary tables required for the query (MS SQL Server only)
-            final Set<String> temporaryTableNames = new HashSet<String>();
-            if (whereRewrite.isPresent()) {
-                for (InReplacement inReplacement : whereRewrite.get().getInReplacements()) {
-                    String temporaryTableName = inReplacement.getTemporaryTableName();
-                    generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
-                    temporaryTableNames.add(temporaryTableName);
-                }
-            }
         }
 
         /**
@@ -1686,7 +1695,7 @@ public class GenericDAO {
 
             final String dataType = getColumnType(items);
 
-            if (databaseType == POSTGRES) {
+            if (databaseType == POSTGRES_7_3) {
                 sqlP.executeUpdate("create temporary table " + tableName + " (item " + dataType + " primary key)");
             } else {
                 sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
@@ -1739,17 +1748,6 @@ public class GenericDAO {
             for (String temporaryTableName : temporaryTableNames) {
                 sqlP.executeUpdate("drop table " + temporaryTableName);
             }
-        }
-
-        public void cleanUp(final SQLProcessor sqlP) throws GenericEntityException {
-            dropTemporaryTables(sqlP);
-        }
-
-        public TableCleanUp getCleanUpObject() {
-            if (isRewritten()) {
-                return this;
-            }
-            return null;
         }
     }
 }

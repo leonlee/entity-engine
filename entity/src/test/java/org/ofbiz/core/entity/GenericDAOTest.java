@@ -2,23 +2,25 @@ package org.ofbiz.core.entity;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.SQLProcessor;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
-import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
 import org.ofbiz.core.entity.model.ModelViewEntity;
 
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -48,6 +51,10 @@ import static org.ofbiz.core.entity.EntityOperator.AND;
 import static org.ofbiz.core.entity.EntityOperator.IN;
 import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MYSQL;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES_7_3;
 
 /**
  * Pure unit test of {@link GenericDAO}.
@@ -76,7 +83,7 @@ public class GenericDAOTest {
         MockitoAnnotations.initMocks(this);
         when(mockModelEntity.getTableName(mockDatasourceInfo)).thenReturn(TABLE_NAME);
         dao = new GenericDAO(HELPER_NAME, mockModelFieldTypeReader, mockDatasourceInfo, mockLimitHelper, mockCountHelper);
-        GenericDAO.resetTemporaryTableCounter();
+        GenericDAO.InQueryRewritter.resetTemporaryTableCounter();
     }
 
     @Test
@@ -375,7 +382,7 @@ public class GenericDAOTest {
     }
 
     /**
-     * Temp table rewrite should not occur with too few parameters.
+     * Temp table rewriteIfNeeded should not occur with too few parameters.
      */
     @Test
     public void testNoRewriteWithNotEnoughParameters() {
@@ -391,4 +398,88 @@ public class GenericDAOTest {
 
         assertFalse("Rewrite should not be required.", rewrite.isPresent());
     }
+
+    @Test
+    public void testShouldRewriteOnlyForMssqlAndPostgres() {
+        ImmutableMap<DatabaseType, Boolean> databases = ImmutableMap.<DatabaseType, Boolean>builder()
+                .put(MSSQL, true)
+                .put(POSTGRES_7_3, true)
+                .put(MYSQL, false)
+                .put(ORACLE_8I, false)
+                .put(ORACLE_10G, false)
+                .build();
+        final int size = 100000;
+
+        for (Map.Entry<DatabaseType, Boolean> entry : databases.entrySet()) {
+            final List<Integer> ids = Collections.nCopies(size, 1);
+            final ModelEntity modelEntity = new ModelEntity();
+            final ModelField field = new ModelField();
+            field.setName("test");
+            modelEntity.addField(field);
+
+            final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(entry.getKey(), new EntityExpr("test", IN, ids), modelEntity);
+            inQueryRewritter.rewriteIfNeeded();
+            assertThat("Should have proper value for " + entry.getKey(), inQueryRewritter.isRewritten(), equalTo(entry.getValue()));
+        }
+    }
+
+    @Test
+    public void testShouldGenerateProperSqlForCreateTable() throws GenericEntityException {
+        verifyCreateTableSql(MSSQL, "create table #temp1 (item bigint primary key)");
+        verifyCreateTableSql(POSTGRES_7_3, "create temporary table temp2 (item bigint primary key)");
+    }
+
+    private void verifyCreateTableSql(DatabaseType databaseType, String expectedSql) throws GenericEntityException {
+        final List<Integer> ids = Collections.nCopies(50000, 1);
+        final ModelEntity modelEntity = new ModelEntity();
+        final ModelField field = new ModelField();
+        field.setName("test");
+        modelEntity.addField(field);
+
+        final SQLProcessor mockSqlProcessor = mock(SQLProcessor.class);
+        when(mockSqlProcessor.getPreparedStatement()).thenReturn(mock(PreparedStatement.class));
+
+
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(databaseType, new EntityExpr("test", IN, ids), modelEntity);
+        inQueryRewritter.rewriteIfNeeded();
+        inQueryRewritter.createTemporaryTablesIfNeeded(mockSqlProcessor);
+
+        final ArgumentCaptor<String> executeUpdateParameter = ArgumentCaptor.forClass(String.class);
+        verify(mockSqlProcessor).executeUpdate(executeUpdateParameter.capture());
+
+        assertThat(executeUpdateParameter.getValue(), equalTo(expectedSql));
+    }
+
+    @Test
+    public void testShouldReturnProperCleanUpObjectWhenQueryIsRewritten() throws GenericEntityException {
+        final List<Integer> ids = Collections.nCopies(2001, 1);
+        final ModelEntity modelEntity = new ModelEntity();
+        final ModelField field = new ModelField();
+        field.setName("test");
+        modelEntity.addField(field);
+
+        final SQLProcessor mockSqlProcessor = mock(SQLProcessor.class);
+        when(mockSqlProcessor.getPreparedStatement()).thenReturn(mock(PreparedStatement.class));
+
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids), modelEntity);
+        inQueryRewritter.rewriteIfNeeded();
+        inQueryRewritter.createTemporaryTablesIfNeeded(mockSqlProcessor);
+
+        final ArgumentCaptor<String> executeUpdateParameter = ArgumentCaptor.forClass(String.class);
+        verify(mockSqlProcessor).executeUpdate(executeUpdateParameter.capture());
+
+        assertThat(executeUpdateParameter.getValue(), equalTo("create table #temp1 (item bigint primary key)"));
+
+        GenericDAO.TableCleanUp tableCleanUp = inQueryRewritter.getTableCleanUpHandler();
+        assertNotNull(tableCleanUp);
+
+        final SQLProcessor mockSqlProcessorForCleanup = mock(SQLProcessor.class);
+        tableCleanUp.cleanUp(mockSqlProcessorForCleanup);
+        final ArgumentCaptor<String> executeUpdateParameterCleanUp = ArgumentCaptor.forClass(String.class);
+        verify(mockSqlProcessorForCleanup).executeUpdate(executeUpdateParameterCleanUp.capture());
+
+        assertThat(executeUpdateParameterCleanUp.getValue(), equalTo("drop table #temp1"));
+    }
+
+
 }
