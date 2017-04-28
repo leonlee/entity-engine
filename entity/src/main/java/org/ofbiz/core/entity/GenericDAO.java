@@ -1645,8 +1645,8 @@ public class GenericDAO {
         private boolean shouldRewrite() {
             final int parameterCount = whereEntityCondition.getParameterCount(modelEntity);
             return
-                    (databaseType == MSSQL && parameterCount <= MS_SQL_MAX_PARAMETER_COUNT)
-                            || (databaseType == POSTGRES && parameterCount <= POSTGRESQL_MAX_PARAMETER_COUNT);
+                    (databaseType == MSSQL && parameterCount > MS_SQL_MAX_PARAMETER_COUNT)
+                            || (databaseType == POSTGRES && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);
         }
 
         private String generateTemporaryTableName(DatabaseType databaseType) {
@@ -1686,7 +1686,11 @@ public class GenericDAO {
 
             final String dataType = getColumnType(items);
 
-            sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
+            if (databaseType == POSTGRES) {
+                sqlP.executeUpdate("create temporary table " + tableName + " (item " + dataType + " primary key)");
+            } else {
+                sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
+            }
 
             //Insert data into this temporary table
             sqlP.prepareStatement("insert into " + tableName + " (item) values (?)");
