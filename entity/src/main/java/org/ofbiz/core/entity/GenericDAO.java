@@ -31,7 +31,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
@@ -54,6 +53,7 @@ import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -78,6 +78,7 @@ import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES_7_3;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
@@ -97,6 +98,7 @@ public class GenericDAO {
     public static final String module = GenericDAO.class.getName();
     public static final int ORACLE_MAX_LIST_SIZE = 1000;
     public static final int MS_SQL_MAX_PARAMETER_COUNT = 2000;
+    public static final int POSTGRESQL_MAX_PARAMETER_COUNT = 30000;
 
     private static final Logger LOGGER = Logger.getLogger(GenericDAO.class);
 
@@ -109,8 +111,6 @@ public class GenericDAO {
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
-
-    private static final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
 
     public static synchronized void removeGenericDAO(String helperName) {
         genericDAOs.remove(helperName);
@@ -157,11 +157,6 @@ public class GenericDAO {
         this.datasourceInfo = datasourceInfo;
         this.limitHelper = limitHelper;
         this.countHelper = countHelper;
-    }
-
-    @VisibleForTesting
-    static void resetTemporaryTableCounter() {
-        temporaryTableCounter.set(1);
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -436,7 +431,7 @@ public class GenericDAO {
 
     /**
      * Try to update the given ModelViewEntity by trying to insert/update on the entities of which the view is composed.
-     *
+     * <p>
      * Works fine with standard O/R mapped models, but has some restrictions meeting more complicated view entities.
      * <li>A direct link is required, which means that one of the ModelViewLink field entries must have a value found
      * in the given view entity, for each ModelViewLink</li>
@@ -836,23 +831,8 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
-        //JDEV-31097: SQL server does not allow more than 2000 parameter markers (?) which can happen with huge IN queries
-        //(e.g. where pid in (1, 2, 3, 4, ...)
-        // so in this case we:
-        // - create a temporary table
-        // - put all the 'IN' values into this table
-        // - rewrite the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
-        // - run the query
-        // - when the list iterator is closed, drop the temporary table
-        final Optional<WhereRewrite> whereRewrite;
-        if (databaseType == MSSQL) {
-            whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses(whereEntityCondition, modelEntity);
-            if (whereRewrite.isPresent()) {
-                whereEntityCondition = whereRewrite.get().getNewCondition();
-            }
-        } else {
-            whereRewrite = Optional.absent();
-        }
+        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity);
+        whereEntityCondition = inQueryRewritter.rewriteIfNeeded();
 
         if (Debug.verboseOn()) {
             Debug.logVerbose("Doing selectListIteratorByCondition with whereEntityCondition: " + whereEntityCondition);
@@ -866,81 +846,16 @@ public class GenericDAO {
                 havingEntityCondition, whereEntityConditionParams, havingEntityConditionParams, databaseType);
 
         final SQLProcessor sqlP;
-        if (whereRewrite.isPresent()) {
+        if (inQueryRewritter.isRewritten()) {
             sqlP = new SQLProcessor(helperName);
         } else {
             sqlP = new ReadOnlySQLProcessor(helperName);
         }
 
-        //Generate any temporary tables required for the query (MS SQL Server only)
-        Set<String> temporaryTableNames = new HashSet<String>();
-        if (whereRewrite.isPresent()) {
-            for (InReplacement inReplacement : whereRewrite.get().getInReplacements()) {
-                String temporaryTableName = inReplacement.getTemporaryTableName();
-                generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
-                temporaryTableNames.add(temporaryTableName);
-            }
-        }
+        inQueryRewritter.createTemporaryTablesIfNeeded(sqlP);
 
-        return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams, temporaryTableNames);
-    }
-
-    /**
-     * Creates a temporary table (MS SQL Server only) and fills it with items that originally were from an
-     * 'IN' query.
-     *
-     * @param tableName the name of the temporary table, without the leading '#' character.
-     * @param items     the items from the 'IN' query that need to be inserted into the temporary table.
-     * @param sqlP      SQL procesor to use.
-     * @throws GenericEntityException if an error occurs.
-     */
-    private void generateTemporaryTable(String tableName, Collection<?> items, SQLProcessor sqlP)
-            throws GenericEntityException {
-        //Ensure connection is created
-        sqlP.getConnection();
-
-        //Determine the data type to create based on the item element type
-        //Right now this only works for SQL server so we hardcode the SQL server data types
-        //And we only support numbers and strings at this point
-        Object firstItem = items.iterator().next();
-        String dataType;
-        if (firstItem instanceof Number) {
-            dataType = "bigint";
-        } else {
-            dataType = "varchar(8000)"; //8000 is max size of varchar for SQL server
-        }
-
-        sqlP.executeUpdate("create table #" + tableName + " (item " + dataType + " primary key)");
-
-        //Insert data into this temporary table
-        sqlP.prepareStatement("insert into #" + tableName + " (item) values (?)");
-        PreparedStatement stat = sqlP.getPreparedStatement();
-        try {
-            for (Object item : items) {
-                if (item instanceof Number) {
-                    stat.setLong(1, ((Number) item).longValue());
-                } else if (item instanceof String) {
-                    stat.setString(1, (String) item);
-                } else {
-                    stat.setObject(1, item);
-                }
-
-                stat.addBatch();
-            }
-            stat.executeBatch();
-        } catch (SQLException e) {
-            throw new GenericEntityException(e.getMessage(), e);
-        } finally {
-            try {
-                stat.close();
-            } catch (SQLException ignore) {
-            }
-        }
-    }
-
-    private String generateSqlServerTemporaryTableName() {
-        //SQL server max temporary table name is 116 characters, so this should be fine even if they never clean up
-        return "temp" + temporaryTableCounter.getAndIncrement();
+        return createEntityListIterator(sqlP, sql, nonNullFindOptions, modelEntity, selectFields, whereEntityConditionParams, havingEntityConditionParams,
+                inQueryRewritter.getTableCleanUpHandler());
     }
 
     @VisibleForTesting
@@ -948,7 +863,7 @@ public class GenericDAO {
                                                 final EntityFindOptions nonNullFindOptions, final ModelEntity modelEntity,
                                                 final List<ModelField> selectFields, final List<EntityConditionParam> whereEntityConditionParams,
                                                 final List<EntityConditionParam> havingEntityConditionParams,
-                                                final Set<String> temporaryTableNames)
+                                                final TableCleanUp tableCleanUp)
             throws GenericEntityException {
         try {
             // A data base connection is open when the call to prepareStatement is done (SQLProcessor's constructor does not open the connection)
@@ -962,10 +877,10 @@ public class GenericDAO {
             sqlP.executeQuery();
 
             //If we have any temporary tables they can be dropped after the list iterator is closed
-            if (temporaryTableNames.isEmpty()) {
+            if (tableCleanUp == null) {
                 return new EntityListIterator(sqlP, modelEntity, selectFields, modelFieldTypeReader);
             } else {
-                return new EntityListIteratorWithTemporaryTableCleanup(sqlP, modelEntity, selectFields, modelFieldTypeReader, temporaryTableNames);
+                return new EntityListIteratorWithTemporaryTableCleanup(sqlP, modelEntity, selectFields, modelFieldTypeReader, tableCleanUp);
             }
 
         }
@@ -1090,40 +1005,6 @@ public class GenericDAO {
         }
 
         return sql;
-    }
-
-    @VisibleForTesting
-    Optional<WhereRewrite> rewriteConditionToUseTemporaryTablesForLargeInClauses(final EntityCondition whereEntityCondition, final ModelEntity modelEntity) {
-
-        if (whereEntityCondition == null) {
-            return Optional.absent();
-        }
-
-        //If we have less than the maximum, allow the query to go through unaltered
-        if (whereEntityCondition.getParameterCount(modelEntity) <= MS_SQL_MAX_PARAMETER_COUNT) {
-            return Optional.absent();
-        }
-
-        //Otherwise change every IN fragment to use temporary tables
-        final List<InReplacement> inReplacements = new ArrayList<InReplacement>();
-
-        EntityCondition newCondition = EntityConditionHelper.transformCondition(whereEntityCondition, new Function<EntityExpr, EntityCondition>() {
-            public EntityCondition apply(final EntityExpr input) {
-                if (input.getOperator().equals(EntityOperator.IN)) {
-                    //Generate replacement
-                    InReplacement inReplacement = new InReplacement(generateSqlServerTemporaryTableName(), (Collection<?>) input.getRhs());
-                    inReplacements.add(inReplacement);
-
-                    EntityWhereString newRhs = new EntityWhereString("select item from #" + inReplacement.getTemporaryTableName());
-                    EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
-                    return replacementCondition;
-                } else {
-                    return input;
-                }
-            }
-        });
-
-        return Optional.of(new WhereRewrite(newCondition, inReplacements));
     }
 
     static private EntityCondition rewriteConditionToSplitListsLargerThan(
@@ -1659,28 +1540,214 @@ public class GenericDAO {
     }
 
     private static class EntityListIteratorWithTemporaryTableCleanup extends EntityListIterator {
-        private final Set<String> temporaryTableNames;
+        private TableCleanUp cleanUp;
 
         public EntityListIteratorWithTemporaryTableCleanup(SQLProcessor sqlp, ModelEntity modelEntity,
-                                                           List<ModelField> selectFields, ModelFieldTypeReader modelFieldTypeReader, Set<String> temporaryTableNames) {
+                                                           List<ModelField> selectFields, ModelFieldTypeReader modelFieldTypeReader, TableCleanUp cleanUp) {
             super(sqlp, modelEntity, selectFields, modelFieldTypeReader);
-            this.temporaryTableNames = ImmutableSet.copyOf(temporaryTableNames);
+            this.cleanUp = cleanUp;
         }
 
         @Override
         public void close() throws GenericEntityException {
             try {
-                dropTemporaryTables();
+                cleanUp.cleanUp(sqlp);
             } finally {
                 super.close();
             }
         }
+    }
 
-        private void dropTemporaryTables() throws GenericEntityException {
+    interface TableCleanUp {
+        void cleanUp(final SQLProcessor sqlP) throws GenericEntityException;
+    }
+
+    /**
+     * JDEV-31097: SQL server does not allow more than 2000 parameter markers (?) which can happen with huge IN queries
+     * (e.g. where pid in (1, 2, 3, 4, ...)
+     * so in this case we:
+     * - create a temporary table
+     * - put all the 'IN' values into this table
+     * - rewriteIfNeeded the original 'IN' part of the query to use the temporary table instead (where pid in (select item from #temp))
+     * - run the query
+     * - when the list iterator is closed, drop the temporary table
+     */
+    static class InQueryRewritter implements TableCleanUp {
+        private static final AtomicInteger temporaryTableCounter = new AtomicInteger(1);
+
+        final DatabaseType databaseType;
+        final EntityCondition whereEntityCondition;
+        final ModelEntity modelEntity;
+
+        Optional<WhereRewrite> whereRewrite;
+        Collection<String> temporaryTableNames;
+
+        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity) {
+            this.databaseType = databaseType;
+            this.whereEntityCondition = whereEntityCondition;
+            this.modelEntity = modelEntity;
+
+            this.whereRewrite = Optional.absent();
+            this.temporaryTableNames = new HashSet<>();
+        }
+
+        boolean isRewritten() {
+            return whereRewrite.isPresent();
+        }
+
+        EntityCondition rewriteIfNeeded() {
+            whereRewrite = rewriteConditionToUseTemporaryTablesForLargeInClauses();
+            if (whereRewrite.isPresent()) {
+                return whereRewrite.get().getNewCondition();
+            }
+            return whereEntityCondition;
+        }
+
+        void createTemporaryTablesIfNeeded(SQLProcessor sqlP) throws GenericEntityException {
+            //Generate any temporary tables required for the query (MS SQL Server only)
+            if (whereRewrite.isPresent()) {
+                for (InReplacement inReplacement : whereRewrite.get().getInReplacements()) {
+                    String temporaryTableName = inReplacement.getTemporaryTableName();
+                    generateTemporaryTable(temporaryTableName, inReplacement.getItems(), sqlP);
+                    temporaryTableNames.add(temporaryTableName);
+                }
+            }
+        }
+
+        public void cleanUp(final SQLProcessor sqlP) throws GenericEntityException {
+            dropTemporaryTables(sqlP);
+        }
+
+        TableCleanUp getTableCleanUpHandler() {
+            if (isRewritten()) {
+                return this;
+            }
+            return null;
+        }
+
+        @VisibleForTesting
+        static void resetTemporaryTableCounter() {
+            temporaryTableCounter.set(1);
+        }
+
+        @VisibleForTesting
+        Optional<WhereRewrite> rewriteConditionToUseTemporaryTablesForLargeInClauses() {
+            if (whereEntityCondition == null) {
+                return Optional.absent();
+            }
+
+            //If we have less than the maximum, allow the query to go through unaltered
+            if (!shouldRewrite()) {
+                return Optional.absent();
+            }
+
+            //Otherwise change every IN fragment to use temporary tables
+            final List<InReplacement> inReplacements = new ArrayList<InReplacement>();
+
+            EntityCondition newCondition = EntityConditionHelper.transformCondition(whereEntityCondition, new Function<EntityExpr, EntityCondition>() {
+                public EntityCondition apply(final EntityExpr input) {
+                    if (input.getOperator().equals(EntityOperator.IN)) {
+                        //Generate replacement
+                        InReplacement inReplacement = new InReplacement(generateTemporaryTableName(databaseType), (Collection<?>) input.getRhs());
+                        inReplacements.add(inReplacement);
+
+                        EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName());
+                        EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
+                        return replacementCondition;
+                    } else {
+                        return input;
+                    }
+                }
+            });
+
+            return Optional.of(new WhereRewrite(newCondition, inReplacements));
+        }
+
+        private boolean shouldRewrite() {
+            final int parameterCount = whereEntityCondition.getParameterCount(modelEntity);
+            return
+                    (databaseType == MSSQL && parameterCount > MS_SQL_MAX_PARAMETER_COUNT)
+                            || (databaseType == POSTGRES_7_3 && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);
+        }
+
+        private String generateTemporaryTableName(DatabaseType databaseType) {
+            //postgres has limit of 63 characters for table name
+            if (databaseType == POSTGRES_7_3) {
+                return "temp" + temporaryTableCounter.getAndIncrement();
+            }
+            //SQL server max temporary table name is 116 characters, so this should be fine even if they never clean up
+            return "#temp" + temporaryTableCounter.getAndIncrement();
+        }
+
+        /**
+         * Creates a temporary table (MS SQL Server only) and fills it with items that originally were from an
+         * 'IN' query.
+         *
+         * @param tableName the name of the temporary table, for MSSQL with the leading '#' character.
+         * @param items     the items from the 'IN' query that need to be inserted into the temporary table.
+         * @param sqlP      SQL procesor to use.
+         * @throws GenericEntityException if an error occurs.
+         */
+        private void generateTemporaryTable(String tableName, Collection<?> items, SQLProcessor sqlP)
+                throws GenericEntityException {
+            //Ensure connection is created
+            sqlP.getConnection();
+
+            final String dataType = getColumnType(items);
+
+            if (databaseType == POSTGRES_7_3) {
+                sqlP.executeUpdate("create temporary table " + tableName + " (item " + dataType + " primary key)");
+            } else {
+                sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
+            }
+
+            //Insert data into this temporary table
+            sqlP.prepareStatement("insert into " + tableName + " (item) values (?)");
+            PreparedStatement stat = sqlP.getPreparedStatement();
+            try {
+                for (Object item : items) {
+                    if (item instanceof Number) {
+                        stat.setLong(1, ((Number) item).longValue());
+                    } else if (item instanceof String) {
+                        stat.setString(1, (String) item);
+                    } else {
+                        stat.setObject(1, item);
+                    }
+
+                    stat.addBatch();
+                }
+                stat.executeBatch();
+            } catch (SQLException e) {
+                throw new GenericEntityException(e.getMessage(), e);
+            } finally {
+                try {
+                    stat.close();
+                } catch (SQLException ignore) {
+                }
+            }
+        }
+
+        /**
+         * Determine the data type to create based on the item element type
+         * Right now this only works for SQL server and Postgresql so we hardcode the SQL server data types
+         * And we only support numbers and strings at this point
+         *
+         * @param items
+         * @return
+         */
+        private String getColumnType(Collection<?> items) {
+            final Object firstItem = items.iterator().next();
+            if (firstItem instanceof Number) {
+                return "bigint";
+            } else {
+                return "varchar(8000)"; //8000 is max size of varchar for SQL server
+            }
+        }
+
+        private void dropTemporaryTables(final SQLProcessor sqlP) throws GenericEntityException {
             for (String temporaryTableName : temporaryTableNames) {
-                sqlp.executeUpdate("drop table #" + temporaryTableName);
+                sqlP.executeUpdate("drop table " + temporaryTableName);
             }
         }
     }
-
 }
