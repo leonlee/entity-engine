@@ -425,7 +425,7 @@ public class GenericDAOTest {
 
     @Test
     public void testShouldGenerateProperSqlForCreateTable() throws GenericEntityException {
-        verifyCreateTableSql(MSSQL, "create temporary table #temp1 (item bigint primary key) COLLATE database_default");
+        verifyCreateTableSql(MSSQL, "create table #temp1 (item bigint primary key) COLLATE database_default");
         verifyCreateTableSql(POSTGRES_7_3, "create temporary table temp2 (item bigint primary key)");
     }
 
@@ -468,7 +468,7 @@ public class GenericDAOTest {
         final ArgumentCaptor<String> executeUpdateParameter = ArgumentCaptor.forClass(String.class);
         verify(mockSqlProcessor).executeUpdate(executeUpdateParameter.capture());
 
-        assertThat(executeUpdateParameter.getValue(), equalTo("create temporary table #temp1 (item bigint primary key) COLLATE database_default"));
+        assertThat(executeUpdateParameter.getValue(), equalTo("create table #temp1 (item bigint primary key) COLLATE database_default"));
 
         GenericDAO.TableCleanUp tableCleanUp = inQueryRewritter.getTableCleanUpHandler();
         assertNotNull(tableCleanUp);
