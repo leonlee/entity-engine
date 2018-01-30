@@ -425,12 +425,12 @@ public class GenericDAOTest {
 
     @Test
     public void testShouldGenerateProperSqlForCreateTable() throws GenericEntityException {
-        verifyCreateTableSql(MSSQL, "create table #temp1 (item bigint COLLATE database_default primary key)");
-        verifyCreateTableSql(POSTGRES_7_3, "create temporary table temp2 (item bigint primary key)");
+        verifyCreateTableSql(MSSQL,  Collections.nCopies(50000, 1), "create table #temp1 (item bigint primary key)");
+        verifyCreateTableSql(MSSQL,  Collections.nCopies(50000, "abc"), "create table #temp2 (item varchar(900) COLLATE database_default primary key)");
+        verifyCreateTableSql(POSTGRES_7_3,  Collections.nCopies(50000, 1), "create temporary table temp3 (item bigint primary key)");
     }
 
-    private void verifyCreateTableSql(DatabaseType databaseType, String expectedSql) throws GenericEntityException {
-        final List<Integer> ids = Collections.nCopies(50000, 1);
+    private <T> void verifyCreateTableSql(DatabaseType databaseType, List<T> list, String expectedSql) throws GenericEntityException {
         final ModelEntity modelEntity = new ModelEntity();
         final ModelField field = new ModelField();
         field.setName("test");
@@ -440,7 +440,7 @@ public class GenericDAOTest {
         when(mockSqlProcessor.getPreparedStatement()).thenReturn(mock(PreparedStatement.class));
 
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(databaseType, new EntityExpr("test", IN, ids), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(databaseType, new EntityExpr("test", IN, list), modelEntity);
         inQueryRewritter.rewriteIfNeeded();
         inQueryRewritter.createTemporaryTablesIfNeeded(mockSqlProcessor);
 
@@ -468,7 +468,7 @@ public class GenericDAOTest {
         final ArgumentCaptor<String> executeUpdateParameter = ArgumentCaptor.forClass(String.class);
         verify(mockSqlProcessor).executeUpdate(executeUpdateParameter.capture());
 
-        assertThat(executeUpdateParameter.getValue(), equalTo("create table #temp1 (item bigint COLLATE database_default primary key)"));
+        assertThat(executeUpdateParameter.getValue(), equalTo("create table #temp1 (item bigint primary key)"));
 
         GenericDAO.TableCleanUp tableCleanUp = inQueryRewritter.getTableCleanUpHandler();
         assertNotNull(tableCleanUp);
