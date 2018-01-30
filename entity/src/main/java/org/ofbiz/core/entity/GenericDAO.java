@@ -1698,7 +1698,7 @@ public class GenericDAO {
             if (databaseType == POSTGRES_7_3) {
                 sqlP.executeUpdate("create temporary table " + tableName + " (item " + dataType + " primary key)");
             } else if (databaseType == MSSQL) {
-                sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key) COLLATE database_default");
+                sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " COLLATE database_default primary key)");
             } else {
                 sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
             }
