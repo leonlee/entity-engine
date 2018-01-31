@@ -1579,6 +1579,11 @@ public class GenericDAO {
         final EntityCondition whereEntityCondition;
         final ModelEntity modelEntity;
 
+        final private static String BIGINT = "bigint";
+
+        //max supported indexed field size for varchar in MSSQL is 900 bytes
+        final private static String VARCHAR_900 = "varchar(900)";
+
         Optional<WhereRewrite> whereRewrite;
         Collection<String> temporaryTableNames;
 
@@ -1697,7 +1702,7 @@ public class GenericDAO {
 
             if (databaseType == POSTGRES_7_3) {
                 sqlP.executeUpdate("create temporary table " + tableName + " (item " + dataType + " primary key)");
-            } else if (databaseType == MSSQL) {
+            } else if (databaseType == MSSQL && dataType.equals(VARCHAR_900)) {
                 sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " COLLATE database_default primary key)");
             } else {
                 sqlP.executeUpdate("create table " + tableName + " (item " + dataType + " primary key)");
@@ -1740,9 +1745,9 @@ public class GenericDAO {
         private String getColumnType(Collection<?> items) {
             final Object firstItem = items.iterator().next();
             if (firstItem instanceof Number) {
-                return "bigint";
+                return BIGINT;
             } else {
-                return "varchar(8000)"; //8000 is max size of varchar for SQL server
+                return VARCHAR_900;
             }
         }
 
