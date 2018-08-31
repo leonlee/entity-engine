@@ -34,12 +34,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -458,8 +460,15 @@ public class TestDatabaseUtil {
     }
 
     @Test
-    public void testMissingIndices() {
+    public void testMissingIndices() throws SQLException {
+        final Connection connection = mock(Connection.class);
 
+        final DatabaseMetaData databaseMetaData = mock(DatabaseMetaData.class);
+        when(databaseMetaData.getDatabaseProductName()).thenReturn("SQL SERVER");
+        when(databaseMetaData.getDatabaseMajorVersion()).thenReturn(6);
+        when(databaseMetaData.getDatabaseMinorVersion()).thenReturn(9);
+
+        when(connection.getMetaData()).thenReturn(databaseMetaData);
         // record requests for index info
         final AtomicReference<Set<String>> tableNamesReceived = new AtomicReference<>();
         final AtomicBoolean includeUniqueReceived = new AtomicBoolean();
@@ -472,7 +481,7 @@ public class TestDatabaseUtil {
         // record requests to create indexes
         final Map<String, Set<String>> creationCalls = new HashMap<>();
 
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, new MyConnectionProvider(connection)) {
             @Override
             public Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
                 tableNamesReceived.set(tableNames);
@@ -552,6 +561,65 @@ public class TestDatabaseUtil {
         s.addAll(Arrays.asList(members));
         return s;
     }
+
+    @Test
+    public void testMissingIndicesButExcluded() throws Exception {
+        final Connection connection = mock(Connection.class);
+
+        final DatabaseMetaData databaseMetaData = mock(DatabaseMetaData.class);
+        when(databaseMetaData.getDatabaseProductName()).thenReturn("SQL SERVER");
+        when(databaseMetaData.getDatabaseMajorVersion()).thenReturn(6);
+        when(databaseMetaData.getDatabaseMinorVersion()).thenReturn(9);
+
+        when(connection.getMetaData()).thenReturn(databaseMetaData);
+
+
+        // record requests for index info
+        final AtomicReference<Set<String>> tableNamesReceived = new AtomicReference<>();
+        final AtomicBoolean includeUniqueReceived = new AtomicBoolean();
+
+        final Map<String, Set<String>> indexInfo = new HashMap<>();
+        indexInfo.put("table", ImmutableSet.of("field"));
+
+        // record requests to create indexes
+        final Map<String, Set<String>> creationCalls = new HashMap<>();
+
+        AtomicBoolean happened = new AtomicBoolean(false);
+
+        DatabaseUtil du = new DatabaseUtil(null, null, null, new MyConnectionProvider(connection)) {
+            @Override
+            public Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
+                return indexInfo;
+            }
+
+            @Override
+            public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
+                happened.set(true);
+                return "";
+            }
+        };
+
+        List<String> messages = new ArrayList<>();
+        Map<String, ModelEntity> modelEntities = new HashMap<>();
+
+        ModelEntity entity = createSimpleModelEntity("table", "field");
+        ModelIndex modelIndex = new ModelIndex();
+        modelIndex.setName("index");
+        modelIndex.addIndexField("field");
+        modelIndex.setServerExclude(Pattern.compile("SQL SERVER:6.*"));
+        entity.addIndex(modelIndex);
+
+        modelEntities.put("table", entity);
+
+        du.createMissingIndices(modelEntities, messages);
+        assertFalse(happened.get());
+
+        modelIndex.setServerExclude(null);
+
+        du.createMissingIndices(modelEntities, messages);
+        assertTrue(happened.get());
+    }
+
 
     @Test
     public void testError() {
