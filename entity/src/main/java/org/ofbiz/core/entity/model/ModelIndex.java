@@ -27,9 +27,12 @@ import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Generic Entity - Relation model class
@@ -61,6 +64,11 @@ public class ModelIndex {
     protected List<String> fieldNames = new ArrayList<String>();
 
     /**
+     * Pattern to exclude certain servers from index creation
+     */
+    protected Optional<Pattern> serverExclude = Optional.empty();
+
+    /**
      * Default Constructor
      */
     public ModelIndex() {
@@ -73,6 +81,11 @@ public class ModelIndex {
      */
     public ModelIndex(ModelEntity mainEntity, Element indexElement) {
         this.mainEntity = mainEntity;
+
+        this.serverExclude =
+                Optional.of(indexElement.getAttribute("serverExclude"))
+                        .filter(unused -> indexElement.hasAttribute("serverExclude"))
+                        .map(Pattern::compile);
 
         this.name = UtilXml.checkEmpty(indexElement.getAttribute("name"));
         this.unique = "true".equals(UtilXml.checkEmpty(indexElement.getAttribute("unique")));
@@ -139,5 +152,22 @@ public class ModelIndex {
 
     public String removeIndexField(int index) {
         return this.fieldNames.remove(index);
+    }
+
+    public void setServerExclude(Pattern serverExclude) {
+        this.serverExclude = Optional.ofNullable(serverExclude);
+    }
+
+    public Optional<Pattern> getServerExclude() {
+        return serverExclude;
+    }
+
+    /**
+     * checks if generation of this index should be skipped.
+     *
+     * @param generatedDBVersion {@link org.ofbiz.core.entity.jdbc.DatabaseUtil#generateDBVersion(Connection)}
+     */
+    public boolean isServerExcluded(String generatedDBVersion) {
+        return serverExclude.map(x -> x.matcher(generatedDBVersion).matches()).orElse(false);
     }
 }

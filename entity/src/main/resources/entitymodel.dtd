@@ -84,7 +84,8 @@
         <!ELEMENT index ( index-field+ )>
         <!ATTLIST index
                 name CDATA #REQUIRED
-                unique ( true | false ) "false" >
+                unique ( true | false ) "false"
+                serverExclude CDATA #IMPLIED>
         <!ELEMENT index-field EMPTY>
         <!ATTLIST index-field
                 name CDATA #REQUIRED >

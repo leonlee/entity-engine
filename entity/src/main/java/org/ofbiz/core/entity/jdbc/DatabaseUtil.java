@@ -60,6 +60,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -228,8 +229,7 @@ public class DatabaseUtil {
                         ModelField field = entity.getField(fnum);
                         fieldColNames.put(field.getColName().toUpperCase(), field);
                     }
-                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); )
-                    {
+                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); ) {
                         ModelFunctionBasedIndex fbIndex = iter.next();
                         ModelField mf = fbIndex.getVirtualColumnModelField(datasourceInfo.getDatabaseTypeFromJDBCConnection());
                         if (mf != null) {
@@ -730,9 +730,23 @@ public class DatabaseUtil {
 
             final StringBuilder retMsgsBuffer = new StringBuilder();
 
+            Optional<String> dbFullName;
+
+            try (Connection connection = getConnection()) {
+                dbFullName = Optional.of(generateDBVersion(connection));
+            } catch (SQLException | GenericEntityException e) {
+                Debug.logWarning("Cannot Establish DB name! Targeted indexes are turned off.");
+                dbFullName = Optional.empty();
+            }
+
             while (indexesIterator.hasNext()) {
                 ModelIndex modelIndex = indexesIterator.next();
                 if (!actualIndexes.contains(modelIndex.getName().toUpperCase())) {
+                    if (dbFullName.map(modelIndex::isServerExcluded).orElse(true)) {
+                        Debug.logWarning("Index not created '" + modelIndex.getName() + "' on existing table '" + tableName + "' aborting due to excluded db.");
+                        continue;
+                    }
+
                     if (Debug.infoOn()) {
                         Debug.logInfo("Missing index '" + modelIndex.getName() + "' on existing table '" + tableName + "' ...creating");
                     }
@@ -1747,7 +1761,7 @@ public class DatabaseUtil {
 
     public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
         Connection connection;
-        
+
 
         try {
             connection = getConnection();
@@ -1779,6 +1793,22 @@ public class DatabaseUtil {
         }
         StringBuilder indexSqlBuf = generateIndexClause(entity, modelIndex.getUnique(), modelIndex.getName(), mainCols.toString());
         return indexSqlBuf.toString();
+    }
+    
+    protected String generateDBVersion(Connection connection) {
+        try {
+            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            return
+                    new StringBuilder()
+                            .append(databaseMetaData.getDatabaseProductName())
+                            .append(":")
+                            .append(databaseMetaData.getDatabaseMajorVersion())
+                            .append(".")
+                            .append(databaseMetaData.getDatabaseMinorVersion())
+                            .toString();
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     private StringBuilder generateIndexClause(ModelEntity entity, boolean unique, String indexName, String mainCols) {
@@ -1919,7 +1949,7 @@ public class DatabaseUtil {
         }
 
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
-        StringBuilder indexSqlBuf =  generateIndexClause(entity, false, relConstraintName, mainCols.toString());
+        StringBuilder indexSqlBuf = generateIndexClause(entity, false, relConstraintName, mainCols.toString());
         return indexSqlBuf.toString();
     }
 
