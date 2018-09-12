@@ -29,6 +29,7 @@
 
         <index name="idx_project_key" unique="true">
             <index-field name="key"/>
+            <alternative action = "org.ofbiz.core.entity.jdbc.alternative.NoOpIndexAlternativeAction"/>
         </index>
     </entity>
 
