@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.jdbc.alternative.ShouldNotRunIndexAlternativeAction;
+import org.ofbiz.core.entity.jdbc.alternative.SuspendingAlternativeAction;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
@@ -45,6 +47,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
@@ -472,7 +475,7 @@ public class TestDatabaseUtil {
         // record requests to create indexes
         final Map<String, Set<String>> creationCalls = new HashMap<>();
 
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null) {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, mock(ConnectionProvider.class)) {
             @Override
             public Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
                 tableNamesReceived.set(tableNames);
@@ -613,6 +616,53 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
     }
 
+    private final DatabaseUtil TEST_ALTERNATIVE_FUNCTION_DB_UTIL = new DatabaseUtil(null, null, null, null) {
+        @Override
+        public String makeIndexClause(ModelEntity entity, ModelIndex modelIndex) {
+            return null;
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException, GenericEntityException {
+            return mock(Connection.class, RETURNS_DEEP_STUBS);
+        }
+
+        protected String executeStatement(Connection connection, String sql) {
+            return "executed";
+        }
+    };
+
+    @Test
+    public void testAlternateFunctionShouldStopExecution() {
+        DatabaseUtil databaseUtil = TEST_ALTERNATIVE_FUNCTION_DB_UTIL;
+        ModelIndex modelIndex = new ModelIndex();
+        modelIndex.addAlternativeAction(new ShouldNotRunIndexAlternativeAction());
+        modelIndex.addAlternativeAction(new SuspendingAlternativeAction());
+
+
+        assertEquals(databaseUtil.createDeclaredIndex(null, modelIndex), SuspendingAlternativeAction.ACTION_EXECUTED_DUMMY_ERROR);
+    }
+
+    @Test
+    public void testAlternateFunctionShouldContinueExecution() {
+        DatabaseUtil databaseUtil = TEST_ALTERNATIVE_FUNCTION_DB_UTIL;
+        ModelIndex modelIndex = new ModelIndex();
+        modelIndex.addAlternativeAction(new ShouldNotRunIndexAlternativeAction());
+        modelIndex.addAlternativeAction(new ShouldNotRunIndexAlternativeAction());
+
+        //Null means no errors and normal execution.
+        assertNull(databaseUtil.createDeclaredIndex(null, modelIndex));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void twoRunnableAlternativeActionsShouldThrowException() {
+        DatabaseUtil databaseUtil = TEST_ALTERNATIVE_FUNCTION_DB_UTIL;
+        ModelIndex modelIndex = new ModelIndex();
+        modelIndex.addAlternativeAction(new SuspendingAlternativeAction());
+        modelIndex.addAlternativeAction(new SuspendingAlternativeAction());
+
+        databaseUtil.createDeclaredIndex(null, modelIndex);
+    }
 
     private ModelEntity createSimpleModelEntity(String tableAndEntityName, String... fields) {
         ModelEntity authorModelEntity = new ModelEntity();

@@ -81,14 +81,16 @@
                 rel-field-name CDATA #IMPLIED >
 
         <!-- ==================== index ===================== -->
-        <!ELEMENT index ( index-field+ )>
+        <!ELEMENT index ( index-field+, alternative* )>
         <!ATTLIST index
                 name CDATA #REQUIRED
                 unique ( true | false ) "false" >
         <!ELEMENT index-field EMPTY>
         <!ATTLIST index-field
                 name CDATA #REQUIRED >
-
+        <!ELEMENT alternative EMPTY>
+        <!ATTLIST alternative
+                action CDATA #REQUIRED >
         <!-- ==================== function-based-index ===================== -->
         <!ELEMENT function-based-index ( builder )>
         <!ATTLIST function-based-index
