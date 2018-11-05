@@ -23,13 +23,20 @@
  */
 package org.ofbiz.core.entity.model;
 
+import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.jdbc.DatabaseUtil;
+import org.ofbiz.core.entity.jdbc.alternative.IndexAlternativeAction;
+import org.ofbiz.core.entity.util.ClassLoaderUtils;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Generic Entity - Relation model class
@@ -58,7 +65,9 @@ public class ModelIndex {
     /**
      * list of the field names included in this index
      */
-    protected List<String> fieldNames = new ArrayList<String>();
+    protected List<String> fieldNames = new ArrayList<>();
+
+    protected List<IndexAlternativeAction> alternativeActions = new ArrayList<>();
 
     /**
      * Default Constructor
@@ -73,7 +82,11 @@ public class ModelIndex {
      */
     public ModelIndex(ModelEntity mainEntity, Element indexElement) {
         this.mainEntity = mainEntity;
+        populateFieldsFromIndexElement(indexElement);
+        instantiateAlternativeActionsFromIndexElement(indexElement);
+    }
 
+    private void populateFieldsFromIndexElement(Element indexElement) {
         this.name = UtilXml.checkEmpty(indexElement.getAttribute("name"));
         this.unique = "true".equals(UtilXml.checkEmpty(indexElement.getAttribute("unique")));
 
@@ -84,6 +97,26 @@ public class ModelIndex {
             if (indexFieldElement.getParentNode() == indexElement) {
                 String fieldName = indexFieldElement.getAttribute("name");
                 this.fieldNames.add(fieldName);
+            }
+        }
+    }
+
+    private void instantiateAlternativeActionsFromIndexElement(Element indexElement) {
+        NodeList alternativeActionList = indexElement.getElementsByTagName("alternative");
+
+        for (int i = 0; i < alternativeActionList.getLength(); i++) {
+            try {
+                Element alternativeAction = (Element) alternativeActionList.item(i);
+                String actionClass = alternativeAction.getAttribute("action");
+
+                IndexAlternativeAction indexAlternativeAction =
+                        (IndexAlternativeAction) ClassLoaderUtils
+                                .loadClass(actionClass, ModelIndex.class)
+                                .newInstance();
+
+                alternativeActions.add(indexAlternativeAction);
+            } catch (ReflectiveOperationException re) {
+                throw new RuntimeException(re);
             }
         }
     }
@@ -139,5 +172,29 @@ public class ModelIndex {
 
     public String removeIndexField(int index) {
         return this.fieldNames.remove(index);
+    }
+
+
+    public Optional<IndexAlternativeAction> getAlternativeIndexAction(DatabaseUtil dbUtil) throws SQLException, GenericEntityException {
+        List<IndexAlternativeAction> runnableAlternativeActions = new LinkedList<>();
+
+        for (IndexAlternativeAction alternativeAction : alternativeActions) {
+            if (alternativeAction.shouldRun(mainEntity, this, dbUtil)) {
+                runnableAlternativeActions.add(alternativeAction);
+            }
+        }
+
+        switch (runnableAlternativeActions.size()) {
+            case 0:
+                return Optional.empty();
+            case 1:
+                return Optional.of(runnableAlternativeActions.get(0));
+            default:
+                throw new IllegalStateException("There can't be two runnable alternative actions for one index");
+        }
+    }
+
+    public void addAlternativeAction(IndexAlternativeAction indexAlternativeAction) {
+        alternativeActions.add(indexAlternativeAction);
     }
 }

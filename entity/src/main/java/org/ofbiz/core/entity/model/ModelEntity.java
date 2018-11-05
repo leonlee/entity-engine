@@ -1044,7 +1044,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
 
         /* This DOESN'T WORK, so forget it... using two passes
          //sort list by fk dependencies
-         
+
          if (this.getEntityName().equals(otherModelEntity.getEntityName())) {
          return 0;
          }
@@ -1059,7 +1059,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
          return -1;
          }
          }
-         
+
          //look through relations for dependencies from the other to this entity
          Iterator otherRelationsIter = otherModelEntity.getRelationsIterator();
          while (otherRelationsIter.hasNext()) {
@@ -1070,7 +1070,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
          return 1;
          }
          }
-         
+
          return 0;
          */
 

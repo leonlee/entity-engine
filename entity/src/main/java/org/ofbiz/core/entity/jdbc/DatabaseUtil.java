@@ -31,6 +31,7 @@ import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.alternative.IndexAlternativeAction;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.jdbc.dbtype.Oracle10GDatabaseType;
@@ -60,6 +61,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -228,8 +230,7 @@ public class DatabaseUtil {
                         ModelField field = entity.getField(fnum);
                         fieldColNames.put(field.getColName().toUpperCase(), field);
                     }
-                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); )
-                    {
+                    for (Iterator<ModelFunctionBasedIndex> iter = entity.getFunctionBasedIndexesIterator(); iter.hasNext(); ) {
                         ModelFunctionBasedIndex fbIndex = iter.next();
                         ModelField mf = fbIndex.getVirtualColumnModelField(datasourceInfo.getDatabaseTypeFromJDBCConnection());
                         if (mf != null) {
@@ -1747,7 +1748,7 @@ public class DatabaseUtil {
 
     public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
         Connection connection;
-        
+
 
         try {
             connection = getConnection();
@@ -1755,6 +1756,15 @@ public class DatabaseUtil {
             return "Unable to establish a connection with the database... Error was: " + sqle.toString();
         } catch (GenericEntityException e) {
             return "Unable to establish a connection with the database... Error was: " + e.toString();
+        }
+
+        try {
+            Optional<IndexAlternativeAction> indexAlternativeAction = modelIndex.getAlternativeIndexAction(this);
+            if (indexAlternativeAction.isPresent()) {
+                return indexAlternativeAction.get().run(entity, modelIndex, this);
+            }
+        } catch (SQLException | GenericEntityException ex) {
+            return "Unable to handle alternative action... Error was: " + ex.toString();
         }
 
         String createIndexSql = makeIndexClause(entity, modelIndex);
@@ -1919,7 +1929,7 @@ public class DatabaseUtil {
         }
 
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
-        StringBuilder indexSqlBuf =  generateIndexClause(entity, false, relConstraintName, mainCols.toString());
+        StringBuilder indexSqlBuf = generateIndexClause(entity, false, relConstraintName, mainCols.toString());
         return indexSqlBuf.toString();
     }
 
