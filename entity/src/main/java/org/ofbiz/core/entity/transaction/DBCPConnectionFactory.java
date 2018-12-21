@@ -188,6 +188,9 @@ public class DBCPConnectionFactory {
             if (poolInfo.getValidationQueryTimeout() != null) {
                 dataSource.setValidationQueryTimeout(poolInfo.getValidationQueryTimeout());
             }
+            if (poolInfo.getTestOnCreate() != null) {
+                dataSource.setTestOnCreate(poolInfo.getTestOnCreate());
+            }
         }
 
         if (poolInfo.getPoolPreparedStatements() != null) {
@@ -219,6 +222,18 @@ public class DBCPConnectionFactory {
 
         if (poolInfo.getTimeBetweenEvictionRunsMillis() != null) {
             dataSource.setTimeBetweenEvictionRunsMillis(poolInfo.getTimeBetweenEvictionRunsMillis());
+        }
+
+        if (poolInfo.getLogAbandoned() != null) {
+            dataSource.setLogAbandoned(poolInfo.getLogAbandoned());
+        }
+
+        if (poolInfo.getAbandonedUsageTracking() != null) {
+            dataSource.setAbandonedUsageTracking(poolInfo.getAbandonedUsageTracking());
+        }
+
+        if (poolInfo.getLogExpiredConnections() != null) {
+            dataSource.setLogExpiredConnections(poolInfo.getLogExpiredConnections());
         }
 
     }

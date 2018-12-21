@@ -11,6 +11,7 @@ public class ConnectionPoolInfo {
     public static final long DEFAULT_POOL_LIFE_TIME = 600000L;
     public static final long DEFAULT_DEADLOCK_MAX_WAIT = 600000L;
     public static final long DEFAULT_DEADLOCK_RETRY_WAIT = 10000L;
+    public static final boolean DEFAULT_LOG_EXPIRED_CONNECTIONS = false;
 
     private final int maxSize;  // maxActive for DBCP
     private final int minSize;  // minIdle for DBCP
@@ -41,6 +42,10 @@ public class ConnectionPoolInfo {
     private final Boolean testWhileIdle;
     private final Integer validationQueryTimeout;
     private final String validationQuery;
+    private final Boolean logAbandoned;
+    private final Boolean abandonedUsageTracking;
+    private final Boolean logExpiredConnections;
+    private final Boolean testOnCreate;
 
     public static Builder builder() {
         return new Builder();
@@ -85,6 +90,10 @@ public class ConnectionPoolInfo {
         timeBetweenEvictionRunsMillis = builder.getTimeBetweenEvictionRunsMillis();
         validationQuery = builder.getValidationQuery();
         validationQueryTimeout = builder.getValidationQueryTimeout();
+        logAbandoned = builder.getLogAbandoned();
+        abandonedUsageTracking = builder.getAbandonedUsageTracking();
+        logExpiredConnections = booleanWithDefault(builder.getLogExpiredConnections(), DEFAULT_LOG_EXPIRED_CONNECTIONS);
+        testOnCreate = builder.getTestOnCreate();
     }
 
     public Builder toBuilder() {
@@ -111,7 +120,11 @@ public class ConnectionPoolInfo {
                 .setTestWhileIdle(testWhileIdle)
                 .setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis)
                 .setValidationQuery(validationQuery)
-                .setValidationQueryTimeout(validationQueryTimeout);
+                .setValidationQueryTimeout(validationQueryTimeout)
+                .setLogAbandoned(logAbandoned)
+                .setAbandonedUsageTracking(abandonedUsageTracking)
+                .setLogExpiredConnections(logExpiredConnections)
+                .setTestOnCreate(testOnCreate);
     }
 
     private Integer nullIfDefault(int value, int defaultValue) {
@@ -127,6 +140,10 @@ public class ConnectionPoolInfo {
     }
 
     private long longWithDefault(Long value, long defaultValue) {
+        return (value != null) ? value : defaultValue;
+    }
+
+    private boolean booleanWithDefault(Boolean value, boolean defaultValue) {
         return (value != null) ? value : defaultValue;
     }
 
@@ -224,6 +241,22 @@ public class ConnectionPoolInfo {
         return defaultCatalog;
     }
 
+    public Boolean getLogAbandoned() {
+        return logAbandoned;
+    }
+
+    public Boolean getAbandonedUsageTracking() {
+        return abandonedUsageTracking;
+    }
+
+    public Boolean getLogExpiredConnections() {
+        return logExpiredConnections;
+    }
+
+    public Boolean getTestOnCreate() {
+        return testOnCreate;
+    }
+
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("ConnectionPoolInfo");
@@ -255,6 +288,10 @@ public class ConnectionPoolInfo {
         sb.append(", removeAbandonedTimeout=").append(removeAbandonedTimeout);
         sb.append(", validationQueryTimeout=").append(validationQueryTimeout);
         sb.append(", defaultCatalog=").append(defaultCatalog);
+        sb.append(", logAbandoned=").append(logAbandoned);
+        sb.append(", abandonedUsageTracking=").append(abandonedUsageTracking);
+        sb.append(", logExpiredConnections=").append(logExpiredConnections);
+        sb.append(", testOnCreate=").append(testOnCreate);
         sb.append('}');
         return sb.toString();
     }
@@ -286,7 +323,11 @@ public class ConnectionPoolInfo {
                 equals(testWhileIdle, other.testWhileIdle) &&
                 equals(timeBetweenEvictionRunsMillis, other.timeBetweenEvictionRunsMillis) &&
                 equals(validationQuery, other.validationQuery) &&
-                equals(validationQueryTimeout, other.validationQueryTimeout);
+                equals(validationQueryTimeout, other.validationQueryTimeout) &&
+                equals(logAbandoned, other.logAbandoned) &&
+                equals(abandonedUsageTracking, other.abandonedUsageTracking) &&
+                equals(logExpiredConnections, other.logExpiredConnections) &&
+                equals(testOnCreate, other.testOnCreate);
     }
 
     @Override
@@ -314,6 +355,10 @@ public class ConnectionPoolInfo {
         h = hash(h, timeBetweenEvictionRunsMillis);
         h = hash(h, validationQueryTimeout);
         h = hash(h, validationQuery);
+        h = hash(h, logAbandoned);
+        h = hash(h, abandonedUsageTracking);
+        h = hash(h, logExpiredConnections);
+        h = hash(h, testOnCreate);
         return h;
     }
 
@@ -356,6 +401,10 @@ public class ConnectionPoolInfo {
         private String defaultCatalog;
         private Long minEvictableTimeMillis;
         private Long timeBetweenEvictionRunsMillis;
+        private Boolean logAbandoned;
+        private Boolean abandonedUsageTracking;
+        private Boolean logExpiredConnections;
+        private Boolean testOnCreate;
 
         /**
          * Returns a new <tt>ConnectionPoolInfo</tt> as specified by the current state
@@ -476,7 +525,6 @@ public class ConnectionPoolInfo {
             this.testOnBorrow = testOnBorrow;
             return this;
         }
-
         public Boolean getTestOnReturn() {
             return testOnReturn;
         }
@@ -573,6 +621,36 @@ public class ConnectionPoolInfo {
 
         public Builder setDeadLockRetryWait(Long deadLockRetryWait) {
             this.deadLockRetryWait = deadLockRetryWait;
+            return this;
+        }
+
+        public Boolean getLogAbandoned() {
+            return logAbandoned;
+        }
+
+        public Builder setLogAbandoned(Boolean logAbandoned) {
+            this.logAbandoned = logAbandoned;
+            return this;
+        }
+
+        public Boolean getAbandonedUsageTracking() { return abandonedUsageTracking;}
+
+        public Builder setAbandonedUsageTracking(Boolean abandonedUsageTracking) {
+            this.abandonedUsageTracking = abandonedUsageTracking;
+            return this;
+        }
+
+        public Boolean getLogExpiredConnections() { return logExpiredConnections;}
+
+        public Builder setLogExpiredConnections(Boolean logExpiredConnections) {
+            this.logExpiredConnections = logExpiredConnections;
+            return this;
+        }
+
+        public Boolean getTestOnCreate() { return testOnCreate;}
+
+        public Builder setTestOnCreate(Boolean testOnCreate) {
+            this.testOnCreate = testOnCreate;
             return this;
         }
 
