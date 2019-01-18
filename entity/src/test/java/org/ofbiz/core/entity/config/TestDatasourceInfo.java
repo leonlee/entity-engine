@@ -96,6 +96,15 @@ public class TestDatasourceInfo {
         assertEquals((Object) 5000L, poolInfo.getTimeBetweenEvictionRunsMillis());
     }
 
+    @Test
+    public void testExternalDataProviders() throws Exception {
+        DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-ExternalUsernameAndPassword.xml");
+        JdbcDatasourceInfo jdbcDatasourceInfo = datasourceInfo.getJdbcDatasource();
+
+        assertEquals("UsernameFromExternalSource", jdbcDatasourceInfo.getUsername());
+        assertEquals("PasswordFromExternalSource", jdbcDatasourceInfo.getPassword());
+    }
+
 
     private DatasourceInfo createDatasourceInfo(String filename) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
