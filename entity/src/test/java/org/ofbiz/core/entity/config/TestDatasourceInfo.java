@@ -1,6 +1,8 @@
 package org.ofbiz.core.entity.config;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.w3c.dom.Document;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -13,6 +15,10 @@ import static org.junit.Assert.assertNotNull;
 /**
  */
 public class TestDatasourceInfo {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
     @Test
     public void testFullJdbcConfig() throws Exception {
         DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-fullJdbcConfig.xml");
@@ -103,6 +109,23 @@ public class TestDatasourceInfo {
 
         assertEquals("UsernameFromExternalSource", jdbcDatasourceInfo.getUsername());
         assertEquals("PasswordFromExternalSource", jdbcDatasourceInfo.getPassword());
+    }
+
+    @Test
+    public void testExternalPasswordClassDoNotExistSoWeDefaultToNormalPass() throws Exception {
+        DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-NotExistingClassForExternalPassword.xml");
+        JdbcDatasourceInfo jdbcDatasourceInfo = datasourceInfo.getJdbcDatasource();
+
+        assertEquals("password", jdbcDatasourceInfo.getPassword());
+    }
+
+    @Test
+    public void testExternalPasswordClassThrowsAnErrorSoWePassThisError() throws Exception {
+        exception.expect(RuntimeException.class);
+        exception.expectMessage("This is exception from external password provider");
+
+        DatasourceInfo datasourceInfo = createDatasourceInfo("/TestDatasourceInfo-ExternalPasswordThrowsAnError.xml");
+        datasourceInfo.getJdbcDatasource();
     }
 
 

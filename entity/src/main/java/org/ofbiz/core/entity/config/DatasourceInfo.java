@@ -2,6 +2,8 @@ package org.ofbiz.core.entity.config;
 
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericHelperDAO;
+import org.ofbiz.core.entity.external.ExternalDataHandler;
+import org.ofbiz.core.entity.external.ExternalDataHandler.ExternalData;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.util.ClassLoaderUtils;
@@ -12,6 +14,7 @@ import org.w3c.dom.Element;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.ofbiz.core.util.UtilValidate.isEmpty;
@@ -178,6 +181,14 @@ public class DatasourceInfo {
             String driverClassName = jdbcDatasourceElement.getAttribute("jdbc-driver");
             String username = jdbcDatasourceElement.getAttribute("jdbc-username");
             String password = jdbcDatasourceElement.getAttribute("jdbc-password");
+
+            ExternalDataHandler externalDataHandler = new ExternalDataHandler();
+            Optional<String> externalUsername = externalDataHandler.getExternalData(jdbcDatasourceElement, ExternalData.USERNAME);
+            Optional<String> externalPassword = externalDataHandler.getExternalData(jdbcDatasourceElement, ExternalData.PASSWORD);
+
+            password = externalPassword.orElse(password);
+            username = externalUsername.orElse(username);
+
             String transIso = jdbcDatasourceElement.getAttribute("isolation-level");
 
             // These defaults are copied out of entity-config.dtd

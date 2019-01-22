@@ -27,11 +27,13 @@ public class TestExternalDataHandler {
 
     @Test
     public void shouldNotFailOnNullArgs() {
-        Optional<String> data = externalDataHandler.getExternalData(null, null);
+        Optional<String> data = externalDataHandler.getExternalData(null, "test");
         assertFalse(data.isPresent());
         data = externalDataHandler.getExternalData(null, ExternalData.PASSWORD);
         assertFalse(data.isPresent());
         data = externalDataHandler.getExternalData(mock(Element.class), null);
+        assertFalse(data.isPresent());
+        data = externalDataHandler.getExternalData("test", null);
         assertFalse(data.isPresent());
     }
 
