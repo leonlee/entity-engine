@@ -48,7 +48,6 @@ public class HikariCPConnectionFactory extends AbstractConnectionFactory {
 
                 // However, properties in the connection pool info will override anything set by the properties file.
                 dataSource = createDataSource(config, jdbcDatasource);
-                dataSource.setLogWriter(Debug.getPrintWriter());
                 dsCache.put(helperName, dataSource);
                 trackerCache.put(helperName, new ConnectionTracker(jdbcDatasource.getConnectionPoolInfo()));
 
