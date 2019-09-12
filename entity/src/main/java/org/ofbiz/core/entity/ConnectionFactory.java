@@ -26,6 +26,7 @@ package org.ofbiz.core.entity;
 
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.transaction.DBCPConnectionFactory;
+import org.ofbiz.core.entity.transaction.HikariCPConnectionFactory;
 import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
@@ -54,8 +55,6 @@ public class ConnectionFactory {
     };
 
     public static Connection getConnection(String helperName) throws SQLException, GenericEntityException {
-        // Debug.logVerbose("Getting a connection", module);
-
         Connection con = TransactionFactory.getConnection(helperName);
         if (con == null) {
             Debug.logError("******* ERROR: No database connection found for helperName \"" + helperName + "\"", module);
@@ -63,13 +62,19 @@ public class ConnectionFactory {
         return con;
     }
 
-    public static Connection tryGenericConnectionSources(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException, GenericEntityException {
-        // first try DBCP
+    public static Connection tryGenericConnectionSources(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException {
         try {
-            Connection con = DBCPConnectionFactory.getConnection(helperName, jdbcDatasource);
-            if (con != null) return con;
+            Connection connection = null;
+            if (jdbcDatasource.useHikariConnectionPool()) {
+                connection = HikariCPConnectionFactory.getConnection(helperName, jdbcDatasource);
+            } else {
+                connection = DBCPConnectionFactory.getConnection(helperName, jdbcDatasource);
+            }
+            if (connection != null) {
+                return connection;
+            }
         } catch (Exception ex) {
-            Debug.logError(ex, "There was an error getting a DBCP datasource.");
+            Debug.logError(ex, "There was an error getting a datasource.");
         }
 
         // Default to plain JDBC.
@@ -84,6 +89,7 @@ public class ConnectionFactory {
                 Debug.logWarning(cnfe);
                 return null;
             }
+
             return DriverManager.getConnection(jdbcDatasource.getUri(),
                     jdbcDatasource.getUsername(), jdbcDatasource.getPassword());
         }

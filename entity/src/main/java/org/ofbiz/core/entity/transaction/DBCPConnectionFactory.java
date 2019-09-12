@@ -26,7 +26,6 @@ package org.ofbiz.core.entity.transaction;
 import com.atlassian.util.concurrent.CopyOnWriteMap;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.log4j.Logger;
@@ -36,12 +35,8 @@ import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
 
-import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -62,7 +57,7 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
  * @version 1.0
  *          Created on Dec 18, 2001, 5:03 PM
  */
-public class DBCPConnectionFactory {
+public class DBCPConnectionFactory extends AbstractConnectionFactory {
     private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
 
     protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
@@ -108,35 +103,16 @@ public class DBCPConnectionFactory {
         } catch (Exception e) {
             Debug.logError(e, "Error getting datasource via DBCP: " + jdbcDatasource);
         } catch (AbstractMethodError err) {
-            if (checkIfProblemMayBeCausedByIsValidMethod(dataSource, err)) {
+            if (checkIfProblemMayBeCausedByIsValidMethod(dataSource.getValidationQuery(), err)) {
 
-                unregisterDatasourceFromJmx(dataSource);
-
-                log.warn("*********************************************** IMPORTANT  ***********************************************");
-                log.warn("                                                                                                          ");
-                log.warn("  We found that you may experience problems with database connectivity because your database driver       ");
-                log.warn("  is not fully JDBC 4 compatible. As a workaround of this problem a validation query was added to your    ");
-                log.warn("  runtime configuration. Please add a line with validation query:                                       \n");
-                log.warn("                          <validation-query>select 1</validation-query>                                 \n");
-                log.warn("  to your JIRA_HOME/dbconfig.xml or update your database driver to version which fully supports JDBC 4.   ");
-                log.warn("  More information about this problem can be found here: https://jira.atlassian.com/browse/JRA-59768      ");
-                log.warn("                                                                                                          ");
-                log.warn("**********************************************************************************************************");
+                unregisterDatasourceFromJmx(dataSource.getJmxName());
+                logType4DriverWarning();
 
                 return getConnection(helperName, getUpdatedJdbcDatasource(jdbcDatasource));
             }
         }
 
         return null;
-    }
-
-    private static void unregisterDatasourceFromJmx(BasicDataSource dataSource) {
-        final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        try {
-            mbs.unregisterMBean(ObjectName.getInstance(dataSource.getJmxName()));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @VisibleForTesting
@@ -148,16 +124,6 @@ public class DBCPConnectionFactory {
 
         return new JdbcDatasourceInfo(jdbcDatasource.getUri(), jdbcDatasource.getDriverClassName(), jdbcDatasource.getUsername(), jdbcDatasource.getPassword(), jdbcDatasource.getIsolationLevel(),
                 jdbcDatasource.getConnectionProperties(), newConnectionPoolInfo);
-    }
-
-    @VisibleForTesting
-    static boolean checkIfProblemMayBeCausedByIsValidMethod(final BasicDataSource dataSource, final AbstractMethodError error) {
-        final String validationQuery = dataSource.getValidationQuery();
-        if (validationQuery == null || validationQuery.isEmpty()) {
-            final List<StackTraceElement> stackTraceElements = Lists.newArrayList(error.getStackTrace());
-            return stackTraceElements.stream().anyMatch(stackTraceElement -> stackTraceElement.getMethodName().contains("isValid"));
-        }
-        return false;
     }
 
     private static void initConnectionPoolSettings(final BasicDataSource dataSource, final ConnectionPoolInfo poolInfo) {
@@ -254,17 +220,7 @@ public class DBCPConnectionFactory {
     }
 
     private static Properties loadDbcpProperties() {
-        Properties dbcpProperties = new Properties();
-
-        // load everything in c3p0.properties
-        InputStream fileProperties = DBCPConnectionFactory.class.getResourceAsStream("/" + DBCP_PROPERTIES);
-        if (fileProperties != null) {
-            try {
-                dbcpProperties.load(fileProperties);
-            } catch (IOException e) {
-                log.error("Error loading " + DBCP_PROPERTIES, e);
-            }
-        }
+        Properties dbcpProperties = loadPropertiesFile(DBCP_PROPERTIES);
 
         // also look at all dbcp.* system properties
         Properties systemProperties = System.getProperties();
@@ -297,7 +253,7 @@ public class DBCPConnectionFactory {
         if (dataSource != null) {
             try {
                 dataSource.close();
-                unregisterMBeanIfPresent();
+                unregisterMBeanIfPresent(dataSource.getJmxName());
             } catch (Exception e) {
                 Debug.logError(e, "Error closing connection pool in DBCP");
             }
@@ -308,20 +264,10 @@ public class DBCPConnectionFactory {
         trackerCache.remove(helperName);
     }
 
-    private static void unregisterMBeanIfPresent() {
-        // We want to make sure mBean will be unregistered
+    private static void unregisterMBeanIfPresent(String poolName) {
         final Properties dbcpProperties = loadDbcpProperties();
         if (dbcpProperties.containsKey(PROP_JMX) && Boolean.valueOf(dbcpProperties.getProperty(PROP_JMX))) {
-            final String mBeanName = dbcpProperties.getProperty(PROP_MBEANNAME);
-            try {
-                final ObjectName objectName = ObjectName.getInstance(dbcpProperties.getProperty(PROP_MBEANNAME));
-                final MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
-                if (platformMBeanServer.isRegistered(objectName)) {
-                    platformMBeanServer.unregisterMBean(objectName);
-                }
-            } catch (Exception e) {
-                log.error("Exception un-registering MBean data source " + mBeanName, e);
-            }
+            unregisterMBean(poolName);
         }
     }
 }

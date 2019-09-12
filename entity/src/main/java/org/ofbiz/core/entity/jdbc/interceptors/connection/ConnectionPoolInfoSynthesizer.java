@@ -1,5 +1,7 @@
 package org.ofbiz.core.entity.jdbc.interceptors.connection;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 
@@ -7,24 +9,26 @@ import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Synthesizes {@link org.ofbiz.core.entity.config.ConnectionPoolInfo}s when there are not know at compile time
+ * Synthesizes {@link org.ofbiz.core.entity.config.ConnectionPoolInfo}s when there are not known at compile time
  */
 public class ConnectionPoolInfoSynthesizer {
     /**
-     * This methods understands that there can be DBCP data sources and it knows how to generate {@link ConnectionPoolInfo} from that
+     * This methods understands that there can be DBCP or hikariCP data sources and it knows how to generate {@link ConnectionPoolInfo} from that
      * under lying data source.
      *
-     * @param ds the
+     * @param ds the  Datasource
      * @return ConnectionPoolInfo
      */
     public static ConnectionPoolInfo synthesizeConnectionPoolInfo(final DataSource ds) {
-        if (ds instanceof BasicDataSource) {
+
+        if (ds instanceof HikariDataSource) {
+            return copyHikariDataSource((HikariDataSource) ds);
+        }
+        else if (ds instanceof BasicDataSource) {
             return copyBasicDataSource((BasicDataSource) ds);
         }
-        //
         // Tomcat in its infinite wisdom renames the package structure of BasicDataSource without actually changing it
-        // so we have to use reflection to get this to happen at runtime
-        //
+        // so we have to use reflection to get this to happen at runtime.
         else if ("org.apache.tomcat.dbcp.dbcp2.BasicDataSource".equals(ds.getClass().getName())) {
             return reflectDataSourceTomcatDbcp2(ds);
         } else if ("org.apache.tomcat.jdbc.pool.DataSource".equals(ds.getClass().getName())) {
@@ -32,6 +36,19 @@ public class ConnectionPoolInfoSynthesizer {
         } else {
             return ConnectionTracker.UNKNOWN_CONNECTION_POOL_INFO;
         }
+    }
+
+    private static ConnectionPoolInfo copyHikariDataSource(HikariDataSource hikariDataSource) {
+        // HikariCP doesn't support eviction properties.
+        return new ConnectionPoolInfo(
+                hikariDataSource.getMaximumPoolSize(),
+                hikariDataSource.getMinimumIdle(),
+                hikariDataSource.getConnectionTimeout(),
+                -1, -1,
+                -1, -1,
+                hikariDataSource.getConnectionTestQuery(),
+                -1L, -1L
+        );
     }
 
     private static ConnectionPoolInfo copyBasicDataSource(BasicDataSource bds) {

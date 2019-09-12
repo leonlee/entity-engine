@@ -22,7 +22,7 @@ public class DBCPConnectionFactoryTest {
         when(dataSource.getValidationQuery()).thenReturn(null);
         when(methodError.getStackTrace()).thenReturn(new StackTraceElement[]{new StackTraceElement("DBCPConnectionFactory", "isValid", "someFile", 10)});
 
-        assertEquals(true, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource, methodError));
+        assertEquals(true, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource.getValidationQuery(), methodError));
     }
 
     @Test
@@ -33,7 +33,7 @@ public class DBCPConnectionFactoryTest {
         when(dataSource.getValidationQuery()).thenReturn(null);
         when(methodError.getStackTrace()).thenReturn(new StackTraceElement[]{new StackTraceElement("DBCPConnectionFactory", "isNotValid", "someFile", 10)});
 
-        assertEquals(false, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource, methodError));
+        assertEquals(false, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource.getValidationQuery(), methodError));
     }
 
     @Test
@@ -44,7 +44,7 @@ public class DBCPConnectionFactoryTest {
         when(dataSource.getValidationQuery()).thenReturn("select 1");
         when(methodError.getStackTrace()).thenReturn(new StackTraceElement[]{new StackTraceElement("DBCPConnectionFactory", "isValid", "someFile", 10)});
 
-        assertEquals(false, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource, methodError));
+        assertEquals(false, DBCPConnectionFactory.checkIfProblemMayBeCausedByIsValidMethod(dataSource.getValidationQuery(), methodError));
     }
 
     @Test

@@ -4,16 +4,16 @@ package org.ofbiz.core.entity.config;
  * Connection pool configuration
  */
 public class ConnectionPoolInfo {
-    public static final int DEFAULT_POOL_MAX_SIZE = 8;  // maxActive
-    public static final int DEFAULT_POOL_MIN_SIZE = 2;  // minIdle
+    public static final int DEFAULT_POOL_MAX_SIZE = 8;
+    public static final int DEFAULT_POOL_MIN_SIZE = 2;
     public static final long DEFAULT_POOL_MAX_WAIT = 60000L;
     public static final long DEFAULT_POOL_SLEEP_TIME = 300000L;
     public static final long DEFAULT_POOL_LIFE_TIME = 600000L;
     public static final long DEFAULT_DEADLOCK_MAX_WAIT = 600000L;
     public static final long DEFAULT_DEADLOCK_RETRY_WAIT = 10000L;
 
-    private final int maxSize;  // maxActive for DBCP
-    private final int minSize;  // minIdle for DBCP
+    private final int maxSize;
+    private final int minSize;
     private final int maxIdle;
     private final long maxWait;
 
@@ -46,8 +46,16 @@ public class ConnectionPoolInfo {
         return new Builder();
     }
 
-    public ConnectionPoolInfo(Integer maxSize, Integer minSize, Long maxWait, long sleepTime, long lifeTime, long deadLockMaxWait,
-                              long deadLockRetryWait, String validationQuery, Long minEvictableTimeMillis, Long timeBetweenEvictionRunsMillis) {
+    public ConnectionPoolInfo(Integer maxSize,
+                              Integer minSize,
+                              Long maxWait,
+                              long sleepTime,
+                              long lifeTime,
+                              long deadLockMaxWait,
+                              long deadLockRetryWait,
+                              String validationQuery,
+                              Long minEvictableTimeMillis,
+                              Long timeBetweenEvictionRunsMillis) {
         this(new Builder()
                 .setPoolMaxSize(maxSize)
                 .setPoolMinSize(minSize)
