@@ -1523,14 +1523,14 @@ public class GenericDAO {
     @VisibleForTesting
     static class InReplacement {
         private final String temporaryTableName;
-        private final Collection<?> items;
+        private final Set<?> items;
 
-        public InReplacement(String temporaryTableName, Collection<?> items) {
+        public InReplacement(String temporaryTableName, Set<?> items) {
             this.temporaryTableName = temporaryTableName;
             this.items = items;
         }
 
-        public Collection<?> getItems() {
+        public Set<?> getItems() {
             return items;
         }
 
@@ -1653,9 +1653,10 @@ public class GenericDAO {
                 public EntityCondition apply(final EntityExpr input) {
                     if (input.getOperator().equals(EntityOperator.IN)) {
                         //Generate replacement
-                        InReplacement inReplacement = new InReplacement(generateTemporaryTableName(databaseType), (Collection<?>) input.getRhs());
+                        final Collection<?> items = (Collection<?>) input.getRhs();
+                        final Set<?> itemSet = (items instanceof Set)? (Set<?>)items: new HashSet<>(items);
+                        InReplacement inReplacement = new InReplacement(generateTemporaryTableName(databaseType), itemSet);
                         inReplacements.add(inReplacement);
-
                         EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName());
                         EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
                         return replacementCondition;
@@ -1693,7 +1694,7 @@ public class GenericDAO {
          * @param sqlP      SQL procesor to use.
          * @throws GenericEntityException if an error occurs.
          */
-        private void generateTemporaryTable(String tableName, Collection<?> items, SQLProcessor sqlP)
+        private void generateTemporaryTable(String tableName, Set<?> items, SQLProcessor sqlP)
                 throws GenericEntityException {
             //Ensure connection is created
             sqlP.getConnection();

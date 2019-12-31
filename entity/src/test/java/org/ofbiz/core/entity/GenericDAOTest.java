@@ -26,6 +26,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -311,7 +314,8 @@ public class GenericDAOTest {
 
     @Test
     public void testRewriteWithTemporaryTables() {
-        List<Integer> ids = Collections.nCopies(2001, 1);
+        final int rewriteTriggerThreshold = GenericDAO.MS_SQL_MAX_PARAMETER_COUNT + 2;
+        final Set<Integer> ids = IntStream.range(1, rewriteTriggerThreshold).mapToObj(Integer::valueOf).collect(Collectors.toSet());
         ModelEntity modelEntity = new ModelEntity();
         ModelField field = new ModelField();
         field.setName("test");
@@ -338,8 +342,32 @@ public class GenericDAOTest {
     }
 
     @Test
+    public void testRewriteWithTemporaryTablesUsesUniqueValues() {
+        final int numberOfUniqueElements = 1110;
+        // given
+        final ModelEntity modelEntity = new ModelEntity();
+        final ModelField field = new ModelField();
+        field.setName("test");
+        modelEntity.addField(field);
+        final List<Integer> inOperands = new ArrayList<>(IntStream.range(1, numberOfUniqueElements + 1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
+        inOperands.addAll(IntStream.range(1, numberOfUniqueElements +1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, inOperands), modelEntity);
+        // when
+        final Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
+        // then
+        assertTrue("Rewrite should be required.", rewrite.isPresent());
+        final Collection<GenericDAO.InReplacement> replacements = rewrite.get().getInReplacements();
+        assertThat(replacements, hasSize(1));
+        final Set<?> replacementItems = replacements.iterator().next().getItems();
+        assertThat(replacementItems, hasSize(numberOfUniqueElements));
+        for (Integer id : inOperands) {
+            assertTrue("In replacement should contain element " + id, replacementItems.contains(id));
+        }
+    }
+
+    @Test
     public void testRewriteWithTemporaryTablesTwoSmallerInFragments() {
-        List<Integer> ids = Collections.nCopies(1001, 1);
+        final Set<Integer> ids = IntStream.range(1, 1002).mapToObj(Integer::valueOf).collect(Collectors.toSet());
         ModelEntity modelEntity = new ModelEntity();
         ModelField field1 = new ModelField();
         field1.setName("test1");
