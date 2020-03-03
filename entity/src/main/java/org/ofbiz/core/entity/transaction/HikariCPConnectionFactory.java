@@ -1,6 +1,7 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
+import com.google.common.annotations.VisibleForTesting;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
@@ -13,6 +14,7 @@ import java.sql.Connection;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import static org.ofbiz.core.entity.transaction.TransactionIsolations.mapTransactionIsolation;
 import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
 
 /**
@@ -44,7 +46,7 @@ public class HikariCPConnectionFactory extends AbstractConnectionFactory {
 
 
                 // Create the hikari pool config, attempting to load external properties if present.
-                final HikariConfig config = hikariConfigFactory.getHikariConfig(HIKARI_PROPERTIES);
+                final HikariConfig config = createHikariConfig();
 
                 // However, properties in the connection pool info will override anything set by the properties file.
                 dataSource = createDataSource(config, jdbcDatasource);
@@ -65,12 +67,8 @@ public class HikariCPConnectionFactory extends AbstractConnectionFactory {
         return null;
     }
 
-    public static void setHikariConfigFactory(final HikariConfigFactory factory) {
-        hikariConfigFactory = factory;
-    }
-
-    public static void setHikariDatasourceFactory(final HikariDatasourceFactory factory) {
-        hikariDatasourceFactory = factory;
+    private static HikariConfig createHikariConfig() {
+        return hikariConfigFactory.getHikariConfig(HIKARI_PROPERTIES);
     }
 
     private static HikariDataSource createDataSource(final HikariConfig config, final JdbcDatasourceInfo datasourceInfo) {
@@ -91,7 +89,8 @@ public class HikariCPConnectionFactory extends AbstractConnectionFactory {
         }
 
         if (isNotEmpty(datasourceInfo.getIsolationLevel())) {
-            config.setTransactionIsolation(datasourceInfo.getIsolationLevel());
+            config.setTransactionIsolation(
+                    mapTransactionIsolation(datasourceInfo.getIsolationLevel()));
         }
         config.setRegisterMbeans(true);
 

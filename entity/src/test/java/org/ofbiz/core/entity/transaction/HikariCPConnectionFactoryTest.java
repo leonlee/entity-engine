@@ -3,15 +3,25 @@ package org.ofbiz.core.entity.transaction;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.reflect.Whitebox;
 
 import java.sql.Connection;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
+
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({HikariCPConnectionFactory.class})
 public class HikariCPConnectionFactoryTest {
 
     @Test
@@ -53,16 +63,17 @@ public class HikariCPConnectionFactoryTest {
         final ConnectionPoolInfo connectionPoolInfo = getConnectionPoolInfo();
         final JdbcDatasourceInfo jdbcDataSourceInfo = getJdbcDatasourceInfo(connectionPoolInfo);
 
-        HikariConfigFactory configFactory = mock(HikariConfigFactory.class);
-        HikariDatasourceFactory dsFactory = mock(HikariDatasourceFactory.class);
         HikariConfig config = mock(HikariConfig.class);
         HikariDataSource datasource = mock(HikariDataSource.class);
+        HikariConfigFactory configFactory = mock(HikariConfigFactory.class);
+        HikariDatasourceFactory datasourceFactory = mock(HikariDatasourceFactory.class);
         Connection connection = mock(Connection.class);
-        HikariCPConnectionFactory.setHikariConfigFactory(configFactory);
-        HikariCPConnectionFactory.setHikariDatasourceFactory(dsFactory);
+
+        Whitebox.setInternalState(HikariCPConnectionFactory.class, "hikariConfigFactory", configFactory);
+        Whitebox.setInternalState(HikariCPConnectionFactory.class, "hikariDatasourceFactory", datasourceFactory);
 
         when(configFactory.getHikariConfig("hikari.properties")).thenReturn(config);
-        when(dsFactory.createHikariDatasource(config)).thenReturn(datasource);
+        when(datasourceFactory.createHikariDatasource(config)).thenReturn(datasource);
         when(datasource.getConnection()).thenReturn(connection);
 
         // Get an initial connection.
@@ -71,9 +82,9 @@ public class HikariCPConnectionFactoryTest {
         // Get a second connection.
         Connection connection2 = HikariCPConnectionFactory.getConnection("hikari", jdbcDataSourceInfo);
 
-        // Pool configuration should only happen once.
+        // Pool configuration should only happen once, i.e. that second connection won't trigger a recreate.
         verify(config, times(1)).setDriverClassName("org.h2.Driver");
-        verify(config, times(1)).setJdbcUrl("jdbc:mysql://localhost:3306/simpsons");
+        verify(config, times(1)).setJdbcUrl("jdbc:mysql://localhost:3306/bananas");
         verify(config, times(1)).setUsername("sa");
         verify(config, times(1)).setPassword("");
         verify(config, times(1)).setCatalog(null);
@@ -83,15 +94,13 @@ public class HikariCPConnectionFactoryTest {
         verify(config, times(1)).setValidationTimeout(5 * 1000);
         verify(config, times(1)).setTransactionIsolation("TRANSACTION_READ_COMMITTED");
         verify(config, times(1)).setRegisterMbeans(true);
-
         verify(configFactory, times(1)).getHikariConfig("hikari.properties");
-        verify(dsFactory, times(1)).createHikariDatasource(config);
-
+        verify(datasourceFactory, times(1)).createHikariDatasource(config);
     }
 
     private JdbcDatasourceInfo getJdbcDatasourceInfo(ConnectionPoolInfo connectionPoolInfo) {
         return new JdbcDatasourceInfo(
-                "jdbc:mysql://localhost:3306/simpsons", "org.h2.Driver", "sa", "",
+                "jdbc:mysql://localhost:3306/bananas", "org.h2.Driver", "sa", "",
                 "TRANSACTION_READ_COMMITTED", new Properties(), connectionPoolInfo);
     }
 
@@ -100,5 +109,4 @@ public class HikariCPConnectionFactoryTest {
                 .setPoolInitialSize(10).setPoolMinSize(5).setPoolMaxSize(20)
                 .setValidationQuery("select 1").setValidationQueryTimeout(5).build();
     }
-
 }

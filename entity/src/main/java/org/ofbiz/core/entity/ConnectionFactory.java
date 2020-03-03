@@ -65,10 +65,10 @@ public class ConnectionFactory {
     public static Connection tryGenericConnectionSources(String helperName, JdbcDatasourceInfo jdbcDatasource) throws SQLException {
         try {
             Connection connection = null;
-            if (jdbcDatasource.useHikariConnectionPool()) {
-                connection = HikariCPConnectionFactory.getConnection(helperName, jdbcDatasource);
-            } else {
+            if (jdbcDatasource.useDbcp2ConnectionPool()) {
                 connection = DBCPConnectionFactory.getConnection(helperName, jdbcDatasource);
+            } else {
+                connection = HikariCPConnectionFactory.getConnection(helperName, jdbcDatasource);
             }
             if (connection != null) {
                 return connection;

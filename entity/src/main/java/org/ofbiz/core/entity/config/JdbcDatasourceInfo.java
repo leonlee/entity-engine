@@ -15,7 +15,7 @@ public class JdbcDatasourceInfo {
     private final String isolationLevel;
     private final Properties connectionProperties;
     private final ConnectionPoolInfo connectionPoolInfo;
-    private final boolean useHikariConnectionPool;
+    private final boolean useDbcp2ConnectionPool;
 
     public JdbcDatasourceInfo(final String uri, final String driverClassName, final String username, final String password,
                               final String isolationLevel, final Properties connectionProperties, final ConnectionPoolInfo connectionPoolInfo) {
@@ -26,12 +26,12 @@ public class JdbcDatasourceInfo {
         this.isolationLevel = isolationLevel;
         this.connectionProperties = PropertyUtils.copyOf(connectionProperties);
         this.connectionPoolInfo = connectionPoolInfo;
-        this.useHikariConnectionPool = false;
+        this.useDbcp2ConnectionPool = false;
     }
 
     public JdbcDatasourceInfo(final String uri, final String driverClassName, final String username, final String password,
                               final String isolationLevel, final Properties connectionProperties, final ConnectionPoolInfo connectionPoolInfo,
-                              final boolean useHikariConnectionPool) {
+                              final boolean useDbcp2ConnectionPool) {
         this.uri = uri;
         this.driverClassName = driverClassName;
         this.username = username;
@@ -39,7 +39,7 @@ public class JdbcDatasourceInfo {
         this.isolationLevel = isolationLevel;
         this.connectionProperties = PropertyUtils.copyOf(connectionProperties);
         this.connectionPoolInfo = connectionPoolInfo;
-        this.useHikariConnectionPool = useHikariConnectionPool;
+        this.useDbcp2ConnectionPool = useDbcp2ConnectionPool;
     }
 
 
@@ -71,7 +71,7 @@ public class JdbcDatasourceInfo {
         return connectionPoolInfo;
     }
 
-    public boolean useHikariConnectionPool() { return useHikariConnectionPool; }
+    public boolean useDbcp2ConnectionPool() { return useDbcp2ConnectionPool; }
 
     @Override
     public String toString() {
@@ -84,7 +84,7 @@ public class JdbcDatasourceInfo {
         sb.append(", isolationLevel='").append(isolationLevel).append('\'');
         sb.append(", connectionProperties=").append(connectionProperties);
         sb.append(", connectionPoolInfo=").append(connectionPoolInfo).append('\'');
-        sb.append(", useHikariConnectionPool=").append(useHikariConnectionPool);
+        sb.append(", useDbcp2ConnectionPool=").append(useDbcp2ConnectionPool);
         sb.append('}');
         return sb.toString();
     }
