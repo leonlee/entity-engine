@@ -23,13 +23,17 @@
  */
 package org.ofbiz.core.entity.model;
 
+import com.google.common.collect.Sets;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
 import org.ofbiz.core.util.UtilXml;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Generic Entity - Field model class
@@ -39,6 +43,9 @@ import java.util.List;
  * @since 2.0
  */
 public class ModelField {
+    private Set<String> reserved = Sets.newHashSet(
+            "lead", "LEAD",
+            "description", "DESCRIPTION");
 
     /**
      * The name of the Field
@@ -144,6 +151,12 @@ public class ModelField {
      */
     public String getColName() {
         return this.colName;
+    }
+
+    public String getSafeColName() {
+        if (reserved.contains(this.colName)) {
+            return "`" + this.colName + "`";
+        } else return this.colName;
     }
 
     public void setColName(String colName) {

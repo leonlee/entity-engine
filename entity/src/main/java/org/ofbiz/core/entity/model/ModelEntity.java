@@ -784,10 +784,10 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append(separator);
         }
-        returnString.append(flds.get(i).colName);
+        returnString.append(flds.get(i).getSafeColName());
         returnString.append(afterLast);
         return returnString.toString();
     }
@@ -823,12 +823,12 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append(" like {");
             returnString.append(i);
             returnString.append("} AND ");
         }
-        returnString.append(flds.get(i).colName);
+        returnString.append(flds.get(i).getSafeColName());
         returnString.append(" like {");
         returnString.append(i);
         returnString.append("}");
@@ -847,7 +847,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
             returnString.append("\"");
             returnString.append(tableName);
             returnString.append("_");
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append("=\" + ");
             returnString.append(flds.get(i).name);
             returnString.append(" + \"&\" + ");
@@ -855,7 +855,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
         returnString.append("\"");
         returnString.append(tableName);
         returnString.append("_");
-        returnString.append(flds.get(i).colName);
+        returnString.append(flds.get(i).getSafeColName());
         returnString.append("=\" + ");
         returnString.append(flds.get(i).name);
         return returnString.toString();
@@ -874,7 +874,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
             returnString.append("\"");
             returnString.append(tableName);
             returnString.append("_");
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append("=\" + ");
             returnString.append(ModelUtil.lowerFirstChar(entityName));
             returnString.append(".get");
@@ -884,7 +884,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
         returnString.append("\"");
         returnString.append(tableName);
         returnString.append("_");
-        returnString.append(flds.get(i).colName);
+        returnString.append(flds.get(i).getSafeColName());
         returnString.append("=\" + ");
         returnString.append(ModelUtil.lowerFirstChar(entityName));
         returnString.append(".get");
@@ -906,7 +906,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
             returnString.append("\"");
             returnString.append(tableName);
             returnString.append("_");
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append("=\" + ");
             returnString.append(ModelUtil.lowerFirstChar(entityName));
             returnString.append(entityNameSuffix);
@@ -917,7 +917,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
         returnString.append("\"");
         returnString.append(tableName);
         returnString.append("_");
-        returnString.append(flds.get(i).colName);
+        returnString.append(flds.get(i).getSafeColName());
         returnString.append("=\" + ");
         returnString.append(ModelUtil.lowerFirstChar(entityName));
         returnString.append(entityNameSuffix);
@@ -943,7 +943,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
                 returnString.append("\"");
                 returnString.append(tableName);
                 returnString.append("_");
-                returnString.append(flds.get(i).colName);
+                returnString.append(flds.get(i).getSafeColName());
                 returnString.append("=\" + ");
                 returnString.append(ModelUtil.lowerFirstChar(relation.mainEntity.entityName));
                 returnString.append(".get");
@@ -959,7 +959,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
             returnString.append("\"");
             returnString.append(tableName);
             returnString.append("_");
-            returnString.append(flds.get(i).colName);
+            returnString.append(flds.get(i).getSafeColName());
             returnString.append("=\" + ");
             returnString.append(ModelUtil.lowerFirstChar(relation.mainEntity.entityName));
             returnString.append(".get");

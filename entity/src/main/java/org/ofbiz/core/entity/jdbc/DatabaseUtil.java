@@ -1322,7 +1322,7 @@ public class DatabaseUtil {
                 return "Field type [" + type + "] not found for field [" + field.getName() + "] of entity [" + entity.getEntityName() + "], not creating table.";
             }
 
-            sqlBuf.append(field.getColName());
+            sqlBuf.append(field.getSafeColName());
             sqlBuf.append(" ");
             sqlBuf.append(type.getSqlType());
             if (field.getIsPk()) {
