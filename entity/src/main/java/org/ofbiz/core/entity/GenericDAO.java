@@ -44,6 +44,7 @@ import org.ofbiz.core.entity.jdbc.ReadOnlySQLProcessor;
 import org.ofbiz.core.entity.jdbc.SQLProcessor;
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
@@ -111,6 +112,7 @@ public class GenericDAO {
     protected DatasourceInfo datasourceInfo;
     private final LimitHelper limitHelper;
     private final CountHelper countHelper;
+    private final SqlEscapeHelper sqlEscapeHelper;
 
     public static synchronized void removeGenericDAO(String helperName) {
         genericDAOs.remove(helperName);
@@ -146,6 +148,7 @@ public class GenericDAO {
         this.helperName = helperName;
         this.modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
         this.datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        this.sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
         this.limitHelper = new LimitHelper(datasourceInfo.getFieldTypeName());
         this.countHelper = new CountHelper();
     }
@@ -157,6 +160,7 @@ public class GenericDAO {
         this.datasourceInfo = datasourceInfo;
         this.limitHelper = limitHelper;
         this.countHelper = countHelper;
+        this.sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
     }
 
     public int insert(GenericEntity entity) throws GenericEntityException {
@@ -188,7 +192,7 @@ public class GenericDAO {
         }
 
         final String sql = "INSERT INTO " + modelEntity.getTableName(datasourceInfo) + " (" +
-                modelEntity.colNameString(fieldsToSave) + ") VALUES (" +
+                modelEntity.colNameString(fieldsToSave, sqlEscapeHelper) + ") VALUES (" +
                 modelEntity.fieldsStringList(fieldsToSave, "?", ", ") + ')';
 
         SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -338,7 +342,7 @@ public class GenericDAO {
 
         final String sql = String.format("UPDATE %s SET %s WHERE %s",
                 modelEntity.getTableName(datasourceInfo),
-                modelEntity.colNameString(fieldsToSave, "=?, ", "=?"),
+                modelEntity.colNameString(fieldsToSave, "=?, ", "=?", sqlEscapeHelper),
                 makeWhereStringFromFields(whereFields, entity, "AND"));
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -607,11 +611,11 @@ public class GenericDAO {
 
         StringBuilder sqlBuffer = new StringBuilder(256).append("SELECT ");
         if (modelEntity.getNopksSize() > 0) {
-            sqlBuffer.append(modelEntity.colNameString(modelEntity.getNopksCopy(), ", ", ""));
+            sqlBuffer.append(modelEntity.colNameString(modelEntity.getNopksCopy(), ", ", "", sqlEscapeHelper));
         } else {
             sqlBuffer.append('*');
         }
-        sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
+        sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
         sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
 
         final String sql = sqlBuffer.toString();
@@ -678,11 +682,11 @@ public class GenericDAO {
 
         StringBuilder sqlBuffer = new StringBuilder("SELECT ");
         if (partialFields.size() > 0) {
-            sqlBuffer.append(modelEntity.colNameString(partialFields, ", ", ""));
+            sqlBuffer.append(modelEntity.colNameString(partialFields, ", ", "", sqlEscapeHelper));
         } else {
             sqlBuffer.append('*');
         }
-        sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
+        sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
         sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
 
         final String sql = sqlBuffer.toString();
@@ -943,13 +947,13 @@ public class GenericDAO {
         }
 
         if (selectFields != null && !selectFields.isEmpty()) {
-            sqlBuilder.append(modelEntity.colNameString(selectFields, ", ", ""));
+            sqlBuilder.append(modelEntity.colNameString(selectFields, ", ", "", sqlEscapeHelper));
         } else {
             sqlBuilder.append("*");
         }
 
         // FROM clause and when necessary the JOIN or LEFT JOIN clause(s) as well
-        sqlBuilder.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo));
+        sqlBuilder.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
 
         // WHERE clause
         final StringBuilder whereString = new StringBuilder();
@@ -980,7 +984,7 @@ public class GenericDAO {
         // GROUP BY clause for view-entity
         if (modelEntity instanceof ModelViewEntity) {
             final ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
-            final String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
+            final String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "", sqlEscapeHelper);
             if (isNotEmpty(groupByString)) {
                 sqlBuilder.append(" GROUP BY ");
                 sqlBuilder.append(groupByString);

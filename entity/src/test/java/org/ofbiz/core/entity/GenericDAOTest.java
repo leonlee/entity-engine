@@ -15,6 +15,7 @@ import org.mockito.MockitoAnnotations;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.SQLProcessor;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldTypeReader;
@@ -43,9 +44,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -55,6 +58,7 @@ import static org.ofbiz.core.entity.EntityOperator.IN;
 import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MYSQL;
+import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MYSQL8;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES_7_3;
@@ -160,7 +164,8 @@ public class GenericDAOTest {
         final ModelField mockFirstNameField = mock(ModelField.class);
         final ModelField mockLastNameField = mock(ModelField.class);
         final List<ModelField> selectFields = asList(mockFirstNameField, mockLastNameField);
-        when(mockModelEntity.colNameString(selectFields, ", ", "")).thenReturn("FIRST_NAME, LAST_NAME");
+        when(mockModelEntity.colNameString(eq(selectFields), eq(", "), eq(""),
+                any(SqlEscapeHelper.class))).thenReturn("FIRST_NAME, LAST_NAME");
 
         // Invoke
         final String sql = dao.getSelectQuery(
@@ -176,7 +181,8 @@ public class GenericDAOTest {
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
         final ModelField mockFirstNameField = mock(ModelField.class);
         final List<ModelField> selectFields = singletonList(mockFirstNameField);
-        when(mockModelEntity.colNameString(selectFields, ", ", "")).thenReturn("FIRST_NAME");
+        when(mockModelEntity.colNameString(eq(selectFields), eq(", "), eq(""),
+                any(SqlEscapeHelper.class))).thenReturn("FIRST_NAME");
         when(mockFindOptions.getDistinct()).thenReturn(true);
 
         // Invoke
@@ -193,7 +199,8 @@ public class GenericDAOTest {
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
         final ModelField mockFirstNameField = mock(ModelField.class);
         final List<ModelField> selectFields = singletonList(mockFirstNameField);
-        when(mockModelEntity.colNameString(selectFields, ", ", "")).thenReturn("FIRST_NAME");
+        when(mockModelEntity.colNameString(eq(selectFields), eq(", "), eq(""),
+                any(SqlEscapeHelper.class))).thenReturn("FIRST_NAME");
         when(mockFindOptions.getDistinct()).thenReturn(true);
         final EntityCondition mockWhereCondition = mock(EntityCondition.class);
         final List<EntityConditionParam> whereConditionParams = new ArrayList<EntityConditionParam>();
@@ -212,11 +219,11 @@ public class GenericDAOTest {
         // Set up
         final ModelViewEntity mockModelViewEntity = mock(ModelViewEntity.class);
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
-        @SuppressWarnings("unchecked")
-        final List<ModelField> mockGroupBysCopy = mock(List.class);
+        @SuppressWarnings("unchecked") final List<ModelField> mockGroupBysCopy = mock(List.class);
         when(mockModelViewEntity.getGroupBysCopy()).thenReturn(mockGroupBysCopy);
         final String groupByString = "LAST_NAME";
-        when(mockModelViewEntity.colNameString(mockGroupBysCopy, ", ", "")).thenReturn(groupByString);
+        when(mockModelViewEntity.colNameString(eq(mockGroupBysCopy), eq(", "), eq(""),
+                any(SqlEscapeHelper.class))).thenReturn(groupByString);
         when(mockDatasourceInfo.getJoinStyle()).thenReturn("theta-oracle");
         final Map<String, ModelViewEntity.ModelMemberEntity> memberModelMemberEntities = emptyMap();
         when(mockModelViewEntity.getMemberModelMemberEntities()).thenReturn(memberModelMemberEntities);
@@ -255,7 +262,8 @@ public class GenericDAOTest {
         when(mockFindOptions.getMaxResults()).thenReturn(maxResults);
         when(mockFindOptions.getOffset()).thenReturn(offset);
         final List<ModelField> selectFields = singletonList(mockSelectField);
-        when(mockModelEntity.colNameString(selectFields, ", ", "")).thenReturn("Address");
+        when(mockModelEntity.colNameString(eq(selectFields), eq(", "), eq(""),
+                any(SqlEscapeHelper.class))).thenReturn("Address");
         final String sqlWithLimit = "some SQL with a limit";
         when(mockLimitHelper.addLimitClause("SELECT Address FROM Issue", selectFields, offset, maxResults))
                 .thenReturn(sqlWithLimit);
@@ -350,7 +358,7 @@ public class GenericDAOTest {
         field.setName("test");
         modelEntity.addField(field);
         final List<Integer> inOperands = new ArrayList<>(IntStream.range(1, numberOfUniqueElements + 1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
-        inOperands.addAll(IntStream.range(1, numberOfUniqueElements +1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
+        inOperands.addAll(IntStream.range(1, numberOfUniqueElements + 1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
         final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, inOperands), modelEntity);
         // when
         final Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
@@ -432,6 +440,7 @@ public class GenericDAOTest {
         ImmutableMap<DatabaseType, Boolean> databases = ImmutableMap.<DatabaseType, Boolean>builder()
                 .put(MSSQL, true)
                 .put(POSTGRES_7_3, true)
+                .put(MYSQL8, false)
                 .put(MYSQL, false)
                 .put(ORACLE_8I, false)
                 .put(ORACLE_10G, false)
@@ -453,9 +462,9 @@ public class GenericDAOTest {
 
     @Test
     public void testShouldGenerateProperSqlForCreateTable() throws GenericEntityException {
-        verifyCreateTableSql(MSSQL,  Collections.nCopies(50000, 1), "create table #temp1 (item bigint primary key)");
-        verifyCreateTableSql(MSSQL,  Collections.nCopies(50000, "abc"), "create table #temp2 (item varchar(900) COLLATE database_default primary key)");
-        verifyCreateTableSql(POSTGRES_7_3,  Collections.nCopies(50000, 1), "create temporary table temp3 (item bigint primary key)");
+        verifyCreateTableSql(MSSQL, Collections.nCopies(50000, 1), "create table #temp1 (item bigint primary key)");
+        verifyCreateTableSql(MSSQL, Collections.nCopies(50000, "abc"), "create table #temp2 (item varchar(900) COLLATE database_default primary key)");
+        verifyCreateTableSql(POSTGRES_7_3, Collections.nCopies(50000, 1), "create temporary table temp3 (item bigint primary key)");
     }
 
     private <T> void verifyCreateTableSql(DatabaseType databaseType, List<T> list, String expectedSql) throws GenericEntityException {

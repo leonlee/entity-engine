@@ -26,6 +26,7 @@ package org.ofbiz.core.entity.model;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilTimer;
 import org.ofbiz.core.util.UtilXml;
@@ -426,21 +427,6 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return this.neverCache;
     }
 
-    public void setNeverCache(boolean neverCache) {
-        this.neverCache = neverCache;
-    }
-
-    /**
-     * An indicator to specify if this entity requires locking for updates
-     */
-    public boolean getDoLock() {
-        return this.doLock;
-    }
-
-    public void setDoLock(boolean doLock) {
-        this.doLock = doLock;
-    }
-
     public boolean lock() {
         if (doLock && isField(STAMP_FIELD)) {
             return true;
@@ -550,69 +536,18 @@ public class ModelEntity implements Comparable<ModelEntity> {
         }
     }
 
-    public ModelField removeField(int index) {
-        ModelField field = null;
-
-        field = fields.remove(index);
-        if (field == null) return null;
-
-        this.fieldsMap.remove(field.name);
-        if (field.isPk) {
-            pks.remove(field);
-        } else {
-            nopks.remove(field);
-        }
-        return field;
-    }
-
-    public ModelField removeField(String fieldName) {
-        if (fieldName == null) return null;
-        ModelField field = null;
-
-        for (int i = 0; i < fields.size(); i++) {
-            field = fields.get(i);
-            if (field.name.equals(fieldName)) {
-                fields.remove(i);
-                fieldsMap.remove(field.name);
-                if (field.isPk) {
-                    pks.remove(field);
-                } else {
-                    nopks.remove(field);
-                }
-            }
-            field = null;
-        }
-        return field;
-    }
-
-    public List<String> getAllFieldNames() {
-        return getFieldNamesFromFieldVector(fields);
-    }
-
     public List<String> getPkFieldNames() {
         return getFieldNamesFromFieldVector(pks);
     }
 
-    public List<String> getNoPkFieldNames() {
-        return getFieldNamesFromFieldVector(nopks);
-    }
-
     public List<String> getFieldNamesFromFieldVector(List<ModelField> modelFields) {
-        List<String> nameList = new ArrayList<String>(modelFields.size());
+        List<String> nameList = new ArrayList<>(modelFields.size());
 
         if (modelFields == null || modelFields.size() <= 0) return nameList;
         for (ModelField field : modelFields) {
             nameList.add(field.name);
         }
         return nameList;
-    }
-
-    public int getRelationsSize() {
-        return this.relations.size();
-    }
-
-    public ModelRelation getRelation(int index) {
-        return this.relations.get(index);
     }
 
     public Iterator<ModelRelation> getRelationsIterator() {
@@ -627,40 +562,12 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return null;
     }
 
-    public void addRelation(ModelRelation relation) {
-        this.relations.add(relation);
-    }
-
-    public ModelRelation removeRelation(int index) {
-        return this.relations.remove(index);
-    }
-
-    public int getIndexesSize() {
-        return this.indexes.size();
-    }
-
-    public ModelIndex getIndex(int index) {
-        return this.indexes.get(index);
-    }
-
     public Iterator<ModelIndex> getIndexesIterator() {
         return this.indexes.iterator();
     }
 
-    public ModelIndex getIndex(String indexName) {
-        if (indexName == null) return null;
-        for (ModelIndex index : indexes) {
-            if (indexName.equals(index.getName())) return index;
-        }
-        return null;
-    }
-
     public void addIndex(ModelIndex index) {
         this.indexes.add(index);
-    }
-
-    public ModelIndex removeIndex(int index) {
-        return this.indexes.remove(index);
     }
 
     public Iterator<ModelFunctionBasedIndex> getFunctionBasedIndexesIterator() {
@@ -671,85 +578,8 @@ public class ModelEntity implements Comparable<ModelEntity> {
         this.functionBasedIndexes.add(fbindex);
     }
 
-    public String nameString(List<ModelField> flds) {
-        return nameString(flds, ", ", "");
-    }
-
-    public String nameString(List<ModelField> flds, String separator, String afterLast) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).name);
-            returnString.append(separator);
-        }
-        returnString.append(flds.get(i).name);
-        returnString.append(afterLast);
-        return returnString.toString();
-    }
-
-    public String typeNameString(List<ModelField> flds) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            ModelField curField = flds.get(i);
-            returnString.append(curField.type);
-            returnString.append(" ");
-            returnString.append(curField.name);
-            returnString.append(", ");
-        }
-        ModelField curField = flds.get(i);
-        returnString.append(curField.type);
-        returnString.append(" ");
-        returnString.append(curField.name);
-        return returnString.toString();
-    }
-
-    public String fieldNameString() {
-        return fieldNameString(", ", "");
-    }
-
-    public String fieldNameString(String separator, String afterLast) {
-        return nameString(fields, separator, afterLast);
-    }
-
-    public String fieldTypeNameString() {
-        return typeNameString(fields);
-    }
-
-    public String primKeyClassNameString() {
-        return typeNameString(pks);
-    }
-
-    public String pkNameString() {
-        return pkNameString(", ", "");
-    }
-
-    public String pkNameString(String separator, String afterLast) {
-        return nameString(pks, separator, afterLast);
-    }
-
-    public String nonPkNullList() {
-        return fieldsStringList(fields, "null", ", ", false, true);
-    }
-
     public String fieldsStringList(List<ModelField> flds, String eachString, String separator) {
         return fieldsStringList(flds, eachString, separator, false, false);
-    }
-
-    public String fieldsStringList(List<ModelField> flds, String eachString, String separator, boolean appendIndex) {
-        return fieldsStringList(flds, eachString, separator, appendIndex, false);
     }
 
     public String fieldsStringList(List<ModelField> flds, String eachString, String separator, boolean appendIndex, boolean onlyNonPK) {
@@ -770,11 +600,11 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return returnString.toString();
     }
 
-    public String colNameString(List<ModelField> flds) {
-        return colNameString(flds, ", ", "");
+    public String colNameString(List<ModelField> flds, SqlEscapeHelper sqlEscapeHelper) {
+        return colNameString(flds, ", ", "", sqlEscapeHelper);
     }
 
-    public String colNameString(List<ModelField> flds, String separator, String afterLast) {
+    public String colNameString(List<ModelField> flds, String separator, String afterLast, SqlEscapeHelper sqlEscapeHelper) {
         StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
@@ -784,259 +614,11 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).colName);
+            returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
             returnString.append(separator);
         }
-        returnString.append(flds.get(i).colName);
+        returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
         returnString.append(afterLast);
-        return returnString.toString();
-    }
-
-    public String classNameString(List<ModelField> flds) {
-        return classNameString(flds, ", ", "");
-    }
-
-    public String classNameString(List<ModelField> flds, String separator, String afterLast) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-            returnString.append(separator);
-        }
-        returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-        returnString.append(afterLast);
-        return returnString.toString();
-    }
-
-    public String finderQueryString(List<ModelField> flds) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).colName);
-            returnString.append(" like {");
-            returnString.append(i);
-            returnString.append("} AND ");
-        }
-        returnString.append(flds.get(i).colName);
-        returnString.append(" like {");
-        returnString.append(i);
-        returnString.append("}");
-        return returnString.toString();
-    }
-
-    public String httpArgList(List<ModelField> flds) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append("\"");
-            returnString.append(tableName);
-            returnString.append("_");
-            returnString.append(flds.get(i).colName);
-            returnString.append("=\" + ");
-            returnString.append(flds.get(i).name);
-            returnString.append(" + \"&\" + ");
-        }
-        returnString.append("\"");
-        returnString.append(tableName);
-        returnString.append("_");
-        returnString.append(flds.get(i).colName);
-        returnString.append("=\" + ");
-        returnString.append(flds.get(i).name);
-        return returnString.toString();
-    }
-
-    public String httpArgListFromClass(List<ModelField> flds) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append("\"");
-            returnString.append(tableName);
-            returnString.append("_");
-            returnString.append(flds.get(i).colName);
-            returnString.append("=\" + ");
-            returnString.append(ModelUtil.lowerFirstChar(entityName));
-            returnString.append(".get");
-            returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-            returnString.append("() + \"&\" + ");
-        }
-        returnString.append("\"");
-        returnString.append(tableName);
-        returnString.append("_");
-        returnString.append(flds.get(i).colName);
-        returnString.append("=\" + ");
-        returnString.append(ModelUtil.lowerFirstChar(entityName));
-        returnString.append(".get");
-        returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-        returnString.append("()");
-        return returnString.toString();
-    }
-
-    public String httpArgListFromClass(List<ModelField> flds, String entityNameSuffix) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            returnString.append("\"");
-            returnString.append(tableName);
-            returnString.append("_");
-            returnString.append(flds.get(i).colName);
-            returnString.append("=\" + ");
-            returnString.append(ModelUtil.lowerFirstChar(entityName));
-            returnString.append(entityNameSuffix);
-            returnString.append(".get");
-            returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-            returnString.append("() + \"&\" + ");
-        }
-        returnString.append("\"");
-        returnString.append(tableName);
-        returnString.append("_");
-        returnString.append(flds.get(i).colName);
-        returnString.append("=\" + ");
-        returnString.append(ModelUtil.lowerFirstChar(entityName));
-        returnString.append(entityNameSuffix);
-        returnString.append(".get");
-        returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
-        returnString.append("()");
-        return returnString.toString();
-    }
-
-    public String httpRelationArgList(List<ModelField> flds, ModelRelation relation) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            ModelKeyMap keyMap = relation.findKeyMapByRelated(flds.get(i).name);
-
-            if (keyMap != null) {
-                returnString.append("\"");
-                returnString.append(tableName);
-                returnString.append("_");
-                returnString.append(flds.get(i).colName);
-                returnString.append("=\" + ");
-                returnString.append(ModelUtil.lowerFirstChar(relation.mainEntity.entityName));
-                returnString.append(".get");
-                returnString.append(ModelUtil.upperFirstChar(keyMap.fieldName));
-                returnString.append("() + \"&\" + ");
-            } else {
-                Debug.logWarning("-- -- ENTITYGEN ERROR:httpRelationArgList: Related Key in Key Map not found for name: " + flds.get(i).name + " related entity: " + relation.relEntityName + " main entity: " + relation.mainEntity.entityName + " type: " + relation.type);
-            }
-        }
-        ModelKeyMap keyMap = relation.findKeyMapByRelated(flds.get(i).name);
-
-        if (keyMap != null) {
-            returnString.append("\"");
-            returnString.append(tableName);
-            returnString.append("_");
-            returnString.append(flds.get(i).colName);
-            returnString.append("=\" + ");
-            returnString.append(ModelUtil.lowerFirstChar(relation.mainEntity.entityName));
-            returnString.append(".get");
-            returnString.append(ModelUtil.upperFirstChar(keyMap.fieldName));
-            returnString.append("()");
-        } else {
-            Debug.logWarning("-- -- ENTITYGEN ERROR:httpRelationArgList: Related Key in Key Map not found for name: " + flds.get(i).name + " related entity: " + relation.relEntityName + " main entity: " + relation.mainEntity.entityName + " type: " + relation.type);
-        }
-        return returnString.toString();
-    }
-
-    /*
-     public String httpRelationArgList(ModelRelation relation) {
-     String returnString = "";
-     if(relation.keyMaps.size() < 1) { return ""; }
-
-     int i = 0;
-     for(; i < relation.keyMaps.size() - 1; i++) {
-     ModelKeyMap keyMap = (ModelKeyMap)relation.keyMaps.get(i);
-     if(keyMap != null)
-     returnString = returnString + "\"" + tableName + "_" + keyMap.relColName + "=\" + " + ModelUtil.lowerFirstChar(relation.mainEntity.entityName) + ".get" + ModelUtil.upperFirstChar(keyMap.fieldName) + "() + \"&\" + ";
-     }
-     ModelKeyMap keyMap = (ModelKeyMap)relation.keyMaps.get(i);
-     returnString = returnString + "\"" + tableName + "_" + keyMap.relColName + "=\" + " + ModelUtil.lowerFirstChar(relation.mainEntity.entityName) + ".get" + ModelUtil.upperFirstChar(keyMap.fieldName) + "()";
-     return returnString;
-     }
-     */
-    public String typeNameStringRelatedNoMapped(List<ModelField> flds, ModelRelation relation) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        if (relation.findKeyMapByRelated(flds.get(i).name) == null) {
-            returnString.append(flds.get(i).type);
-            returnString.append(" ");
-            returnString.append(flds.get(i).name);
-        }
-        i++;
-        for (; i < flds.size(); i++) {
-            if (relation.findKeyMapByRelated(flds.get(i).name) == null) {
-                if (returnString.length() > 0) returnString.append(", ");
-                returnString.append(flds.get(i).type);
-                returnString.append(" ");
-                returnString.append(flds.get(i).name);
-            }
-        }
-        return returnString.toString();
-    }
-
-    public String typeNameStringRelatedAndMain(List<ModelField> flds, ModelRelation relation) {
-        StringBuilder returnString = new StringBuilder();
-
-        if (flds.size() < 1) {
-            return "";
-        }
-
-        int i = 0;
-
-        for (; i < flds.size() - 1; i++) {
-            ModelKeyMap keyMap = relation.findKeyMapByRelated(flds.get(i).name);
-
-            if (keyMap != null) {
-                returnString.append(keyMap.fieldName);
-                returnString.append(", ");
-            } else {
-                returnString.append(flds.get(i).name);
-                returnString.append(", ");
-            }
-        }
-        ModelKeyMap keyMap = relation.findKeyMapByRelated(flds.get(i).name);
-
-        if (keyMap != null) returnString.append(keyMap.fieldName);
-        else returnString.append(flds.get(i).name);
         return returnString.toString();
     }
 

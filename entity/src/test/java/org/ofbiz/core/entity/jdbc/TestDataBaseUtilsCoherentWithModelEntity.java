@@ -72,7 +72,6 @@ public class TestDataBaseUtilsCoherentWithModelEntity {
 
         public GetTableNameAndSchema invoke() throws SQLException {
             when(datasourceInfo.getSchemaName()).thenReturn(schemaName);
-            when(databaseMetadata.getUserName()).thenReturn("someUser");
             final ModelEntity modelEntity = new ModelEntity();
             modelEntity.setTableName("table");
             when(databaseMetadata.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);

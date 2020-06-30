@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
 
@@ -28,6 +31,8 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     private final int constraintNameClipLength;
 
     private static final int STANDARD_CONSTRAINT_NAME_CLIP_LENGTH = 30;
+
+    private DatabaseMetaData databaseMetadata;
 
 
     protected AbstractDatabaseType(String name, String fieldTypeName, String[] productNamePrefix, int constraintNameClipLength) {
@@ -181,6 +186,25 @@ public abstract class AbstractDatabaseType implements DatabaseType {
 
     private static String appendDotIfNotEmpty(final String schemaName) {
         return schemaName != null && !schemaName.isEmpty() ? schemaName + '.' : "";
+    }
+
+    public List<String> getReservedKeywords() {
+        return emptyList();
+    }
+
+    @Override
+    public DatabaseType initialize(Connection con) {
+        try {
+            this.databaseMetadata = con.getMetaData();
+        } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
+        }
+        return this;
+    }
+
+    @Override
+    public DatabaseMetaData getDatabaseMetadata() {
+        return databaseMetadata;
     }
 }
 

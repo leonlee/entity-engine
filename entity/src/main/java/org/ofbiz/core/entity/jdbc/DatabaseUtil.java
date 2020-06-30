@@ -35,6 +35,7 @@ import org.ofbiz.core.entity.jdbc.alternative.IndexAlternativeAction;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
 import org.ofbiz.core.entity.jdbc.dbtype.Oracle10GDatabaseType;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -90,6 +91,7 @@ public class DatabaseUtil {
     protected final String helperName;
     protected final ModelFieldTypeReader modelFieldTypeReader;
     protected final DatasourceInfo datasourceInfo;
+    protected final SqlEscapeHelper sqlEscapeHelper;
 
     private final ConnectionProvider connectionProvider;
 
@@ -105,6 +107,7 @@ public class DatabaseUtil {
         this.modelFieldTypeReader = ModelFieldTypeReader.getModelFieldTypeReader(helperName);
         this.datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
         this.connectionProvider = ConnectionFactory.provider;
+        this.sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
     }
 
     /**
@@ -115,11 +118,13 @@ public class DatabaseUtil {
      * @param datasourceInfo       the DatasourceInfo
      * @param connectionProvider   used to create {@link java.sql.Connection Connections}.
      */
-    DatabaseUtil(final String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, final ConnectionProvider connectionProvider) {
+    DatabaseUtil(final String helperName, final ModelFieldTypeReader modelFieldTypeReader, final DatasourceInfo datasourceInfo, final ConnectionProvider connectionProvider, SqlEscapeHelper sqlEscapeHelper) {
         this.helperName = helperName;
         this.modelFieldTypeReader = modelFieldTypeReader;
         this.datasourceInfo = datasourceInfo;
         this.connectionProvider = connectionProvider;
+        this.sqlEscapeHelper = sqlEscapeHelper;
+
     }
 
     /**
@@ -1293,7 +1298,12 @@ public class DatabaseUtil {
         return rsCols;
     }
 
-    public String createTable(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, boolean addFks, boolean usePkConstraintNames, int constraintNameClipLength, String fkStyle, boolean useFkInitiallyDeferred) {
+    public String createTable(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities,
+                              boolean addFks,
+                              boolean usePkConstraintNames,
+                              int constraintNameClipLength,
+                              String fkStyle,
+                              boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
         }
@@ -1342,7 +1352,7 @@ public class DatabaseUtil {
             sqlBuf.append(pkName);
         }
         sqlBuf.append(" PRIMARY KEY (");
-        sqlBuf.append(entity.colNameString(entity.getPksCopy()));
+        sqlBuf.append(entity.colNameString(entity.getPksCopy(), sqlEscapeHelper));
         sqlBuf.append(")");
 
         if (addFks) {
@@ -1407,7 +1417,7 @@ public class DatabaseUtil {
         StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" ADD ");
-        sqlBuf.append(field.getColName());
+        sqlBuf.append(sqlEscapeHelper.escapeColumn(field.getColName()));
         sqlBuf.append(" ");
         sqlBuf.append(type.getSqlType());
 
@@ -1420,7 +1430,7 @@ public class DatabaseUtil {
             stmt.executeUpdate(sql);
         } catch (SQLException sqle) {
             // if that failed try the alternate syntax real quick
-            String sql2 = "ALTER TABLE " + entity.getTableName(datasourceInfo) + " ADD COLUMN " + field.getColName() + " " + type.getSqlType();
+            String sql2 = "ALTER TABLE " + entity.getTableName(datasourceInfo) + " ADD COLUMN " + sqlEscapeHelper.escapeColumn(field.getColName()) + " " + type.getSqlType();
             if (Debug.infoOn()) {
                 Debug.logInfo("[addColumn] sql failed, trying sql2=" + sql2);
             }
@@ -1461,7 +1471,7 @@ public class DatabaseUtil {
         StringBuilder sqlBuf = new StringBuilder("ALTER TABLE ");
         sqlBuf.append(entity.getTableName(datasourceInfo));
         sqlBuf.append(" ADD ");
-        sqlBuf.append(index.getVirtualColumn(dbType));
+        sqlBuf.append(sqlEscapeHelper.escapeColumn(index.getVirtualColumn(dbType)));
         sqlBuf.append(" ");
         sqlBuf.append(type.getSqlType());
         sqlBuf.append(" AS (");
@@ -1639,50 +1649,6 @@ public class DatabaseUtil {
         return sqlBuf.toString();
     }
 
-    public String deleteForeignKeys(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, int constraintNameClipLength) {
-        if (entity == null) {
-            return "ModelEntity was null and is required to delete foreign keys for a table";
-        }
-        if (entity instanceof ModelViewEntity) {
-            return "ERROR: Cannot delete foreign keys for a view entity";
-        }
-
-        // go through the relationships to see if any foreign keys need to be added
-        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
-        StringBuilder retMsgsBuffer = new StringBuilder();
-
-        while (relationsIter.hasNext()) {
-            ModelRelation modelRelation = relationsIter.next();
-
-            if ("one".equals(modelRelation.getType())) {
-                ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
-
-                if (relModelEntity == null) {
-                    Debug.logError("Error removing foreign key: ModelEntity was null for related entity name " + modelRelation.getRelEntityName());
-                    continue;
-                }
-                if (relModelEntity instanceof ModelViewEntity) {
-                    Debug.logError("Error removing foreign key: related entity is a view entity for related entity name " + modelRelation.getRelEntityName());
-                    continue;
-                }
-
-                String retMsg = deleteForeignKey(entity, modelRelation, relModelEntity, constraintNameClipLength);
-
-                if (retMsg != null && retMsg.length() > 0) {
-                    if (retMsgsBuffer.length() > 0) {
-                        retMsgsBuffer.append("\n");
-                    }
-                    retMsgsBuffer.append(retMsg);
-                }
-            }
-        }
-        if (retMsgsBuffer.length() > 0) {
-            return retMsgsBuffer.toString();
-        } else {
-            return null;
-        }
-    }
-
     public String deleteForeignKey(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength) {
         Connection connection;
 
@@ -1749,13 +1715,10 @@ public class DatabaseUtil {
     public String createDeclaredIndex(ModelEntity entity, ModelIndex modelIndex) {
         Connection connection;
 
-
         try {
             connection = getConnection();
-        } catch (SQLException sqle) {
+        } catch (SQLException | GenericEntityException sqle) {
             return "Unable to establish a connection with the database... Error was: " + sqle.toString();
-        } catch (GenericEntityException e) {
-            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         try {
@@ -1842,10 +1805,8 @@ public class DatabaseUtil {
 
         try {
             connection = getConnection();
-        } catch (SQLException sqle) {
+        } catch (SQLException | GenericEntityException sqle) {
             return "Unable to establish a connection with the database... Error was: " + sqle.toString();
-        } catch (GenericEntityException e) {
-            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         final DatabaseType dbType = datasourceInfo.getDatabaseTypeFromJDBCConnection(connection);
@@ -1898,10 +1859,8 @@ public class DatabaseUtil {
 
         try {
             connection = getConnection();
-        } catch (SQLException sqle) {
+        } catch (SQLException | GenericEntityException sqle) {
             return "Unable to establish a connection with the database... Error was: " + sqle.toString();
-        } catch (GenericEntityException e) {
-            return "Unable to establish a connection with the database... Error was: " + e.toString();
         }
 
         String createIndexSql = makeFkIndexClause(entity, modelRelation, constraintNameClipLength);

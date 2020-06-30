@@ -33,6 +33,7 @@ import org.ofbiz.core.entity.GenericModelException;
 import org.ofbiz.core.entity.GenericNotImplementedException;
 import org.ofbiz.core.entity.GenericValue;
 import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -98,7 +99,8 @@ public class SqlJdbcUtil {
     /**
      * Makes the FROM clause and when necessary the JOIN clause(s) as well
      */
-    public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
+    public static String makeFromClause(ModelEntity modelEntity, DatasourceInfo datasourceInfo,
+                                        SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         StringBuilder sql = new StringBuilder(" FROM ");
 
         if (modelEntity instanceof ModelViewEntity) {
@@ -136,7 +138,7 @@ public class SqlJdbcUtil {
 
                     if (i == 0) {
                         // this is the first referenced member alias, so keep track of it for future use...
-                        restOfStatement.append(makeViewTable(linkEntity, datasourceInfo));
+                        restOfStatement.append(makeViewTable(linkEntity, datasourceInfo, sqlEscapeHelper));
                         restOfStatement.append(' ');
                         restOfStatement.append(viewLink.getEntityAlias());
 
@@ -156,7 +158,7 @@ public class SqlJdbcUtil {
                         restOfStatement.append(" INNER JOIN ");
                     }
 
-                    restOfStatement.append(makeViewTable(relLinkEntity, datasourceInfo));
+                    restOfStatement.append(makeViewTable(relLinkEntity, datasourceInfo, sqlEscapeHelper));
                     restOfStatement.append(' ');
                     restOfStatement.append(viewLink.getRelEntityAlias());
                     restOfStatement.append(" ON ");
@@ -224,7 +226,7 @@ public class SqlJdbcUtil {
                         if (!fromEmpty) sql.append(", ");
                         fromEmpty = false;
 
-                        sql.append(makeViewTable(fromEntity, datasourceInfo));
+                        sql.append(makeViewTable(fromEntity, datasourceInfo, sqlEscapeHelper));
                         sql.append(' ');
                         sql.append(entry.getKey());
                     }
@@ -239,7 +241,7 @@ public class SqlJdbcUtil {
                     Map.Entry<String, ?> entry = meIter.next();
                     ModelEntity fromEntity = modelViewEntity.getMemberModelEntity(entry.getKey());
 
-                    sql.append(makeViewTable(fromEntity, datasourceInfo));
+                    sql.append(makeViewTable(fromEntity, datasourceInfo, sqlEscapeHelper));
                     sql.append(' ');
                     sql.append(entry.getKey());
                     if (meIter.hasNext()) sql.append(", ");
@@ -491,7 +493,8 @@ public class SqlJdbcUtil {
         return sql.toString();
     }
 
-    public static String makeViewTable(ModelEntity modelEntity, DatasourceInfo datasourceInfo) throws GenericEntityException {
+    public static String makeViewTable(ModelEntity modelEntity, DatasourceInfo datasourceInfo,
+                                       SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
             StringBuilder sql = new StringBuilder("(SELECT ");
             List<ModelField> fields = modelEntity.getFieldsCopy();
@@ -508,10 +511,10 @@ public class SqlJdbcUtil {
                     sql.append(filterColName(colname));
                 }
             }
-            sql.append(makeFromClause(modelEntity, datasourceInfo));
+            sql.append(makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
             sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
-            String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "");
+            String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "", sqlEscapeHelper);
             if (UtilValidate.isNotEmpty(groupByString)) {
                 sql.append(" GROUP BY ");
                 sql.append(groupByString);
@@ -768,7 +771,7 @@ public class SqlJdbcUtil {
             String fieldClassName = fieldClass.getName();
 
             if (!fieldClassName.equals(mft.getJavaType()) && !fieldClassName.contains(mft.getJavaType()) && !"java.lang.Object".equals(mft.getJavaType())) {
-                // this is only an info level message because under normal operation for most JDBC 
+                // this is only an info level message because under normal operation for most JDBC
                 // drivers this will be okay, but if not then the JDBC driver will throw an exception
                 // and when lower debug levels are on this should help give more info on what happened
                 if (Debug.verboseOn()) Debug.logVerbose("type of field " + entityName + '.' + modelField.getName() +
