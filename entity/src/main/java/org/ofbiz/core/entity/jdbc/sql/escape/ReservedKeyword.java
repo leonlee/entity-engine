@@ -15,7 +15,7 @@ import static java.util.stream.Collectors.toList;
 
 public interface ReservedKeyword {
     String SEPARATOR = ",";
-
+    Character ESCAPE_CHARACTER = '"';
     DatabaseMetaData getDatabaseMetadata();
 
     default List<String> getReservedKeywords() {
@@ -41,7 +41,11 @@ public interface ReservedKeyword {
         final StringBuffer stringBuffer = new StringBuffer();
         return getReservedKeywords().stream()
                 .filter(reservedKeyword -> reservedKeyword.equalsIgnoreCase(colName.trim()))
-                .map(column -> stringBuffer.append('`').append(column).append('`').toString())
+                .map(column -> stringBuffer
+                        .append(ESCAPE_CHARACTER)
+                        .append(column)
+                        .append(ESCAPE_CHARACTER)
+                        .toString())
                 .findFirst()
                 .orElse(colName);
     }

@@ -300,7 +300,7 @@ public class DatabaseUtil {
 
                 if (addMissing) {
                     // create the table
-                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
+                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred(), sqlEscapeHelper);
 
                     if (errMsg != null && errMsg.length() > 0) {
                         error("Could not create table \"" + tableName + "\"", messages);
@@ -1303,7 +1303,8 @@ public class DatabaseUtil {
                               boolean usePkConstraintNames,
                               int constraintNameClipLength,
                               String fkStyle,
-                              boolean useFkInitiallyDeferred) {
+                              boolean useFkInitiallyDeferred,
+                              SqlEscapeHelper sqlEscapeHelper) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
         }
@@ -1647,6 +1648,50 @@ public class DatabaseUtil {
         }
 
         return sqlBuf.toString();
+    }
+
+    public String deleteForeignKeys(ModelEntity entity, Map<String, ? extends ModelEntity> modelEntities, int constraintNameClipLength) {
+        if (entity == null) {
+            return "ModelEntity was null and is required to delete foreign keys for a table";
+        }
+        if (entity instanceof ModelViewEntity) {
+            return "ERROR: Cannot delete foreign keys for a view entity";
+        }
+
+        // go through the relationships to see if any foreign keys need to be added
+        Iterator<ModelRelation> relationsIter = entity.getRelationsIterator();
+        StringBuilder retMsgsBuffer = new StringBuilder();
+
+        while (relationsIter.hasNext()) {
+            ModelRelation modelRelation = relationsIter.next();
+
+            if ("one".equals(modelRelation.getType())) {
+                ModelEntity relModelEntity = modelEntities.get(modelRelation.getRelEntityName());
+
+                if (relModelEntity == null) {
+                    Debug.logError("Error removing foreign key: ModelEntity was null for related entity name " + modelRelation.getRelEntityName());
+                    continue;
+                }
+                if (relModelEntity instanceof ModelViewEntity) {
+                    Debug.logError("Error removing foreign key: related entity is a view entity for related entity name " + modelRelation.getRelEntityName());
+                    continue;
+                }
+
+                String retMsg = deleteForeignKey(entity, modelRelation, relModelEntity, constraintNameClipLength);
+
+                if (retMsg != null && retMsg.length() > 0) {
+                    if (retMsgsBuffer.length() > 0) {
+                        retMsgsBuffer.append("\n");
+                    }
+                    retMsgsBuffer.append(retMsg);
+                }
+            }
+        }
+        if (retMsgsBuffer.length() > 0) {
+            return retMsgsBuffer.toString();
+        } else {
+            return null;
+        }
     }
 
     public String deleteForeignKey(ModelEntity entity, ModelRelation modelRelation, ModelEntity relModelEntity, int constraintNameClipLength) {

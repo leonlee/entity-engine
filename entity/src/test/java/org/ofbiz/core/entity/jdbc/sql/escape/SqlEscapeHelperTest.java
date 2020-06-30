@@ -41,8 +41,8 @@ public class SqlEscapeHelperTest {
     @Test
     public void shouldEscapeForMySQL8() {
         assertEquals("TEST", sqlEscapeHelper.escapeColumn("TEST"));
-        assertEquals("`SECONDARY`", sqlEscapeHelper.escapeColumn("SECONDARY"));
-        assertEquals("`LEAD`", sqlEscapeHelper.escapeColumn("LEAD"));
-        assertEquals("`ADMIN`", sqlEscapeHelper.escapeColumn("ADMIN"));
+        assertEquals("\"SECONDARY\"", sqlEscapeHelper.escapeColumn("SECONDARY"));
+        assertEquals("\"LEAD\"", sqlEscapeHelper.escapeColumn("LEAD"));
+        assertEquals("\"ADMIN\"", sqlEscapeHelper.escapeColumn("ADMIN"));
     }
 }
