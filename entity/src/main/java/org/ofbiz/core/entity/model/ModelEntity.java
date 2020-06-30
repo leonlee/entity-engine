@@ -551,8 +551,51 @@ public class ModelEntity implements Comparable<ModelEntity> {
         }
     }
 
+    public ModelField removeField(int index) {
+        ModelField field = null;
+
+        field = fields.remove(index);
+        if (field == null) return null;
+
+        this.fieldsMap.remove(field.name);
+        if (field.isPk) {
+            pks.remove(field);
+        } else {
+            nopks.remove(field);
+        }
+        return field;
+    }
+
+    public ModelField removeField(String fieldName) {
+        if (fieldName == null) return null;
+        ModelField field = null;
+
+        for (int i = 0; i < fields.size(); i++) {
+            field = fields.get(i);
+            if (field.name.equals(fieldName)) {
+                fields.remove(i);
+                fieldsMap.remove(field.name);
+                if (field.isPk) {
+                    pks.remove(field);
+                } else {
+                    nopks.remove(field);
+                }
+            }
+            field = null;
+        }
+        return field;
+    }
+
+    public List<String> getAllFieldNames() {
+        return getFieldNamesFromFieldVector(fields);
+    }
+
     public List<String> getPkFieldNames() {
         return getFieldNamesFromFieldVector(pks);
+    }
+
+    public List<String> getNoPkFieldNames() {
+        return getFieldNamesFromFieldVector(nopks);
     }
 
     public List<String> getFieldNamesFromFieldVector(List<ModelField> modelFields) {
@@ -563,6 +606,14 @@ public class ModelEntity implements Comparable<ModelEntity> {
             nameList.add(field.name);
         }
         return nameList;
+    }
+
+    public int getRelationsSize() {
+        return this.relations.size();
+    }
+
+    public ModelRelation getRelation(int index) {
+        return this.relations.get(index);
     }
 
     public Iterator<ModelRelation> getRelationsIterator() {
@@ -577,12 +628,40 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return null;
     }
 
+    public void addRelation(ModelRelation relation) {
+        this.relations.add(relation);
+    }
+
+    public ModelRelation removeRelation(int index) {
+        return this.relations.remove(index);
+    }
+
+    public int getIndexesSize() {
+        return this.indexes.size();
+    }
+
+    public ModelIndex getIndex(int index) {
+        return this.indexes.get(index);
+    }
+
     public Iterator<ModelIndex> getIndexesIterator() {
         return this.indexes.iterator();
     }
 
+    public ModelIndex getIndex(String indexName) {
+        if (indexName == null) return null;
+        for (ModelIndex index : indexes) {
+            if (indexName.equals(index.getName())) return index;
+        }
+        return null;
+    }
+
     public void addIndex(ModelIndex index) {
         this.indexes.add(index);
+    }
+
+    public ModelIndex removeIndex(int index) {
+        return this.indexes.remove(index);
     }
 
     public Iterator<ModelFunctionBasedIndex> getFunctionBasedIndexesIterator() {
@@ -728,10 +807,10 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
+            returnString.append(sqlEscapeHelper.escapeColumn(ModelUtil.upperFirstChar(flds.get(i).colName)));
             returnString.append(separator);
         }
-        returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
+        returnString.append(sqlEscapeHelper.escapeColumn(ModelUtil.upperFirstChar(flds.get(i).colName)));
         returnString.append(afterLast);
         return returnString.toString();
     }
