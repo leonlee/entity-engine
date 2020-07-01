@@ -35,13 +35,13 @@ public class MySql8DatabaseTypeTest {
     }
 
     @Test
-    public void shouldEscapeWithBracketsCharacters() throws SQLException {
+    public void shouldEscapeWithDoubleQuotesCharacters() throws SQLException {
         String someColumn = mySql8DatabaseType.escapeColumnName("someColumn");
         assertEquals("\"someColumn\"", someColumn);
     }
 
     @Test
-    public void shouldNotEscapeWithBrackets() {
+    public void shouldNotEscapeWithDoubleQuotes() {
         String other = mySql8DatabaseType.escapeColumnName("Other");
         assertEquals("Other", other);
     }
