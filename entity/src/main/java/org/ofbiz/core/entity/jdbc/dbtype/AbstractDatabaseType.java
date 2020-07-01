@@ -4,9 +4,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.List;
-
-import static java.util.Collections.emptyList;
+import java.util.Objects;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
 
@@ -188,10 +186,6 @@ public abstract class AbstractDatabaseType implements DatabaseType {
         return schemaName != null && !schemaName.isEmpty() ? schemaName + '.' : "";
     }
 
-    public List<String> getReservedKeywords() {
-        return emptyList();
-    }
-
     @Override
     public DatabaseType initialize(Connection con) {
         try {
@@ -205,6 +199,20 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     @Override
     public DatabaseMetaData getDatabaseMetadata() {
         return databaseMetadata;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractDatabaseType that = (AbstractDatabaseType) o;
+        return name.equals(that.name) &&
+                fieldTypeName.equals(that.fieldTypeName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, fieldTypeName);
     }
 }
 

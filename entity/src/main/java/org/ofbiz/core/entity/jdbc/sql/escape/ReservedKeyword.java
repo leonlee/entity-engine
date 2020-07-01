@@ -15,8 +15,19 @@ import static java.util.stream.Collectors.toList;
 
 public interface ReservedKeyword {
     String SEPARATOR = ",";
-    Character ESCAPE_CHARACTER = '"';
+    Character ESCAPE_CHARACTER_DOUBLE_QUOTE = '"';
+    Character START_ESCAPE_CHARACTER_SQUARE_BRACKET = '[';
+    Character END_ESCAPE_CHARACTER_SQUARE_BRACKET = ']';
+
     DatabaseMetaData getDatabaseMetadata();
+
+    default Character getStartEscapeCharacter() {
+        return ESCAPE_CHARACTER_DOUBLE_QUOTE;
+    }
+
+    default Character getEndEscapeCharacter() {
+        return ESCAPE_CHARACTER_DOUBLE_QUOTE;
+    }
 
     default List<String> getReservedKeywords() {
         try {
@@ -42,9 +53,9 @@ public interface ReservedKeyword {
         return getReservedKeywords().stream()
                 .filter(reservedKeyword -> reservedKeyword.equalsIgnoreCase(colName.trim()))
                 .map(column -> stringBuffer
-                        .append(ESCAPE_CHARACTER)
+                        .append(getStartEscapeCharacter())
                         .append(column)
-                        .append(ESCAPE_CHARACTER)
+                        .append(getEndEscapeCharacter())
                         .toString())
                 .findFirst()
                 .orElse(colName);

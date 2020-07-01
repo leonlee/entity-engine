@@ -6,15 +6,15 @@ import org.ofbiz.core.util.Debug;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class provides methods for finding the correct database type for a given connection object.
  */
 public class DatabaseTypeFactory {
 
-    static final Collection<DatabaseType> DATABASE_TYPES = new ArrayList<>();
+    static final Set<DatabaseType> DATABASE_TYPES = new HashSet<>();
 
 
     public static final DatabaseType DB2 = new DB2DatabaseType();
