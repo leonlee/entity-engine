@@ -1,17 +1,22 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
+import com.google.common.base.Strings;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
 
-    private final String name;
-    private String sqlKeywords;
-
+    private static final String SEPARATOR = ",";
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN = "ALTER TABLE {0} ALTER COLUMN {1} {2}";
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY = "ALTER TABLE {0} MODIFY {1} {2}";
 
@@ -20,6 +25,9 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     protected static final String ALTER_TABLE_DROP_INDEX = "ALTER TABLE {schemaName_with_dot}{tableName} DROP INDEX {indexName}";
 
     protected static final String STANDARD_SELECT_FOR_UPDATE_SYNTAX = "SELECT {0} FROM {1} WHERE {2} FOR UPDATE";
+
+    private final String name;
+    private Set<String> sqlKeywords;
 
     /**
      * The name that should be used in entityengine.xml (eg. postgres72, oracle10g
@@ -31,9 +39,6 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     private final int constraintNameClipLength;
 
     private static final int STANDARD_CONSTRAINT_NAME_CLIP_LENGTH = 30;
-
-    private DatabaseMetaData databaseMetadata;
-
 
     protected AbstractDatabaseType(String name, String fieldTypeName, String[] productNamePrefix, int constraintNameClipLength) {
         this.name = name;
@@ -192,7 +197,13 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     public DatabaseType initialize(Connection con) {
         try {
             this.sqlKeywords = Optional.ofNullable(con.getMetaData().getSQLKeywords())
-                    .orElse("");
+                    .filter(keywords -> !Strings.isNullOrEmpty(keywords))
+                    .map(keywords -> keywords.split(SEPARATOR))
+                    .map(Stream::of)
+                    .map(stream -> stream
+                            .map(String::trim)
+                            .collect(toSet()))
+                    .orElse(emptySet());
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -200,7 +211,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     }
 
     @Override
-    public String getSqlKeywords() {
+    public Set<String> getSqlKeywords() {
         return sqlKeywords;
     }
 

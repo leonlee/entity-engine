@@ -1,5 +1,6 @@
 package org.ofbiz.core.entity.jdbc.sql.escape;
 
+import com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -8,6 +9,7 @@ import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 
 import java.sql.DatabaseMetaData;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -22,7 +24,7 @@ public class SqlEscapeHelperTest {
     DatabaseType databaseType;
     DatabaseMetaData databaseMetaData;
 
-    private static final String RESERVED_KEYWORDS = "  ADMIN,SECONDARY, LEAD  , SOME, SELECT";
+    private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "SECONDARY", "LEAD", "SOME", "SELECT");
 
     @Before
     public void setUp() {
