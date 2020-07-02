@@ -8,7 +8,6 @@ import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -26,14 +25,13 @@ public class SqlEscapeHelperTest {
     private static final String RESERVED_KEYWORDS = "  ADMIN,SECONDARY, LEAD  , SOME, SELECT";
 
     @Before
-    public void setUp() throws SQLException {
+    public void setUp() {
         datasourceInfo = mock(DatasourceInfo.class);
         databaseType = spy(DatabaseType.class);
         databaseMetaData = mock(DatabaseMetaData.class);
 
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
-        when(databaseType.getDatabaseMetadata()).thenReturn(databaseMetaData);
-        when(databaseMetaData.getSQLKeywords()).thenReturn(RESERVED_KEYWORDS);
+        when(databaseType.getSqlKeywords()).thenReturn(RESERVED_KEYWORDS);
 
         sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
     }

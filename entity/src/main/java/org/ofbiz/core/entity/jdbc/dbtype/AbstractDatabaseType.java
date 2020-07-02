@@ -5,10 +5,12 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 
 public abstract class AbstractDatabaseType implements DatabaseType {
 
     private final String name;
+    private String sqlKeywords;
 
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_ALTER_COLUMN = "ALTER TABLE {0} ALTER COLUMN {1} {2}";
     protected static final String CHANGE_COLUMN_TYPE_CLAUSE_STRUCTURE_STANDARD_MODIFY = "ALTER TABLE {0} MODIFY {1} {2}";
@@ -189,7 +191,8 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     @Override
     public DatabaseType initialize(Connection con) {
         try {
-            this.databaseMetadata = con.getMetaData();
+            this.sqlKeywords = Optional.ofNullable(con.getMetaData().getSQLKeywords())
+                    .orElse("");
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -197,8 +200,8 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     }
 
     @Override
-    public DatabaseMetaData getDatabaseMetadata() {
-        return databaseMetadata;
+    public String getSqlKeywords() {
+        return sqlKeywords;
     }
 
     @Override

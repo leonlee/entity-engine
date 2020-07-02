@@ -3,8 +3,6 @@ package org.ofbiz.core.entity.jdbc.sql.escape;
 
 import com.google.common.base.Strings;
 
-import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -13,13 +11,13 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
-public interface ReservedKeyword {
+public interface ReservedKeywordsAware {
     String SEPARATOR = ",";
     Character ESCAPE_CHARACTER_DOUBLE_QUOTE = '"';
     Character START_ESCAPE_CHARACTER_SQUARE_BRACKET = '[';
     Character END_ESCAPE_CHARACTER_SQUARE_BRACKET = ']';
 
-    DatabaseMetaData getDatabaseMetadata();
+    String getSqlKeywords();
 
     default Character getStartEscapeCharacter() {
         return ESCAPE_CHARACTER_DOUBLE_QUOTE;
@@ -30,21 +28,14 @@ public interface ReservedKeyword {
     }
 
     default List<String> getReservedKeywords() {
-        try {
-            String sqlKeywords = Optional.ofNullable(getDatabaseMetadata().getSQLKeywords())
-                    .orElse("");
-
-            return Optional.of(sqlKeywords)
-                    .filter(keywords -> !Strings.isNullOrEmpty(keywords))
-                    .map(keywords -> keywords.split(SEPARATOR))
-                    .map(Stream::of)
-                    .map(stream -> stream
-                            .map(String::trim)
-                            .collect(toList()))
-                    .orElse(emptyList());
-        } catch (SQLException e) {
-            return emptyList();
-        }
+        return Optional.of(getSqlKeywords())
+                .filter(keywords -> !Strings.isNullOrEmpty(keywords))
+                .map(keywords -> keywords.split(SEPARATOR))
+                .map(Stream::of)
+                .map(stream -> stream
+                        .map(String::trim)
+                        .collect(toList()))
+                .orElse(emptyList());
     }
 
     default String escapeColumnName(String colName) {
