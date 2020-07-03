@@ -24,7 +24,7 @@ public class SqlEscapeHelperTest {
     DatabaseType databaseType;
     DatabaseMetaData databaseMetaData;
 
-    private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "SECONDARY", "LEAD", "SOME", "SELECT");
+    private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "Secondary", "LEAD", "SOME", "SELECT");
 
     @Before
     public void setUp() {
@@ -33,7 +33,7 @@ public class SqlEscapeHelperTest {
         databaseMetaData = mock(DatabaseMetaData.class);
 
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
-        when(databaseType.getSqlKeywords()).thenReturn(RESERVED_KEYWORDS);
+        when(databaseType.getReservedKeywords()).thenReturn(RESERVED_KEYWORDS);
 
         sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
     }

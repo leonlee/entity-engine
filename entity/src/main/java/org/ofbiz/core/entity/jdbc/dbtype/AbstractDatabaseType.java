@@ -211,7 +211,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
     }
 
     @Override
-    public Set<String> getSqlKeywords() {
+    public Set<String> getReservedKeywords() {
         return sqlKeywords;
     }
 
