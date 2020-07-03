@@ -8,7 +8,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 
-import java.sql.DatabaseMetaData;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -22,7 +21,6 @@ public class SqlEscapeHelperTest {
     DatasourceInfo datasourceInfo;
     SqlEscapeHelper sqlEscapeHelper;
     DatabaseType databaseType;
-    DatabaseMetaData databaseMetaData;
 
     private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "SECONDARY", "LEAD", "SOME", "SELECT");
 
@@ -30,7 +28,6 @@ public class SqlEscapeHelperTest {
     public void setUp() {
         datasourceInfo = mock(DatasourceInfo.class);
         databaseType = spy(DatabaseType.class);
-        databaseMetaData = mock(DatabaseMetaData.class);
 
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
         when(databaseType.getReservedKeywords()).thenReturn(RESERVED_KEYWORDS);
