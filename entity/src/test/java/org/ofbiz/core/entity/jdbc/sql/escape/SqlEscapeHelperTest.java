@@ -24,7 +24,7 @@ public class SqlEscapeHelperTest {
     DatabaseType databaseType;
     DatabaseMetaData databaseMetaData;
 
-    private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "Secondary", "LEAD", "SOME", "SELECT");
+    private static final Set<String> RESERVED_KEYWORDS = Sets.newHashSet("ADMIN", "SECONDARY", "LEAD", "SOME", "SELECT");
 
     @Before
     public void setUp() {

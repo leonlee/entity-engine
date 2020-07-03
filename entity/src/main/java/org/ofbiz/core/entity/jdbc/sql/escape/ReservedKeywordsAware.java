@@ -23,10 +23,7 @@ public interface ReservedKeywordsAware {
     default String escapeColumnName(String colName) {
         Objects.requireNonNull(colName);
         final StringBuilder stringBuilder = new StringBuilder();
-        boolean isReservedKeyword = getReservedKeywords()
-                .stream()
-                .anyMatch(keyword -> keyword.equalsIgnoreCase(colName.trim()));
-        if (isReservedKeyword) {
+        if (getReservedKeywords().contains(colName.trim().toUpperCase())) {
             return stringBuilder
                     .append(getStartEscapeCharacter())
                     .append(colName)

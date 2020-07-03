@@ -41,6 +41,12 @@ public class MySql8DatabaseTypeTest {
     }
 
     @Test
+    public void shouldEscapeWithDoubleQuotesCharactersCaseInsensitive() throws SQLException {
+        String someColumn = mySql8DatabaseType.escapeColumnName("COL");
+        assertEquals("\"COL\"", someColumn);
+    }
+
+    @Test
     public void shouldNotEscapeWithDoubleQuotes() {
         String other = mySql8DatabaseType.escapeColumnName("Other");
         assertEquals("Other", other);
