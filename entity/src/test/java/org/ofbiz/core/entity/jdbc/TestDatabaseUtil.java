@@ -11,6 +11,7 @@ import org.ofbiz.core.entity.jdbc.alternative.SuspendingAlternativeAction;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.FunctionDefinitionBuilder;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
@@ -66,7 +67,7 @@ import static org.mockito.Mockito.when;
 public class TestDatabaseUtil {
     @Test
     public void testCreateDeclaredIndicesNone() {
-        DatabaseUtil du = new DatabaseUtil("Santa's Little Helper", null, null, null);
+        DatabaseUtil du = new DatabaseUtil("Santa's Little Helper", null, null, null, null);
         ModelEntity modelEntity = new ModelEntity();
         final String mesg = du.createDeclaredIndices(modelEntity);
         assertNull("unexpected error", mesg);
@@ -77,7 +78,7 @@ public class TestDatabaseUtil {
         final Connection connection = mock(Connection.class);
         final Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection), null);
         ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
         final ModelField modelField = new ModelField();
         modelField.setColName("nicecolumn");
@@ -98,7 +99,7 @@ public class TestDatabaseUtil {
         when(connection.createStatement()).thenReturn(statement);
         final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.POSTGRES);
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, datasourceInfo, new MyConnectionProvider(connection));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, datasourceInfo, new MyConnectionProvider(connection), null);
         ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
         final ModelField modelField = new ModelField();
         modelField.setColName("nicecolumn");
@@ -125,12 +126,13 @@ public class TestDatabaseUtil {
         final Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
         final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        final SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection(connection)).thenReturn(DatabaseTypeFactory.MSSQL);
         final ModelFieldType modelFieldType = mock(ModelFieldType.class);
         when(modelFieldType.getSqlType()).thenReturn("VARCHAR");
         final ModelFieldTypeReader modelFieldTypeReader = mock(ModelFieldTypeReader.class);
         when(modelFieldTypeReader.getModelFieldType("long-varchar")).thenReturn(modelFieldType);
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", modelFieldTypeReader, datasourceInfo, new MyConnectionProvider(connection));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", modelFieldTypeReader, datasourceInfo, new MyConnectionProvider(connection), sqlEscapeHelper);
         ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
         final ModelField modelField = new ModelField();
         modelField.setColName("nicecolumn");
@@ -138,6 +140,7 @@ public class TestDatabaseUtil {
         modelEntity.addField(modelField);
         final FunctionDefinitionBuilder builder = createFunctionDefinitionBuilder(false);
         when(builder.getVirtualColumn(any(DatabaseType.class))).thenReturn("lower_vname");
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArguments()[0]);
         when(builder.getType()).thenReturn("long-varchar");
         final ModelFunctionBasedIndex modelFBIndex = new ModelFunctionBasedIndex(modelEntity, "fbindex", false, builder);
         modelEntity.addFunctionBasedIndex(modelFBIndex);
@@ -155,7 +158,7 @@ public class TestDatabaseUtil {
                 DatabaseTypeFactory.HSQL,
                 DatabaseTypeFactory.HSQL_2_3_3,
                 DatabaseTypeFactory.H2);
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null, null);
         for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
@@ -172,7 +175,7 @@ public class TestDatabaseUtil {
         final List<DatabaseType> databaseTypes = ImmutableList.of(
                 DatabaseTypeFactory.MYSQL,
                 DatabaseTypeFactory.MSSQL);
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null, null);
         for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
@@ -190,7 +193,7 @@ public class TestDatabaseUtil {
                 DatabaseTypeFactory.POSTGRES,
                 DatabaseTypeFactory.POSTGRES_7_2,
                 DatabaseTypeFactory.POSTGRES_7_3);
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null, null);
         for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs = mock(ResultSet.class);
@@ -212,7 +215,7 @@ public class TestDatabaseUtil {
                 DatabaseTypeFactory.POSTGRES,
                 DatabaseTypeFactory.POSTGRES_7_2,
                 DatabaseTypeFactory.POSTGRES_7_3);
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, null, null);
         for (DatabaseType databaseType : databaseTypes) {
             final DatabaseMetaData metaData = mock(DatabaseMetaData.class);
             final ResultSet rs1 = mock(ResultSet.class);
@@ -259,11 +262,13 @@ public class TestDatabaseUtil {
         when(connection.createStatement()).thenReturn(statement);
 
         DatasourceInfo dsi = mock(DatasourceInfo.class);
+        final SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
+
         when(dsi.isUseFks()).thenReturn(false);
         when(dsi.isUseFkIndices()).thenReturn(false);
         when(dsi.isUseIndices()).thenReturn(true);
 
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dsi, new MyConnectionProvider(connection)) {
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dsi, new MyConnectionProvider(connection), sqlEscapeHelper) {
             @Override
             public TreeSet<String> getTableNames(final Collection<String> messages) {
                 return tables;
@@ -298,6 +303,7 @@ public class TestDatabaseUtil {
     public void testGetIndexInfo() throws SQLException {
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
+        final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
         when(connection.getMetaData()).thenReturn(dbData);
 
         MockResultSet t1IndexRs = new MockResultSet();
@@ -309,11 +315,13 @@ public class TestDatabaseUtil {
         t2IndexRs.addRow(createIndexMetadataRow("t2_index_unique", "t2", true));
         MockResultSet t3IndexRs = new MockResultSet();
 
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t1"), anyBoolean(), anyBoolean())).thenReturn(t1IndexRs);
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t2"), anyBoolean(), anyBoolean())).thenReturn(t2IndexRs);
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t3"), anyBoolean(), anyBoolean())).thenReturn(t3IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t1"), anyBoolean(), anyBoolean())).thenReturn(t1IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t2"), anyBoolean(), anyBoolean())).thenReturn(t2IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t3"), anyBoolean(), anyBoolean())).thenReturn(t3IndexRs);
+        when(dbData.supportsSchemasInTableDefinitions()).thenReturn(true);
+        when(datasourceInfo.getSchemaName()).thenReturn("jira");
 
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, datasourceInfo, new MyConnectionProvider(connection), null);
 
         List<String> messages = new ArrayList<>();
         Set<String> tableNames = ImmutableSet.of("t1", "t2", "t3");
@@ -322,7 +330,7 @@ public class TestDatabaseUtil {
         final Map<String, Set<String>> indexInfo = du.getIndexInfo(tableNames, messages);
 
         // the assertions...
-        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
+        verify(dbData, times(3)).getIndexInfo(eq(null), anyString(), anyString(), eq(false), anyBoolean());
         assertThat(indexInfo.keySet(), containsInAnyOrder("t1", "t2", "t3"));
         assertThat(indexInfo.get("t1"), contains("T1_INDEX1", "T1_INDEX2"));
         assertThat(indexInfo.get("t2"), contains("T2_INDEX"));
@@ -348,6 +356,7 @@ public class TestDatabaseUtil {
     public void testGetIndexInfoUnique() throws Exception {
         final Connection connection = mock(Connection.class);
         final DatabaseMetaData dbData = mock(DatabaseMetaData.class);
+        final DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
         when(connection.getMetaData()).thenReturn(dbData);
 
         MockResultSet t1IndexRs = new MockResultSet();
@@ -359,11 +368,13 @@ public class TestDatabaseUtil {
         t2IndexRs.addRow(createIndexMetadataRow("t2_index_unique", "t2", true));
         MockResultSet t3IndexRs = new MockResultSet();
 
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t1"), anyBoolean(), anyBoolean())).thenReturn(t1IndexRs);
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t2"), anyBoolean(), anyBoolean())).thenReturn(t2IndexRs);
-        when(dbData.getIndexInfo(anyString(), anyString(), eq("t3"), anyBoolean(), anyBoolean())).thenReturn(t3IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t1"), anyBoolean(), anyBoolean())).thenReturn(t1IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t2"), anyBoolean(), anyBoolean())).thenReturn(t2IndexRs);
+        when(dbData.getIndexInfo(any(), anyString(), eq("t3"), anyBoolean(), anyBoolean())).thenReturn(t3IndexRs);
+        when(dbData.supportsSchemasInTableDefinitions()).thenReturn(true);
+        when(datasourceInfo.getSchemaName()).thenReturn("jira");
 
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, datasourceInfo, new MyConnectionProvider(connection), null);
 
         List<String> messages = new ArrayList<>();
         Set<String> tableNames = ImmutableSet.of("t1", "t2", "t3");
@@ -372,7 +383,7 @@ public class TestDatabaseUtil {
         final Map<String, Set<String>> indexInfo = du.getIndexInfo(tableNames, messages, true);
 
         // the assertions...
-        verify(dbData, times(3)).getIndexInfo(anyString(), anyString(), anyString(), eq(false), anyBoolean());
+        verify(dbData, times(3)).getIndexInfo(eq(null), eq("jira"), anyString(), eq(false), anyBoolean());
         assertThat(indexInfo.entrySet(), hasSize(3));
         assertThat(indexInfo.get("t1"), hasSize(2));
         assertThat(indexInfo.get("t2"), hasSize(2));
@@ -407,7 +418,8 @@ public class TestDatabaseUtil {
         final ResultSet emptyResult = mock(ResultSet.class);
         when(dbData.getTables(null, "user", null, types)).thenReturn(emptyResult);
         final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
+        final SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection), sqlEscapeHelper);
 
         when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
@@ -444,9 +456,9 @@ public class TestDatabaseUtil {
         when(dbData.getTables(null, "user", null, types)).thenReturn(rightResultSet);
         final DatasourceInfo dataSourceInfo = mock(DatasourceInfo.class);
         when(dbData.getDatabaseProductName()).thenReturn("Oracle");
+        final SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
 
-        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection));
-
+        final DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, dataSourceInfo, new MyConnectionProvider(connection), sqlEscapeHelper);
         when(rightResultSet.next()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(rightResultSet.getString("TABLE_NAME")).thenReturn("table1", "table2");
         when(rightResultSet.getString("TABLE_TYPE")).thenReturn("TABLE");
@@ -475,7 +487,7 @@ public class TestDatabaseUtil {
         // record requests to create indexes
         final Map<String, Set<String>> creationCalls = new HashMap<>();
 
-        DatabaseUtil du = new DatabaseUtil(null, null, null, mock(ConnectionProvider.class)) {
+        DatabaseUtil du = new DatabaseUtil(null, null, null, mock(ConnectionProvider.class), null) {
             @Override
             public Map<String, Set<String>> getIndexInfo(final Set<String> tableNames, final Collection<String> messages, final boolean includeUnique) {
                 tableNamesReceived.set(tableNames);
@@ -558,7 +570,7 @@ public class TestDatabaseUtil {
 
     @Test
     public void testError() {
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null, null);
         du.error("mesg", null);
 
         List<String> expected = new ArrayList<>();
@@ -573,7 +585,7 @@ public class TestDatabaseUtil {
 
     @Test
     public void testImportant() {
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null, null);
         du.important("mesg", null);
 
         List<String> expected = new ArrayList<>();
@@ -588,7 +600,7 @@ public class TestDatabaseUtil {
 
     @Test
     public void testWarn() {
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null, null);
         du.warn("mesg", null);
 
         List<String> expected = new ArrayList<>();
@@ -603,7 +615,7 @@ public class TestDatabaseUtil {
 
     @Test
     public void testVerbose() {
-        DatabaseUtil du = new DatabaseUtil(null, null, null, null);
+        DatabaseUtil du = new DatabaseUtil(null, null, null, null, null);
         du.verbose("mesg", null);
 
         List<String> expected = new ArrayList<>();
@@ -616,7 +628,7 @@ public class TestDatabaseUtil {
         assertEquals(expected, in);
     }
 
-    private final DatabaseUtil TEST_ALTERNATIVE_FUNCTION_DB_UTIL = new DatabaseUtil(null, null, null, null) {
+    private final DatabaseUtil TEST_ALTERNATIVE_FUNCTION_DB_UTIL = new DatabaseUtil(null, null, null, null, null) {
         @Override
         public String makeIndexClause(ModelEntity entity, ModelIndex modelIndex) {
             return null;

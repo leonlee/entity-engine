@@ -26,6 +26,7 @@ package org.ofbiz.core.entity.model;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.DatabaseUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilTimer;
 import org.ofbiz.core.util.UtilXml;
@@ -598,7 +599,7 @@ public class ModelEntity implements Comparable<ModelEntity> {
     }
 
     public List<String> getFieldNamesFromFieldVector(List<ModelField> modelFields) {
-        List<String> nameList = new ArrayList<String>(modelFields.size());
+        List<String> nameList = new ArrayList<>(modelFields.size());
 
         if (modelFields == null || modelFields.size() <= 0) return nameList;
         for (ModelField field : modelFields) {
@@ -770,11 +771,11 @@ public class ModelEntity implements Comparable<ModelEntity> {
         return returnString.toString();
     }
 
-    public String colNameString(List<ModelField> flds) {
-        return colNameString(flds, ", ", "");
+    public String colNameString(List<ModelField> flds, SqlEscapeHelper sqlEscapeHelper) {
+        return colNameString(flds, ", ", "", sqlEscapeHelper);
     }
 
-    public String colNameString(List<ModelField> flds, String separator, String afterLast) {
+    public String colNameString(List<ModelField> flds, String separator, String afterLast, SqlEscapeHelper sqlEscapeHelper) {
         StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
@@ -784,19 +785,19 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(flds.get(i).colName);
+            returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
             returnString.append(separator);
         }
-        returnString.append(flds.get(i).colName);
+        returnString.append(sqlEscapeHelper.escapeColumn(flds.get(i).colName));
         returnString.append(afterLast);
         return returnString.toString();
     }
 
-    public String classNameString(List<ModelField> flds) {
-        return classNameString(flds, ", ", "");
+    public String classNameString(List<ModelField> flds, SqlEscapeHelper sqlEscapeHelper) {
+        return classNameString(flds, ", ", "", sqlEscapeHelper);
     }
 
-    public String classNameString(List<ModelField> flds, String separator, String afterLast) {
+    public String classNameString(List<ModelField> flds, String separator, String afterLast, SqlEscapeHelper sqlEscapeHelper) {
         StringBuilder returnString = new StringBuilder();
 
         if (flds.size() < 1) {
@@ -806,10 +807,10 @@ public class ModelEntity implements Comparable<ModelEntity> {
         int i = 0;
 
         for (; i < flds.size() - 1; i++) {
-            returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
+            returnString.append(sqlEscapeHelper.escapeColumn(ModelUtil.upperFirstChar(flds.get(i).colName)));
             returnString.append(separator);
         }
-        returnString.append(ModelUtil.upperFirstChar(flds.get(i).name));
+        returnString.append(sqlEscapeHelper.escapeColumn(ModelUtil.upperFirstChar(flds.get(i).colName)));
         returnString.append(afterLast);
         return returnString.toString();
     }

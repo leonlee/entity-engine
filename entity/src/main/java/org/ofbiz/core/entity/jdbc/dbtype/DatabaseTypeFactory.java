@@ -6,15 +6,15 @@ import org.ofbiz.core.util.Debug;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class provides methods for finding the correct database type for a given connection object.
  */
 public class DatabaseTypeFactory {
 
-    static final Collection<DatabaseType> DATABASE_TYPES = new ArrayList<DatabaseType>();
+    static final Set<DatabaseType> DATABASE_TYPES = new HashSet<>();
 
 
     public static final DatabaseType DB2 = new DB2DatabaseType();
@@ -24,6 +24,7 @@ public class DatabaseTypeFactory {
     public static final DatabaseType HSQL_2_3_3 = new Hsql233DatabaseType();
     public static final DatabaseType H2 = new H2DatabaseType();
     public static final DatabaseType MYSQL = new MySqlDatabaseType();
+    public static final DatabaseType MYSQL8 = new MySql8DatabaseType();
     public static final DatabaseType MSSQL = new MsSqlDatabaseType();
     public static final DatabaseType ORACLE_10G = new Oracle10GDatabaseType();
     public static final DatabaseType ORACLE_8I = new Oracle8IDatabaseType();
@@ -69,7 +70,7 @@ public class DatabaseTypeFactory {
             try {
                 if (databaseType.matchesConnection(con)) {
                     Debug.logInfo("Returning DatabaseType " + databaseType);
-                    return databaseType;
+                    return databaseType.initialize(con);
                 }
             } catch (Exception e) {
                 Debug.logError(e, "Exception occured while trying to match the database connection to a DatabaseType");

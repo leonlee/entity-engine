@@ -1,5 +1,7 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.ReservedKeywordsAware;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -10,7 +12,7 @@ import java.sql.SQLException;
  * @see DatabaseTypeFactory
  * @see DatabaseTypeFactory#registerDatabaseType(DatabaseType)
  */
-public interface DatabaseType {
+public interface DatabaseType extends ReservedKeywordsAware {
 
     String STANDARD_SELECT_SYNTAX = "SELECT {0} FROM {1} WHERE {2}";
 
@@ -57,4 +59,6 @@ public interface DatabaseType {
     default String getSimpleSelectSqlSyntax(boolean clusterMode) {
         return STANDARD_SELECT_SYNTAX;
     }
+
+    DatabaseType initialize(Connection con);
 }

@@ -19,4 +19,13 @@ public class MsSqlDatabaseType extends SimpleDatabaseType {
         }
     }
 
+    @Override
+    public Character getStartEscapeCharacter() {
+        return START_ESCAPE_CHARACTER_SQUARE_BRACKET;
+    }
+
+    @Override
+    public Character getEndEscapeCharacter() {
+        return END_ESCAPE_CHARACTER_SQUARE_BRACKET;
+    }
 }

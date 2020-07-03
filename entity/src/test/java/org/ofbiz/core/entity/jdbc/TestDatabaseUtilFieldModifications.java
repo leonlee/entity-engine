@@ -13,6 +13,7 @@ import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -26,6 +27,7 @@ import java.util.Collection;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +45,8 @@ public class TestDatabaseUtilFieldModifications {
     private ModelFieldType modelFieldType;
     @Mock
     private DatasourceInfo datasourceInfo;
+    @Mock
+    private SqlEscapeHelper sqlEscapeHelper;
     @Mock
     private ConnectionProvider connectionProvider;
     @Mock
@@ -64,13 +68,14 @@ public class TestDatabaseUtilFieldModifications {
 
     @Before
     public void setUp() throws Exception {
-        databaseUtil = new DatabaseUtil("field-modification-tests", modelFieldTypeReader, datasourceInfo, connectionProvider);
+        databaseUtil = new DatabaseUtil("field-modification-tests", modelFieldTypeReader, datasourceInfo, connectionProvider, sqlEscapeHelper);
 
         when(modelEntity.getTableName(any(DatasourceInfo.class))).thenReturn(MOCK_TABLE_NAME);
         when(connectionProvider.getConnection(any(String.class))).thenReturn(connection);
         when(connection.createStatement()).thenReturn(statement);
         when(modelFieldTypeReader.getModelFieldType(any(String.class))).thenReturn(modelFieldType);
         when(modelField.getColName()).thenReturn(MOCK_COLUMN_NAME);
+        when(modelField.getType()).thenReturn("type");
         columnInfo = new DatabaseUtil.ColumnCheckInfo();
         columnInfo.columnName = MOCK_COLUMN_NAME;
         messages = new ArrayList<String>();
@@ -334,6 +339,7 @@ public class TestDatabaseUtilFieldModifications {
 
         // mock desired type:
         when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(123)");
+        when(modelField.getType()).thenReturn(databaseType.getFieldTypeName());
 
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
 
