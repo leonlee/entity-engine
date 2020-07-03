@@ -202,6 +202,7 @@ public abstract class AbstractDatabaseType implements DatabaseType {
                     .map(Stream::of)
                     .map(stream -> stream
                             .map(String::trim)
+                            .map(String::toUpperCase)
                             .collect(toSet()))
                     .orElse(emptySet());
         } catch (SQLException sqlException) {
