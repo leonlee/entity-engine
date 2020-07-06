@@ -9,6 +9,7 @@ public interface ReservedKeywordsAware {
     Character ESCAPE_CHARACTER_DOUBLE_QUOTE = '"';
     Character START_ESCAPE_CHARACTER_SQUARE_BRACKET = '[';
     Character END_ESCAPE_CHARACTER_SQUARE_BRACKET = ']';
+    Character ESCAPE_CHARACTER_BACK_TICK = '`';
 
     Set<String> getReservedKeywords();
 

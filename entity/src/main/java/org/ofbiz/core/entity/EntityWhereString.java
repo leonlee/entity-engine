@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.util.List;
@@ -53,12 +54,13 @@ public class EntityWhereString extends EntityCondition {
         this.sqlString = sqlString;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         return sqlString;
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         return 0;
     }
 

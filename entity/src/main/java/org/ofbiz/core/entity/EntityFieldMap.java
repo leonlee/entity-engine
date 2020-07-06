@@ -25,6 +25,7 @@
 package org.ofbiz.core.entity;
 
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
@@ -73,7 +74,8 @@ public class EntityFieldMap extends EntityCondition {
         return this.fieldMap.entrySet().iterator();
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         List<ModelField> whereFields = new ArrayList<ModelField>();
 
@@ -86,7 +88,7 @@ public class EntityFieldMap extends EntityCondition {
                 }
             }
         }
-        return SqlJdbcUtil.makeWhereStringFromFields(whereFields, fieldMap, operator.getCode(), entityConditionParams);
+        return SqlJdbcUtil.makeWhereStringFromFields(whereFields, fieldMap, operator.getCode(), entityConditionParams, sqlEscapeHelper);
     }
 
     public void checkCondition(ModelEntity modelEntity) throws GenericModelException {
@@ -98,7 +100,7 @@ public class EntityFieldMap extends EntityCondition {
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         List<ModelField> whereFields = new ArrayList<ModelField>();
 
         if (fieldMap != null && fieldMap.size() > 0) {

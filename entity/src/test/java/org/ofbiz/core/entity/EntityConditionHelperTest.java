@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 
 import java.util.Collections;
 
@@ -20,6 +21,10 @@ import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EntityConditionHelperTest {
+
+
+    @Mock
+    static SqlEscapeHelper sqlEscapeHelper;
 
     public static final EntityCondition EMPTY_FIELD_MAP = new EntityFieldMap(Collections.<String, Object>emptyMap(), EntityOperator.BETWEEN);
 

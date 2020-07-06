@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
@@ -113,7 +114,8 @@ public class EntityExpr extends EntityCondition {
         return rhs;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuilder whereStringBuilder = new StringBuilder();
 
@@ -122,7 +124,7 @@ public class EntityExpr extends EntityCondition {
 
             if (field != null) {
                 if (this.getRhs() == null) {
-                    whereStringBuilder.append(field.getColName());
+                    whereStringBuilder.append(sqlEscapeHelper.escapeColumn(field.getColName()));
                     if (EntityOperator.NOT_EQUAL.equals(this.getOperator())) {
                         whereStringBuilder.append(" IS NOT NULL ");
                     } else {
@@ -130,9 +132,9 @@ public class EntityExpr extends EntityCondition {
                     }
                 } else {
                     if (this.isLUpper()) {
-                        whereStringBuilder.append("UPPER(" + field.getColName() + ")");
+                        whereStringBuilder.append("UPPER(" + sqlEscapeHelper.escapeColumn(field.getColName()) + ")");
                     } else {
-                        whereStringBuilder.append(field.getColName());
+                        whereStringBuilder.append(sqlEscapeHelper.escapeColumn(field.getColName()));
                     }
                     whereStringBuilder.append(' ');
                     whereStringBuilder.append(this.getOperator().toString());
@@ -161,7 +163,7 @@ public class EntityExpr extends EntityCondition {
                                 entityConditionParams.add(new EntityConditionParam(field, inObj));
                             }
                         } else if (rhs instanceof EntityWhereString) {
-                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList()) + " ");
+                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList(), sqlEscapeHelper) + " ");
                         } else {
                             whereStringBuilder.append(" ? ");
 
@@ -191,11 +193,11 @@ public class EntityExpr extends EntityCondition {
         } else if (lhs instanceof EntityCondition) {
             // then rhs MUST also be an EntityCondition
             whereStringBuilder.append('(');
-            whereStringBuilder.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper));
             whereStringBuilder.append(") ");
             whereStringBuilder.append(this.getOperator().toString());
             whereStringBuilder.append(" (");
-            whereStringBuilder.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper));
             whereStringBuilder.append(')');
         }
         return whereStringBuilder.toString();
@@ -214,7 +216,7 @@ public class EntityExpr extends EntityCondition {
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         int parameterCount = 0;
         if (lhs instanceof String) {
             ModelField field = modelEntity.getField((String) this.getLhs());
@@ -226,7 +228,7 @@ public class EntityExpr extends EntityCondition {
                         if (rhs instanceof Collection) {
                             parameterCount += ((Collection<?>) rhs).size();
                         } else if (rhs instanceof EntityWhereString) {
-                            parameterCount += ((EntityWhereString) rhs).getParameterCount(modelEntity);
+                            parameterCount += ((EntityWhereString) rhs).getParameterCount(modelEntity, sqlEscapeHelper);
                         } else {
                             parameterCount++;
                         }
@@ -241,8 +243,8 @@ public class EntityExpr extends EntityCondition {
             // then rhs MUST also be an EntityCondition
             EntityCondition lhsCondition = (EntityCondition) lhs;
             EntityCondition rhsCondition = (EntityCondition) rhs;
-            parameterCount += lhsCondition.getParameterCount(modelEntity);
-            parameterCount += rhsCondition.getParameterCount(modelEntity);
+            parameterCount += lhsCondition.getParameterCount(modelEntity, sqlEscapeHelper);
+            parameterCount += rhsCondition.getParameterCount(modelEntity, sqlEscapeHelper);
         }
         return parameterCount;
     }

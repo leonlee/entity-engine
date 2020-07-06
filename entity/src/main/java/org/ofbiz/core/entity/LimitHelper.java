@@ -1,5 +1,6 @@
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.List;
@@ -19,11 +20,12 @@ public class LimitHelper {
         this.databaseTypeName = databaseTypeName;
     }
 
-    public String addLimitClause(String sql, List<ModelField> selectFields, int maxResults) {
-        return addLimitClause(sql, selectFields, 0, maxResults);
+    public String addLimitClause(String sql, List<ModelField> selectFields, int maxResults, SqlEscapeHelper sqlEscapeHelper) {
+        return addLimitClause(sql, selectFields, 0, maxResults, sqlEscapeHelper);
     }
 
-    public String addLimitClause(final String sql, final List<ModelField> selectFields, final int offset, final int maxResults) {
+    public String addLimitClause(final String sql, final List<ModelField> selectFields, final int offset, final int maxResults,
+                                 SqlEscapeHelper sqlEscapeHelper) {
         StringBuilder sqlBuilder = new StringBuilder();
         final int limit = maxResults + offset;
         if (offset < 0) {
@@ -54,11 +56,11 @@ public class LimitHelper {
             }
             // if it's SQL Server build the SQL Server clause
             else if (databaseTypeName.equals("mssql")) {
-                return new MSSQLClauseBuilder(selectFields, offset, limit, sql).buildSqlClause();
+                return new MSSQLClauseBuilder(selectFields, offset, limit, sql).buildSqlClause(sqlEscapeHelper);
             }
             // if Oracle lets get a subquery going...
             else if (databaseTypeName.startsWith("oracle")) {
-                return new OracleClauseBuilder(selectFields, offset, limit, sql).buildSqlClause();
+                return new OracleClauseBuilder(selectFields, offset, limit, sql).buildSqlClause(sqlEscapeHelper);
             } else {
                 throw new IllegalArgumentException(String.format("The database type %s is not a supported database type.", databaseTypeName));
             }
@@ -74,7 +76,7 @@ public class LimitHelper {
         return sqlBuilder.toString();
     }
 
-    private String getParentClause(List<ModelField> modelFields, boolean useSubQueryVariable) {
+    private String getParentClause(List<ModelField> modelFields, boolean useSubQueryVariable, SqlEscapeHelper sqlEscapeHelper) {
         StringBuilder sqlBuilder = new StringBuilder("SELECT ");
         if (modelFields.isEmpty()) {
             if (useSubQueryVariable) {
@@ -85,13 +87,17 @@ public class LimitHelper {
         } else {
             int i = 0;
             for (; i < modelFields.size() - 1; i++) {
-                sqlBuilder.append(createQualifiedColumnName(modelFields.get(i).getColName(), useSubQueryVariable));
+                sqlBuilder.append(createQualifiedColumnName(escapeColumnName(modelFields, sqlEscapeHelper, i), useSubQueryVariable));
                 sqlBuilder.append(",");
             }
-            sqlBuilder.append(createQualifiedColumnName(modelFields.get(i).getColName(), useSubQueryVariable));
+            sqlBuilder.append(createQualifiedColumnName(escapeColumnName(modelFields, sqlEscapeHelper, i), useSubQueryVariable));
         }
         sqlBuilder.append(" FROM (");
         return sqlBuilder.toString();
+    }
+
+    private String escapeColumnName(List<ModelField> modelFields, SqlEscapeHelper sqlEscapeHelper, int i) {
+        return sqlEscapeHelper.escapeColumn(modelFields.get(i).getColName());
     }
 
     private String createQualifiedColumnName(final String colName, boolean useSubQueryVariable) {
@@ -119,17 +125,17 @@ public class LimitHelper {
             this.sql = sql;
         }
 
-        public String buildSqlClause() {
-            String subQuery = buildlimitSqlClause();
+        public String buildSqlClause(SqlEscapeHelper sqlEscapeHelper) {
+            String subQuery = buildlimitSqlClause(sqlEscapeHelper);
             if (offset > 0) {
-                subQuery = surroundSubQueryWithOffset(subQuery);
+                subQuery = surroundSubQueryWithOffset(subQuery, sqlEscapeHelper);
             }
             return subQuery;
         }
 
-        private String buildlimitSqlClause() {
+        private String buildlimitSqlClause(SqlEscapeHelper sqlEscapeHelper) {
             final StringBuilder sqlBuilder = new StringBuilder(sql);
-            sqlBuilder.insert(0, getParentClause(selectFields, true));
+            sqlBuilder.insert(0, getParentClause(selectFields, true, sqlEscapeHelper));
             sqlBuilder.append(") ");
             sqlBuilder.append(SUBQUERY_VARIABLE);
             sqlBuilder.append(" WHERE ROWNUM <= ");
@@ -137,9 +143,9 @@ public class LimitHelper {
             return sqlBuilder.toString();
         }
 
-        private String surroundSubQueryWithOffset(final String subQuery) {
+        private String surroundSubQueryWithOffset(final String subQuery, SqlEscapeHelper sqlEscapeHelper) {
             StringBuilder fullQueryBuilder = new StringBuilder(appendRownumInQuery(subQuery));
-            fullQueryBuilder.insert(0, getParentClause(selectFields, false));
+            fullQueryBuilder.insert(0, getParentClause(selectFields, false, sqlEscapeHelper));
             fullQueryBuilder.append(") WHERE rnum > ");
             fullQueryBuilder.append(offset);
             return fullQueryBuilder.toString();
@@ -170,17 +176,17 @@ public class LimitHelper {
             this.sql = sql;
         }
 
-        public String buildSqlClause() {
-            String subQuery = buildlimitSqlClause();
+        public String buildSqlClause(SqlEscapeHelper sqlEscapeHelper) {
+            String subQuery = buildlimitSqlClause(sqlEscapeHelper);
             if (offset > 0) {
                 subQuery = appendOffset(subQuery);
             }
             return subQuery;
         }
 
-        private String buildlimitSqlClause() {
+        private String buildlimitSqlClause(SqlEscapeHelper sqlEscapeHelper) {
             final StringBuilder sqlBuilder = new StringBuilder(moveOrderByClause(sql));
-            sqlBuilder.insert(0, getParentClause(selectFields, true));
+            sqlBuilder.insert(0, getParentClause(selectFields, true, sqlEscapeHelper));
             sqlBuilder.append(") ");
             sqlBuilder.append(SUBQUERY_VARIABLE);
             sqlBuilder.append(" WHERE ");

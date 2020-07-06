@@ -25,6 +25,7 @@
 package org.ofbiz.core.entity;
 
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
 import org.ofbiz.core.entity.model.ModelGroupReader;
@@ -294,6 +295,8 @@ public interface DelegatorInterface {
     UtilCache<GenericPK, List<GenericValue>> getAndCache();
 
     UtilCache<String, List<GenericValue>> getAllCache();
+
+    SqlEscapeHelper getSqlEscapeHelper();
 
     /**
      * Applies the given transformation to any entities matching the given condition.

@@ -7,6 +7,11 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.util.Debug;
 import org.xml.sax.SAXException;
@@ -14,6 +19,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,6 +63,7 @@ import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
 /**
  * Integration test of GenericDelegator using an in-memory database and real collaborators.
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TestGenericDelegator {
 
     // These names are from the test XML files in src/test/resources
@@ -68,6 +75,7 @@ public class TestGenericDelegator {
     private static final String ISSUE_KEY_FIELD = "key";
     private static final String PROJECT_ENTITY = "Project";
     private static final String PROJECT_KEY_FIELD = "key";
+    private static SqlEscapeHelper SQL_ESCAPE_HELPER;
     private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%");
     private static final String SEQUENCE_ENTITY = "SequenceValueItem";
 
@@ -79,6 +87,13 @@ public class TestGenericDelegator {
 
     @Before
     public void setUp() throws Exception {
+
+        DatabaseType type = mock(DatabaseType.class);
+        type.initialize(mock(Connection.class));
+        DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(type);
+        SQL_ESCAPE_HELPER = new SqlEscapeHelper(datasourceInfo);
+
         GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
         GenericDelegator.unlock();
         genericDelegator = getGenericDelegator(DELEGATOR_NAME);

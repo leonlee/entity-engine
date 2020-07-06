@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.io.Serializable;
@@ -54,7 +55,8 @@ public abstract class EntityCondition implements Serializable {
      * @return a non-null string
      */
     public abstract String makeWhereString(
-            ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams);
+            ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+            SqlEscapeHelper sqlEscapeHelper);
 
     /**
      * Checks this condition against the given entity.
@@ -70,9 +72,9 @@ public abstract class EntityCondition implements Serializable {
      * @param modelEntity the entity being queried for (required)
      * @return the number of SQL parameters.
      */
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         List<EntityConditionParam> paramList = new ArrayList<EntityConditionParam>();
-        makeWhereString(modelEntity, paramList);
+        makeWhereString(modelEntity, paramList, sqlEscapeHelper);
         return paramList.size();
     }
 }

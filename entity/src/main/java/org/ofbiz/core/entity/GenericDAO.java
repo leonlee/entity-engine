@@ -343,7 +343,7 @@ public class GenericDAO {
         final String sql = String.format("UPDATE %s SET %s WHERE %s",
                 modelEntity.getTableName(datasourceInfo),
                 modelEntity.colNameString(fieldsToSave, "=?, ", "=?", sqlEscapeHelper),
-                makeWhereStringFromFields(whereFields, entity, "AND"));
+                makeWhereStringFromFields(whereFields, entity, "AND", sqlEscapeHelper));
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         int retVal = 0;
@@ -616,7 +616,7 @@ public class GenericDAO {
             sqlBuffer.append('*');
         }
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle(), sqlEscapeHelper));
 
         final String sql = sqlBuffer.toString();
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -687,7 +687,7 @@ public class GenericDAO {
             sqlBuffer.append('*');
         }
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle(), sqlEscapeHelper));
 
         final String sql = sqlBuffer.toString();
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
@@ -835,7 +835,7 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
-        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity);
+        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity, sqlEscapeHelper);
         whereEntityCondition = inQueryRewritter.rewriteIfNeeded();
 
         if (Debug.verboseOn()) {
@@ -959,10 +959,10 @@ public class GenericDAO {
         final StringBuilder whereString = new StringBuilder();
         String entityCondWhereString = "";
         if (whereEntityCondition != null) {
-            entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
+            entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams, sqlEscapeHelper);
         }
 
-        final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
+        final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle(), sqlEscapeHelper);
 
         if (viewClause.length() > 0) {
             if (entityCondWhereString.length() > 0) {
@@ -994,7 +994,7 @@ public class GenericDAO {
         // HAVING clause
         String entityCondHavingString = "";
         if (havingEntityCondition != null) {
-            entityCondHavingString = havingEntityCondition.makeWhereString(modelEntity, havingEntityConditionParams);
+            entityCondHavingString = havingEntityCondition.makeWhereString(modelEntity, havingEntityConditionParams, sqlEscapeHelper);
         }
         if (entityCondHavingString.length() > 0) {
             sqlBuilder.append(" HAVING ");
@@ -1005,7 +1005,7 @@ public class GenericDAO {
         sqlBuilder.append(SqlJdbcUtil.makeOrderByClause(modelEntity, orderBy, datasourceInfo));
         String sql = sqlBuilder.toString();
         if (findOptions.getMaxResults() > 0) {
-            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
+            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults(), sqlEscapeHelper);
         }
 
         return sql;
@@ -1081,9 +1081,9 @@ public class GenericDAO {
         for (Iterator<ModelField> iterator = modelEntityTwo.getFieldsIterator(); iterator.hasNext(); ) {
             ModelField mf = iterator.next();
 
-            collist.add(mf.getColName());
+            collist.add(sqlEscapeHelper.escapeColumn(mf.getColName()));
             fldlist.add(mf.getName());
-            selsb.append(ttable).append('.').append(mf.getColName());
+            selsb.append(ttable).append('.').append(sqlEscapeHelper.escapeColumn(mf.getColName()));
             if (iterator.hasNext()) {
                 selsb.append(", ");
             } else {
@@ -1102,9 +1102,9 @@ public class GenericDAO {
             if (wheresb.length() > 0) {
                 wheresb.append(" AND ");
             }
-            wheresb.append(atable).append('.').append(modelEntityOne.getField(lfname).getColName())
+            wheresb.append(atable).append('.').append(sqlEscapeHelper.escapeColumn(modelEntityOne.getField(lfname).getColName()))
                     .append(" = ")
-                    .append(ttable).append('.').append(modelEntityTwo.getField(rfname).getColName());
+                    .append(ttable).append('.').append(sqlEscapeHelper.escapeColumn(modelEntityTwo.getField(rfname).getColName()));
         }
 
         // construct the source entity qualifier
@@ -1118,7 +1118,7 @@ public class GenericDAO {
             String sfldname = mkm.getFieldName();
             String lfldname = mkm.getRelFieldName();
             ModelField amf = modelEntityOne.getField(lfldname);
-            String lcolname = amf.getColName();
+            String lcolname = sqlEscapeHelper.escapeColumn(amf.getColName());
             Object rvalue = value.get(sfldname);
 
             bindMap.put(amf, rvalue);
@@ -1201,7 +1201,7 @@ public class GenericDAO {
         }
 
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + " WHERE " +
-                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
+                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND", sqlEscapeHelper);
 
         SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         int retVal;
@@ -1226,7 +1226,7 @@ public class GenericDAO {
         String whereClause = "";
         final List<EntityConditionParam> whereConditionParams = Lists.newLinkedList();
         if (whereCondition != null) {
-            whereClause = " WHERE " + whereCondition.makeWhereString(modelEntity, whereConditionParams);
+            whereClause = " WHERE " + whereCondition.makeWhereString(modelEntity, whereConditionParams, sqlEscapeHelper);
         }
 
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + whereClause;
@@ -1273,7 +1273,7 @@ public class GenericDAO {
         final GenericValue dummyValue = new GenericValue(modelEntity, whereFieldValues);
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo);
         if (!whereFieldValues.isEmpty()) {
-            sql += " WHERE " + makeWhereStringFromFields(whereFields, dummyValue, "AND");
+            sql += " WHERE " + makeWhereStringFromFields(whereFields, dummyValue, "AND", sqlEscapeHelper);
         }
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -1370,14 +1370,14 @@ public class GenericDAO {
         ModelField fieldToSelect = modelEntity.getField(fieldName);
         String columnName = null;
         if (fieldToSelect != null) {
-            columnName = fieldToSelect.getColName();
+            columnName = sqlEscapeHelper.escapeColumn(fieldToSelect.getColName());
         }
         final String tableName = modelEntity.getTableName(datasourceInfo);
         String entityCondWhereString = null;
         List<EntityConditionParam> whereEntityConditionParams = new LinkedList<EntityConditionParam>();
 
         if (entityCondition != null) {
-            entityCondWhereString = entityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
+            entityCondWhereString = entityCondition.makeWhereString(modelEntity, whereEntityConditionParams, sqlEscapeHelper);
         }
         final String sql = countHelper.buildCountSelectStatement(tableName, columnName, entityCondWhereString, distinct);
 
@@ -1582,6 +1582,7 @@ public class GenericDAO {
         final DatabaseType databaseType;
         final EntityCondition whereEntityCondition;
         final ModelEntity modelEntity;
+        final SqlEscapeHelper sqlEscapeHelper;
 
         final private static String BIGINT = "bigint";
 
@@ -1591,10 +1592,12 @@ public class GenericDAO {
         Optional<WhereRewrite> whereRewrite;
         Collection<String> temporaryTableNames;
 
-        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity) {
+        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity,
+                         SqlEscapeHelper sqlEscapeHelper) {
             this.databaseType = databaseType;
             this.whereEntityCondition = whereEntityCondition;
             this.modelEntity = modelEntity;
+            this.sqlEscapeHelper = sqlEscapeHelper;
 
             this.whereRewrite = Optional.absent();
             this.temporaryTableNames = new HashSet<>();
@@ -1674,7 +1677,7 @@ public class GenericDAO {
         }
 
         private boolean shouldRewrite() {
-            final int parameterCount = whereEntityCondition.getParameterCount(modelEntity);
+            final int parameterCount = whereEntityCondition.getParameterCount(modelEntity, sqlEscapeHelper);
             return
                     (databaseType == MSSQL && parameterCount > MS_SQL_MAX_PARAMETER_COUNT)
                             || (databaseType == POSTGRES_7_3 && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);
