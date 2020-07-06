@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 public class MySql8DatabaseTypeTest {
 
     @InjectMocks
-    MySql8DatabaseType mySql8DatabaseType;
+    MySqlDatabaseType mySqlDatabaseType;
 
     @Mock
     Connection connection;
@@ -31,24 +31,24 @@ public class MySql8DatabaseTypeTest {
         // when
         when(databaseMetaData.getSQLKeywords()).thenReturn("test, some, col, someColumn");
         when(connection.getMetaData()).thenReturn(databaseMetaData);
-        mySql8DatabaseType.initialize(connection);
+        mySqlDatabaseType.initialize(connection);
     }
 
     @Test
     public void shouldEscapeWithDoubleQuotesCharacters() throws SQLException {
-        String someColumn = mySql8DatabaseType.escapeColumnName("someColumn");
-        assertEquals("\"someColumn\"", someColumn);
+        String someColumn = mySqlDatabaseType.escapeColumnName("someColumn");
+        assertEquals("`someColumn`", someColumn);
     }
 
     @Test
     public void shouldEscapeWithDoubleQuotesCharactersCaseInsensitive() throws SQLException {
-        String someColumn = mySql8DatabaseType.escapeColumnName("COL");
-        assertEquals("\"COL\"", someColumn);
+        String someColumn = mySqlDatabaseType.escapeColumnName("COL");
+        assertEquals("`COL`", someColumn);
     }
 
     @Test
     public void shouldNotEscapeWithDoubleQuotes() {
-        String other = mySql8DatabaseType.escapeColumnName("Other");
+        String other = mySqlDatabaseType.escapeColumnName("Other");
         assertEquals("Other", other);
     }
 }

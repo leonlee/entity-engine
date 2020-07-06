@@ -300,7 +300,7 @@ public class DatabaseUtil {
 
                 if (addMissing) {
                     // create the table
-                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred(), sqlEscapeHelper);
+                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                     if (errMsg != null && errMsg.length() > 0) {
                         error("Could not create table \"" + tableName + "\"", messages);
@@ -1303,8 +1303,7 @@ public class DatabaseUtil {
                               boolean usePkConstraintNames,
                               int constraintNameClipLength,
                               String fkStyle,
-                              boolean useFkInitiallyDeferred,
-                              SqlEscapeHelper sqlEscapeHelper) {
+                              boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
         }

@@ -13,6 +13,6 @@ public class TestDatabaseType {
         // This is to make sure that if new oracle type is added the if clause inside
         // DatabaseUtil#getIndexInfo is updated.
         // See comments in the DatabaseUtil#getIndexInfo for details
-        assertEquals(17, DatabaseTypeFactory.DATABASE_TYPES.size());
+        assertEquals(16, DatabaseTypeFactory.DATABASE_TYPES.size());
     }
 }

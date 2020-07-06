@@ -58,7 +58,6 @@ import static org.ofbiz.core.entity.EntityOperator.IN;
 import static org.ofbiz.core.entity.EntityOperator.OR;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MSSQL;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MYSQL;
-import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.MYSQL8;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_10G;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.ORACLE_8I;
 import static org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory.POSTGRES_7_3;
@@ -440,7 +439,6 @@ public class GenericDAOTest {
         ImmutableMap<DatabaseType, Boolean> databases = ImmutableMap.<DatabaseType, Boolean>builder()
                 .put(MSSQL, true)
                 .put(POSTGRES_7_3, true)
-                .put(MYSQL8, false)
                 .put(MYSQL, false)
                 .put(ORACLE_8I, false)
                 .put(ORACLE_10G, false)
