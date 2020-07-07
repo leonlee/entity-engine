@@ -23,6 +23,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.io.Serializable;
@@ -45,6 +46,12 @@ import java.util.List;
  * @since July 12, 2002
  */
 public abstract class EntityCondition implements Serializable {
+
+    protected SqlEscapeHelper sqlEscapeHelper;
+
+    protected EntityCondition(SqlEscapeHelper sqlEscapeHelper) {
+        this.sqlEscapeHelper = sqlEscapeHelper;
+    }
 
     /**
      * Creates a string for use in a WHERE clause, based on this condition.
@@ -74,5 +81,9 @@ public abstract class EntityCondition implements Serializable {
         List<EntityConditionParam> paramList = new ArrayList<EntityConditionParam>();
         makeWhereString(modelEntity, paramList);
         return paramList.size();
+    }
+
+    public SqlEscapeHelper getSqlEscapeHelper() {
+        return sqlEscapeHelper;
     }
 }

@@ -185,7 +185,7 @@ public class SqlJdbcUtil {
                         }
                         condBuffer.append(aliasToUse);
                         condBuffer.append('.');
-                        condBuffer.append(filterColName(linkField.getColName()));
+                        condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
 
                         condBuffer.append(" = ");
 
@@ -269,8 +269,8 @@ public class SqlJdbcUtil {
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(
-            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator) {
-        return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
+            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator, final SqlEscapeHelper sqlEscapeHelper) {
+        return makeWhereStringFromFields(modelFields, fieldValues, operator, null, sqlEscapeHelper);
     }
 
     public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues) {
@@ -303,7 +303,8 @@ public class SqlJdbcUtil {
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues,
-                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams) {
+                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams,
+                                                   SqlEscapeHelper sqlEscapeHelper) {
         if (modelFields == null || modelFields.isEmpty()) {
             return "";
         }
@@ -336,11 +337,12 @@ public class SqlJdbcUtil {
         return returnString.toString();
     }
 
-    public static String makeWhereClause(ModelEntity modelEntity, List<ModelField> modelFields, Map<String, ?> fields, String operator, String joinStyle) throws GenericEntityException {
+    public static String makeWhereClause(ModelEntity modelEntity, List<ModelField> modelFields, Map<String, ?> fields, String operator, String joinStyle,
+                                         SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         StringBuilder whereString = new StringBuilder("");
 
         if (modelFields != null && modelFields.size() > 0) {
-            whereString.append(makeWhereStringFromFields(modelFields, fields, "AND"));
+            whereString.append(makeWhereStringFromFields(modelFields, fields, "AND", sqlEscapeHelper));
         }
 
         String viewClause = makeViewWhereClause(modelEntity, joinStyle);

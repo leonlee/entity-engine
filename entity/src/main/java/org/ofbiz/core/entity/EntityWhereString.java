@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.util.List;
@@ -47,9 +48,11 @@ public class EntityWhereString extends EntityCondition {
     protected String sqlString;
 
     protected EntityWhereString() {
+        super(null);
     }
 
-    public EntityWhereString(String sqlString) {
+    public EntityWhereString(String sqlString, SqlEscapeHelper sqlEscapeHelper) {
+        super(sqlEscapeHelper);
         this.sqlString = sqlString;
     }
 

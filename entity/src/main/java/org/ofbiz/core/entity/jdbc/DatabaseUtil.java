@@ -694,7 +694,7 @@ public class DatabaseUtil {
                 return "Failed to detect DB type.";
             }
 
-            String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), field.getColName(), type.getSqlType());
+            String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), sqlEscapeHelper.escapeColumn(field.getColName()), type.getSqlType());
             if (changeColumnTypeClause == null) {
                 return "Changing of column type is not supported in " + dbType.getName() + ".";
             }
@@ -1596,14 +1596,14 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
 
             ModelField relField = relModelEntity.getField(keyMap.getRelFieldName());
 
             if (relCols.length() > 0) {
                 relCols.append(", ");
             }
-            relCols.append(relField.getColName());
+            relCols.append(sqlEscapeHelper.escapeColumn(relField.getColName()));
         }
 
         StringBuilder sqlBuf = new StringBuilder("");
@@ -1792,7 +1792,7 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
         }
         StringBuilder indexSqlBuf = generateIndexClause(entity, modelIndex.getUnique(), modelIndex.getName(), mainCols.toString());
         return indexSqlBuf.toString();

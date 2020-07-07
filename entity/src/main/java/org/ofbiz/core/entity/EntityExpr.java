@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
@@ -48,9 +49,11 @@ public class EntityExpr extends EntityCondition {
     private boolean rightUpper = false;
 
     protected EntityExpr() {
+        super(null);
     }
 
-    public EntityExpr(String lhs, EntityOperator operator, Object rhs) {
+    public EntityExpr(String lhs, EntityOperator operator, Object rhs, SqlEscapeHelper sqlEscapeHelper) {
+        super(sqlEscapeHelper);
         if (lhs == null) {
             throw new IllegalArgumentException("The field name cannot be null");
         }
@@ -63,13 +66,14 @@ public class EntityExpr extends EntityCondition {
         this.rhs = rhs;
     }
 
-    public EntityExpr(String lhs, boolean leftUpper, EntityOperator operator, Object rhs, boolean rightUpper) {
-        this(lhs, operator, rhs);
+    public EntityExpr(String lhs, boolean leftUpper, EntityOperator operator, Object rhs, boolean rightUpper, SqlEscapeHelper sqlEscapeHelper) {
+        this(lhs, operator, rhs, sqlEscapeHelper);
         this.leftUpper = leftUpper;
         this.rightUpper = rightUpper;
     }
 
-    public EntityExpr(EntityCondition lhs, EntityOperator operator, EntityCondition rhs) {
+    public EntityExpr(EntityCondition lhs, EntityOperator operator, EntityCondition rhs, SqlEscapeHelper sqlEscapeHelper) {
+        super(sqlEscapeHelper);
         if (lhs == null) {
             throw new IllegalArgumentException("The left EntityCondition argument cannot be null");
         }
@@ -122,7 +126,7 @@ public class EntityExpr extends EntityCondition {
 
             if (field != null) {
                 if (this.getRhs() == null) {
-                    whereStringBuilder.append(field.getColName());
+                    whereStringBuilder.append(sqlEscapeHelper.escapeColumn(field.getColName()));
                     if (EntityOperator.NOT_EQUAL.equals(this.getOperator())) {
                         whereStringBuilder.append(" IS NOT NULL ");
                     } else {
@@ -130,9 +134,9 @@ public class EntityExpr extends EntityCondition {
                     }
                 } else {
                     if (this.isLUpper()) {
-                        whereStringBuilder.append("UPPER(" + field.getColName() + ")");
+                        whereStringBuilder.append("UPPER(" + sqlEscapeHelper.escapeColumn(field.getColName()) + ")");
                     } else {
-                        whereStringBuilder.append(field.getColName());
+                        whereStringBuilder.append(sqlEscapeHelper.escapeColumn(field.getColName()));
                     }
                     whereStringBuilder.append(' ');
                     whereStringBuilder.append(this.getOperator().toString());

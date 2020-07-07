@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.io.Serializable;
@@ -38,6 +39,7 @@ import java.io.Serializable;
 public class EntityConditionParam implements Serializable {
     protected ModelField modelField;
     protected Object fieldValue;
+    protected SqlEscapeHelper sqlEscapeHelper;
 
     protected EntityConditionParam() {
     }

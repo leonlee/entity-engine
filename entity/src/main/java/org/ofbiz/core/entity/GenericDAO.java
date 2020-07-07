@@ -343,7 +343,7 @@ public class GenericDAO {
         final String sql = String.format("UPDATE %s SET %s WHERE %s",
                 modelEntity.getTableName(datasourceInfo),
                 modelEntity.colNameString(fieldsToSave, "=?, ", "=?", sqlEscapeHelper),
-                makeWhereStringFromFields(whereFields, entity, "AND"));
+                makeWhereStringFromFields(whereFields, entity, "AND", sqlEscapeHelper));
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         int retVal = 0;
@@ -616,7 +616,7 @@ public class GenericDAO {
             sqlBuffer.append('*');
         }
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle(), sqlEscapeHelper));
 
         final String sql = sqlBuffer.toString();
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -687,7 +687,7 @@ public class GenericDAO {
             sqlBuffer.append('*');
         }
         sqlBuffer.append(SqlJdbcUtil.makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle()));
+        sqlBuffer.append(SqlJdbcUtil.makeWhereClause(modelEntity, modelEntity.getPksCopy(), entity, "AND", datasourceInfo.getJoinStyle(), sqlEscapeHelper));
 
         final String sql = sqlBuffer.toString();
         final SQLProcessor sqlP = new ReadOnlySQLProcessor(helperName);
@@ -724,7 +724,7 @@ public class GenericDAO {
         EntityCondition entityCondition = null;
 
         if (fields != null) {
-            entityCondition = new EntityFieldMap(fields, EntityOperator.AND);
+            entityCondition = new EntityFieldMap(fields, EntityOperator.AND, sqlEscapeHelper);
         }
 
         EntityListIterator entityListIterator = null;
@@ -747,7 +747,7 @@ public class GenericDAO {
         EntityCondition entityCondition = null;
 
         if (fields != null) {
-            entityCondition = new EntityFieldMap(fields, EntityOperator.OR);
+            entityCondition = new EntityFieldMap(fields, EntityOperator.OR, sqlEscapeHelper);
         }
 
         EntityListIterator entityListIterator = null;
@@ -1039,10 +1039,10 @@ public class GenericDAO {
                                     Iterables.partition(((Collection<?>) input.getRhs()), maxListSize),
                                     new Function<List<?>, EntityExpr>() {
                                         public EntityExpr apply(@Nullable final List<?> list) {
-                                            return new EntityExpr((String) input.getLhs(), input.getOperator(), list);
+                                            return new EntityExpr((String) input.getLhs(), input.getOperator(), list, whereEntityCondition.getSqlEscapeHelper());
                                         }
                                     }));
-                    return new EntityExprList(listOfExpressions, EntityOperator.OR);
+                    return new EntityExprList(listOfExpressions, EntityOperator.OR, whereEntityCondition.getSqlEscapeHelper());
                 } else {
                     return input;
                 }
@@ -1081,9 +1081,9 @@ public class GenericDAO {
         for (Iterator<ModelField> iterator = modelEntityTwo.getFieldsIterator(); iterator.hasNext(); ) {
             ModelField mf = iterator.next();
 
-            collist.add(mf.getColName());
+            collist.add(sqlEscapeHelper.escapeColumn(mf.getColName()));
             fldlist.add(mf.getName());
-            selsb.append(ttable).append('.').append(mf.getColName());
+            selsb.append(ttable).append('.').append(sqlEscapeHelper.escapeColumn(mf.getColName()));
             if (iterator.hasNext()) {
                 selsb.append(", ");
             } else {
@@ -1102,9 +1102,9 @@ public class GenericDAO {
             if (wheresb.length() > 0) {
                 wheresb.append(" AND ");
             }
-            wheresb.append(atable).append('.').append(modelEntityOne.getField(lfname).getColName())
+            wheresb.append(atable).append('.').append(sqlEscapeHelper.escapeColumn(modelEntityOne.getField(lfname).getColName()))
                     .append(" = ")
-                    .append(ttable).append('.').append(modelEntityTwo.getField(rfname).getColName());
+                    .append(ttable).append('.').append(sqlEscapeHelper.escapeColumn(modelEntityTwo.getField(rfname).getColName()));
         }
 
         // construct the source entity qualifier
@@ -1118,7 +1118,7 @@ public class GenericDAO {
             String sfldname = mkm.getFieldName();
             String lfldname = mkm.getRelFieldName();
             ModelField amf = modelEntityOne.getField(lfldname);
-            String lcolname = amf.getColName();
+            String lcolname = sqlEscapeHelper.escapeColumn(amf.getColName());
             Object rvalue = value.get(sfldname);
 
             bindMap.put(amf, rvalue);
@@ -1201,7 +1201,7 @@ public class GenericDAO {
         }
 
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + " WHERE " +
-                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND");
+                makeWhereStringFromFields(modelEntity.getPksCopy(), entity, "AND", sqlEscapeHelper);
 
         SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
         int retVal;
@@ -1273,7 +1273,7 @@ public class GenericDAO {
         final GenericValue dummyValue = new GenericValue(modelEntity, whereFieldValues);
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo);
         if (!whereFieldValues.isEmpty()) {
-            sql += " WHERE " + makeWhereStringFromFields(whereFields, dummyValue, "AND");
+            sql += " WHERE " + makeWhereStringFromFields(whereFields, dummyValue, "AND", sqlEscapeHelper);
         }
 
         final SQLProcessor sqlP = new PassThruSQLProcessor(helperName, connection);
@@ -1370,7 +1370,7 @@ public class GenericDAO {
         ModelField fieldToSelect = modelEntity.getField(fieldName);
         String columnName = null;
         if (fieldToSelect != null) {
-            columnName = fieldToSelect.getColName();
+            columnName = sqlEscapeHelper.escapeColumn(fieldToSelect.getColName());
         }
         final String tableName = modelEntity.getTableName(datasourceInfo);
         String entityCondWhereString = null;
@@ -1661,8 +1661,8 @@ public class GenericDAO {
                         final Set<?> itemSet = (items instanceof Set)? (Set<?>)items: new HashSet<>(items);
                         InReplacement inReplacement = new InReplacement(generateTemporaryTableName(databaseType), itemSet);
                         inReplacements.add(inReplacement);
-                        EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName());
-                        EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
+                        EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName(), whereEntityCondition.getSqlEscapeHelper());
+                        EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper(), whereEntityCondition.getSqlEscapeHelper());
                         return replacementCondition;
                     } else {
                         return input;

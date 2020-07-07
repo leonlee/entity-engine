@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.util.Iterator;
@@ -42,9 +43,11 @@ public class EntityExprList extends EntityCondition {
     protected EntityOperator operator;
 
     protected EntityExprList() {
+        super(null);
     }
 
-    public EntityExprList(List<? extends EntityExpr> exprList, EntityOperator operator) {
+    public EntityExprList(List<? extends EntityExpr> exprList, EntityOperator operator, SqlEscapeHelper sqlEscapeHelper) {
+        super(sqlEscapeHelper);
         this.exprList = exprList;
         this.operator = operator;
     }

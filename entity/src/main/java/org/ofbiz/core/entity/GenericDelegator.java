@@ -28,6 +28,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -144,6 +145,7 @@ public class GenericDelegator implements DelegatorInterface {
     protected volatile DelegatorInfo delegatorInfo;
     protected volatile DistributedCacheClear distributedCacheClear;
     protected volatile SequenceUtil sequencer;
+    protected SqlEscapeHelper sqlEscapeHelper;
 
     // this is really only for testing and the LockedDatabaseGenericDelegator ..... don't use unless know why!
     protected GenericDelegator() {
@@ -234,6 +236,8 @@ public class GenericDelegator implements DelegatorInterface {
                 GenericHelper helper = GenericHelperFactory.getHelper(helperName);
 
                 DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+
+                sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
 
                 if (datasourceInfo.isCheckOnStart()) {
                     if (Debug.infoOn()) {
@@ -990,7 +994,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByAnd(final String entityName, final List<? extends EntityCondition> expressions)
             throws GenericEntityException {
         checkIfLocked();
-        final EntityConditionList ecl = new EntityConditionList(expressions, AND);
+        final EntityConditionList ecl = new EntityConditionList(expressions, AND, sqlEscapeHelper);
         return findByCondition(entityName, ecl, null, null);
     }
 
@@ -1010,7 +1014,7 @@ public class GenericDelegator implements DelegatorInterface {
             final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
             throws GenericEntityException {
         checkIfLocked();
-        final EntityConditionList ecl = new EntityConditionList(expressions, AND);
+        final EntityConditionList ecl = new EntityConditionList(expressions, AND, sqlEscapeHelper);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
@@ -1027,7 +1031,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByOr(final String entityName, final List<? extends EntityCondition> expressions)
             throws GenericEntityException {
         checkIfLocked();
-        final EntityConditionList ecl = new EntityConditionList(expressions, OR);
+        final EntityConditionList ecl = new EntityConditionList(expressions, OR, sqlEscapeHelper);
         return findByCondition(entityName, ecl, null, null);
     }
 
@@ -1045,7 +1049,7 @@ public class GenericDelegator implements DelegatorInterface {
     public List<GenericValue> findByOr(
             final String entityName, final List<? extends EntityCondition> expressions, final List<String> orderBy)
             throws GenericEntityException {
-        final EntityConditionList ecl = new EntityConditionList(expressions, OR);
+        final EntityConditionList ecl = new EntityConditionList(expressions, OR, sqlEscapeHelper);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
@@ -1061,10 +1065,10 @@ public class GenericDelegator implements DelegatorInterface {
         final List<EntityExpr> likeExpressions = new LinkedList<EntityExpr>();
         if (fields != null) {
             for (Map.Entry<String, ?> entry : fields.entrySet()) {
-                likeExpressions.add(new EntityExpr(entry.getKey(), LIKE, entry.getValue()));
+                likeExpressions.add(new EntityExpr(entry.getKey(), LIKE, entry.getValue(), sqlEscapeHelper));
             }
         }
-        final EntityConditionList ecl = new EntityConditionList(likeExpressions, AND);
+        final EntityConditionList ecl = new EntityConditionList(likeExpressions, AND, sqlEscapeHelper);
         return findByCondition(entityName, ecl, null, orderBy);
     }
 
@@ -1112,7 +1116,7 @@ public class GenericDelegator implements DelegatorInterface {
                           final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
         checkIfLocked();
-        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, AND);
+        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, AND, sqlEscapeHelper);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
 
@@ -1135,7 +1139,7 @@ public class GenericDelegator implements DelegatorInterface {
                          final List<? extends EntityCondition> expressions, final EntityFindOptions findOptions)
             throws GenericEntityException {
         checkIfLocked();
-        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, OR);
+        final EntityConditionList ecl = (expressions == null) ? null : new EntityConditionList(expressions, OR, sqlEscapeHelper);
         return countByCondition(entityName, fieldName, ecl, findOptions);
     }
 

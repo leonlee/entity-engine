@@ -7,6 +7,11 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.ofbiz.core.entity.config.DatasourceInfo;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.util.Debug;
 import org.xml.sax.SAXException;
@@ -14,6 +19,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +54,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.EntityOperator.EQUALS;
@@ -57,6 +64,7 @@ import static org.ofbiz.core.entity.GenericDelegator.getGenericDelegator;
 /**
  * Integration test of GenericDelegator using an in-memory database and real collaborators.
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TestGenericDelegator {
 
     // These names are from the test XML files in src/test/resources
@@ -68,7 +76,8 @@ public class TestGenericDelegator {
     private static final String ISSUE_KEY_FIELD = "key";
     private static final String PROJECT_ENTITY = "Project";
     private static final String PROJECT_KEY_FIELD = "key";
-    private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%");
+    private static SqlEscapeHelper SQL_ESCAPE_HELPER;
+    private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%", SQL_ESCAPE_HELPER );
     private static final String SEQUENCE_ENTITY = "SequenceValueItem";
 
     // Be sure to list all entities in the "default" group here
@@ -79,6 +88,15 @@ public class TestGenericDelegator {
 
     @Before
     public void setUp() throws Exception {
+
+        DatabaseType type = mock(DatabaseType.class);
+        type.initialize(mock(Connection.class));
+        DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(type);
+        SQL_ESCAPE_HELPER = new SqlEscapeHelper(datasourceInfo);
+        when(type.escapeColumnName(anyString())).thenCallRealMethod();
+        PROJECT_KEY_LIKE_B_PERCENT.sqlEscapeHelper = SQL_ESCAPE_HELPER;
+
         GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
         GenericDelegator.unlock();
         genericDelegator = getGenericDelegator(DELEGATOR_NAME);
@@ -522,7 +540,7 @@ public class TestGenericDelegator {
     public void shouldBeAbleToFindUsingNullSelectAndOrderByColumns() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        final EntityExpr keyEqualsFoo = new EntityExpr(PROJECT_KEY_FIELD, EQUALS, "FOO");
+        final EntityExpr keyEqualsFoo = new EntityExpr(PROJECT_KEY_FIELD, EQUALS, "FOO", SQL_ESCAPE_HELPER);
 
         // Invoke
         final List<GenericValue> matchingProjects =
@@ -591,7 +609,7 @@ public class TestGenericDelegator {
     public void transformingNonExistentEntityShouldReturnEmptyList() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        final EntityExpr invalidIdCondition = new EntityExpr(ID_FIELD, EQUALS, Long.MAX_VALUE);
+        final EntityExpr invalidIdCondition = new EntityExpr(ID_FIELD, EQUALS, Long.MAX_VALUE, SQL_ESCAPE_HELPER);
 
         // Invoke
         final List<GenericValue> transformedEntities = genericDelegator.transform(
@@ -715,7 +733,7 @@ public class TestGenericDelegator {
 
         @Override
         public void run() {
-            final EntityCondition selectCondition = new EntityExpr(ID_FIELD, EQUALS, projectId);
+            final EntityCondition selectCondition = new EntityExpr(ID_FIELD, EQUALS, projectId, SQL_ESCAPE_HELPER);
             final Transformation transformation = new IncrementIssueCount();
             waitForTheGoSignal();
             incrementIssueCount(selectCondition, transformation);

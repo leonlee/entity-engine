@@ -25,6 +25,7 @@
 package org.ofbiz.core.entity;
 
 import org.ofbiz.core.entity.jdbc.SqlJdbcUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 
@@ -46,9 +47,11 @@ public class EntityFieldMap extends EntityCondition {
     protected EntityOperator operator;
 
     protected EntityFieldMap() {
+        super(null);
     }
 
-    public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator) {
+    public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator, SqlEscapeHelper sqlEscapeHelper) {
+        super(sqlEscapeHelper);
         this.fieldMap = fieldMap;
         this.operator = operator;
     }
@@ -86,7 +89,7 @@ public class EntityFieldMap extends EntityCondition {
                 }
             }
         }
-        return SqlJdbcUtil.makeWhereStringFromFields(whereFields, fieldMap, operator.getCode(), entityConditionParams);
+        return SqlJdbcUtil.makeWhereStringFromFields(whereFields, fieldMap, operator.getCode(), entityConditionParams, sqlEscapeHelper);
     }
 
     public void checkCondition(ModelEntity modelEntity) throws GenericModelException {
