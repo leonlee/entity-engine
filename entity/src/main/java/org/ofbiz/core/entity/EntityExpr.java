@@ -49,11 +49,9 @@ public class EntityExpr extends EntityCondition {
     private boolean rightUpper = false;
 
     protected EntityExpr() {
-        super(null);
     }
 
-    public EntityExpr(String lhs, EntityOperator operator, Object rhs, SqlEscapeHelper sqlEscapeHelper) {
-        super(sqlEscapeHelper);
+    public EntityExpr(String lhs, EntityOperator operator, Object rhs) {
         if (lhs == null) {
             throw new IllegalArgumentException("The field name cannot be null");
         }
@@ -66,14 +64,13 @@ public class EntityExpr extends EntityCondition {
         this.rhs = rhs;
     }
 
-    public EntityExpr(String lhs, boolean leftUpper, EntityOperator operator, Object rhs, boolean rightUpper, SqlEscapeHelper sqlEscapeHelper) {
-        this(lhs, operator, rhs, sqlEscapeHelper);
+    public EntityExpr(String lhs, boolean leftUpper, EntityOperator operator, Object rhs, boolean rightUpper) {
+        this(lhs, operator, rhs);
         this.leftUpper = leftUpper;
         this.rightUpper = rightUpper;
     }
 
-    public EntityExpr(EntityCondition lhs, EntityOperator operator, EntityCondition rhs, SqlEscapeHelper sqlEscapeHelper) {
-        super(sqlEscapeHelper);
+    public EntityExpr(EntityCondition lhs, EntityOperator operator, EntityCondition rhs) {
         if (lhs == null) {
             throw new IllegalArgumentException("The left EntityCondition argument cannot be null");
         }
@@ -117,7 +114,8 @@ public class EntityExpr extends EntityCondition {
         return rhs;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuilder whereStringBuilder = new StringBuilder();
 
@@ -165,7 +163,7 @@ public class EntityExpr extends EntityCondition {
                                 entityConditionParams.add(new EntityConditionParam(field, inObj));
                             }
                         } else if (rhs instanceof EntityWhereString) {
-                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList()) + " ");
+                            whereStringBuilder.append(" " + ((EntityWhereString) rhs).makeWhereString(modelEntity, Collections.emptyList(), sqlEscapeHelper) + " ");
                         } else {
                             whereStringBuilder.append(" ? ");
 
@@ -195,11 +193,11 @@ public class EntityExpr extends EntityCondition {
         } else if (lhs instanceof EntityCondition) {
             // then rhs MUST also be an EntityCondition
             whereStringBuilder.append('(');
-            whereStringBuilder.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(((EntityCondition) lhs).makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper));
             whereStringBuilder.append(") ");
             whereStringBuilder.append(this.getOperator().toString());
             whereStringBuilder.append(" (");
-            whereStringBuilder.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams));
+            whereStringBuilder.append(((EntityCondition) rhs).makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper));
             whereStringBuilder.append(')');
         }
         return whereStringBuilder.toString();
@@ -218,7 +216,7 @@ public class EntityExpr extends EntityCondition {
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         int parameterCount = 0;
         if (lhs instanceof String) {
             ModelField field = modelEntity.getField((String) this.getLhs());
@@ -230,7 +228,7 @@ public class EntityExpr extends EntityCondition {
                         if (rhs instanceof Collection) {
                             parameterCount += ((Collection<?>) rhs).size();
                         } else if (rhs instanceof EntityWhereString) {
-                            parameterCount += ((EntityWhereString) rhs).getParameterCount(modelEntity);
+                            parameterCount += ((EntityWhereString) rhs).getParameterCount(modelEntity, sqlEscapeHelper);
                         } else {
                             parameterCount++;
                         }
@@ -245,8 +243,8 @@ public class EntityExpr extends EntityCondition {
             // then rhs MUST also be an EntityCondition
             EntityCondition lhsCondition = (EntityCondition) lhs;
             EntityCondition rhsCondition = (EntityCondition) rhs;
-            parameterCount += lhsCondition.getParameterCount(modelEntity);
-            parameterCount += rhsCondition.getParameterCount(modelEntity);
+            parameterCount += lhsCondition.getParameterCount(modelEntity, sqlEscapeHelper);
+            parameterCount += rhsCondition.getParameterCount(modelEntity, sqlEscapeHelper);
         }
         return parameterCount;
     }

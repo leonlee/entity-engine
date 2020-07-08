@@ -48,20 +48,19 @@ public class EntityWhereString extends EntityCondition {
     protected String sqlString;
 
     protected EntityWhereString() {
-        super(null);
     }
 
-    public EntityWhereString(String sqlString, SqlEscapeHelper sqlEscapeHelper) {
-        super(sqlEscapeHelper);
+    public EntityWhereString(String sqlString) {
         this.sqlString = sqlString;
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         return sqlString;
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         return 0;
     }
 

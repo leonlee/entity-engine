@@ -53,7 +53,7 @@ public class EntityConditionHelper {
         if (input instanceof EntityExpr) {
             final EntityExpr expr = (EntityExpr) input;
             if (expr.getLhs() instanceof EntityCondition) {
-                return new EntityExpr(transformCondition((EntityCondition) expr.getLhs(), function), expr.getOperator(), transformCondition((EntityCondition) expr.getRhs(), function), input.getSqlEscapeHelper());
+                return new EntityExpr(transformCondition((EntityCondition) expr.getLhs(), function), expr.getOperator(), transformCondition((EntityCondition) expr.getRhs(), function));
             } else {
                 return function.apply(expr);
             }
@@ -64,7 +64,7 @@ public class EntityConditionHelper {
             while (conditionIterator.hasNext()) {
                 result.add(transformCondition(conditionIterator.next(), function));
             }
-            return new EntityConditionList(result, conditionList.getOperator(), input.getSqlEscapeHelper());
+            return new EntityConditionList(result, conditionList.getOperator());
         } else if (input instanceof EntityExprList) {
             final EntityExprList exprList = (EntityExprList) input;
             final Iterator<? extends EntityExpr> exprIterator = exprList.getExprIterator();
@@ -72,7 +72,7 @@ public class EntityConditionHelper {
             while (exprIterator.hasNext()) {
                 result.add(transformCondition(exprIterator.next(), function));
             }
-            return new EntityConditionList(result, exprList.getOperator(), input.getSqlEscapeHelper());
+            return new EntityConditionList(result, exprList.getOperator());
         } else {
             return input;
         }

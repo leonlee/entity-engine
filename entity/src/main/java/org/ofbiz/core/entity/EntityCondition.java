@@ -47,12 +47,6 @@ import java.util.List;
  */
 public abstract class EntityCondition implements Serializable {
 
-    protected SqlEscapeHelper sqlEscapeHelper;
-
-    protected EntityCondition(SqlEscapeHelper sqlEscapeHelper) {
-        this.sqlEscapeHelper = sqlEscapeHelper;
-    }
-
     /**
      * Creates a string for use in a WHERE clause, based on this condition.
      *
@@ -61,7 +55,8 @@ public abstract class EntityCondition implements Serializable {
      * @return a non-null string
      */
     public abstract String makeWhereString(
-            ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams);
+            ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+            SqlEscapeHelper sqlEscapeHelper);
 
     /**
      * Checks this condition against the given entity.
@@ -77,13 +72,9 @@ public abstract class EntityCondition implements Serializable {
      * @param modelEntity the entity being queried for (required)
      * @return the number of SQL parameters.
      */
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         List<EntityConditionParam> paramList = new ArrayList<EntityConditionParam>();
-        makeWhereString(modelEntity, paramList);
+        makeWhereString(modelEntity, paramList, sqlEscapeHelper);
         return paramList.size();
-    }
-
-    public SqlEscapeHelper getSqlEscapeHelper() {
-        return sqlEscapeHelper;
     }
 }

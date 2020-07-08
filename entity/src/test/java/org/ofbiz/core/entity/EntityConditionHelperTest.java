@@ -26,7 +26,7 @@ public class EntityConditionHelperTest {
     @Mock
     static SqlEscapeHelper sqlEscapeHelper;
 
-    public static final EntityCondition EMPTY_FIELD_MAP = new EntityFieldMap(Collections.<String, Object>emptyMap(), EntityOperator.BETWEEN, sqlEscapeHelper);
+    public static final EntityCondition EMPTY_FIELD_MAP = new EntityFieldMap(Collections.<String, Object>emptyMap(), EntityOperator.BETWEEN);
 
     @Mock
     Predicate<EntityExpr> predicate;
@@ -61,7 +61,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExpressionsFirstFalse() throws Exception {
-        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2, sqlEscapeHelper);
+        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(expression, predicate), equalTo(false));
 
@@ -70,7 +70,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExpressionsSecondFalse() throws Exception {
-        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2, sqlEscapeHelper);
+        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(expression, predicate), equalTo(false));
@@ -81,7 +81,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExpressionsBothTrue() throws Exception {
-        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2, sqlEscapeHelper);
+        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
         Mockito.when(predicate.apply(entityExpr2)).thenReturn(true);
 
@@ -93,7 +93,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExprListFirstFalse() throws Exception {
-        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(expressionList, predicate), equalTo(false));
 
@@ -102,7 +102,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExprListSecondFalse() throws Exception {
-        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(expressionList, predicate), equalTo(false));
@@ -113,7 +113,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfExprListBothTrue() throws Exception {
-        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
         Mockito.when(predicate.apply(entityExpr2)).thenReturn(true);
 
@@ -125,7 +125,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfConditionListFirstFalse() throws Exception {
-        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, entityExpr2, EMPTY_FIELD_MAP), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, entityExpr2, EMPTY_FIELD_MAP), EntityOperator.LESS_THAN);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(conditionList, predicate), equalTo(false));
 
@@ -134,7 +134,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfConditionListSecondFalse() throws Exception {
-        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, EMPTY_FIELD_MAP, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, EMPTY_FIELD_MAP, entityExpr2), EntityOperator.LESS_THAN);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
 
         assertThat(EntityConditionHelper.predicateTrueForEachLeafExpression(conditionList, predicate), equalTo(false));
@@ -145,7 +145,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testChecksLeafsOfConditionListBothTrue() throws Exception {
-        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(EMPTY_FIELD_MAP, entityExpr, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(EMPTY_FIELD_MAP, entityExpr, entityExpr2), EntityOperator.LESS_THAN);
         Mockito.when(predicate.apply(entityExpr)).thenReturn(true);
         Mockito.when(predicate.apply(entityExpr2)).thenReturn(true);
 
@@ -157,7 +157,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testTransformsLeafsOfExpressions() throws Exception {
-        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2, sqlEscapeHelper);
+        EntityExpr expression = new EntityExpr(entityExpr, EntityOperator.LESS_THAN, entityExpr2);
 
         EntityCondition result = EntityConditionHelper.transformCondition(expression, function);
 
@@ -172,7 +172,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testTransformsLeafsOfExprList() throws Exception {
-        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityExprList expressionList = new EntityExprList(ImmutableList.of(entityExpr, entityExpr2), EntityOperator.LESS_THAN);
 
         EntityCondition result = EntityConditionHelper.transformCondition(expressionList, function);
 
@@ -186,7 +186,7 @@ public class EntityConditionHelperTest {
 
     @Test
     public void testTransformsLeafsOfConditionList() throws Exception {
-        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, entityExpr2, EMPTY_FIELD_MAP), EntityOperator.LESS_THAN, sqlEscapeHelper);
+        EntityConditionList conditionList = new EntityConditionList(ImmutableList.of(entityExpr, entityExpr2, EMPTY_FIELD_MAP), EntityOperator.LESS_THAN);
 
         EntityCondition result = EntityConditionHelper.transformCondition(conditionList, function);
 

@@ -724,7 +724,7 @@ public class GenericDAO {
         EntityCondition entityCondition = null;
 
         if (fields != null) {
-            entityCondition = new EntityFieldMap(fields, EntityOperator.AND, sqlEscapeHelper);
+            entityCondition = new EntityFieldMap(fields, EntityOperator.AND);
         }
 
         EntityListIterator entityListIterator = null;
@@ -747,7 +747,7 @@ public class GenericDAO {
         EntityCondition entityCondition = null;
 
         if (fields != null) {
-            entityCondition = new EntityFieldMap(fields, EntityOperator.OR, sqlEscapeHelper);
+            entityCondition = new EntityFieldMap(fields, EntityOperator.OR);
         }
 
         EntityListIterator entityListIterator = null;
@@ -835,7 +835,7 @@ public class GenericDAO {
             whereEntityCondition = rewriteConditionToSplitListsLargerThan(whereEntityCondition, ORACLE_MAX_LIST_SIZE);
         }
 
-        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity);
+        final InQueryRewritter inQueryRewritter = new InQueryRewritter(databaseType, whereEntityCondition, modelEntity, sqlEscapeHelper);
         whereEntityCondition = inQueryRewritter.rewriteIfNeeded();
 
         if (Debug.verboseOn()) {
@@ -959,7 +959,7 @@ public class GenericDAO {
         final StringBuilder whereString = new StringBuilder();
         String entityCondWhereString = "";
         if (whereEntityCondition != null) {
-            entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
+            entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams, sqlEscapeHelper);
         }
 
         final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
@@ -994,7 +994,7 @@ public class GenericDAO {
         // HAVING clause
         String entityCondHavingString = "";
         if (havingEntityCondition != null) {
-            entityCondHavingString = havingEntityCondition.makeWhereString(modelEntity, havingEntityConditionParams);
+            entityCondHavingString = havingEntityCondition.makeWhereString(modelEntity, havingEntityConditionParams, sqlEscapeHelper);
         }
         if (entityCondHavingString.length() > 0) {
             sqlBuilder.append(" HAVING ");
@@ -1039,10 +1039,10 @@ public class GenericDAO {
                                     Iterables.partition(((Collection<?>) input.getRhs()), maxListSize),
                                     new Function<List<?>, EntityExpr>() {
                                         public EntityExpr apply(@Nullable final List<?> list) {
-                                            return new EntityExpr((String) input.getLhs(), input.getOperator(), list, whereEntityCondition.getSqlEscapeHelper());
+                                            return new EntityExpr((String) input.getLhs(), input.getOperator(), list);
                                         }
                                     }));
-                    return new EntityExprList(listOfExpressions, EntityOperator.OR, whereEntityCondition.getSqlEscapeHelper());
+                    return new EntityExprList(listOfExpressions, EntityOperator.OR);
                 } else {
                     return input;
                 }
@@ -1226,7 +1226,7 @@ public class GenericDAO {
         String whereClause = "";
         final List<EntityConditionParam> whereConditionParams = Lists.newLinkedList();
         if (whereCondition != null) {
-            whereClause = " WHERE " + whereCondition.makeWhereString(modelEntity, whereConditionParams);
+            whereClause = " WHERE " + whereCondition.makeWhereString(modelEntity, whereConditionParams, sqlEscapeHelper);
         }
 
         String sql = "DELETE FROM " + modelEntity.getTableName(datasourceInfo) + whereClause;
@@ -1377,7 +1377,7 @@ public class GenericDAO {
         List<EntityConditionParam> whereEntityConditionParams = new LinkedList<EntityConditionParam>();
 
         if (entityCondition != null) {
-            entityCondWhereString = entityCondition.makeWhereString(modelEntity, whereEntityConditionParams);
+            entityCondWhereString = entityCondition.makeWhereString(modelEntity, whereEntityConditionParams, sqlEscapeHelper);
         }
         final String sql = countHelper.buildCountSelectStatement(tableName, columnName, entityCondWhereString, distinct);
 
@@ -1582,6 +1582,7 @@ public class GenericDAO {
         final DatabaseType databaseType;
         final EntityCondition whereEntityCondition;
         final ModelEntity modelEntity;
+        final SqlEscapeHelper sqlEscapeHelper;
 
         final private static String BIGINT = "bigint";
 
@@ -1591,10 +1592,12 @@ public class GenericDAO {
         Optional<WhereRewrite> whereRewrite;
         Collection<String> temporaryTableNames;
 
-        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity) {
+        InQueryRewritter(@Nonnull DatabaseType databaseType, EntityCondition whereEntityCondition, ModelEntity modelEntity,
+                         SqlEscapeHelper sqlEscapeHelper) {
             this.databaseType = databaseType;
             this.whereEntityCondition = whereEntityCondition;
             this.modelEntity = modelEntity;
+            this.sqlEscapeHelper = sqlEscapeHelper;
 
             this.whereRewrite = Optional.absent();
             this.temporaryTableNames = new HashSet<>();
@@ -1661,8 +1664,8 @@ public class GenericDAO {
                         final Set<?> itemSet = (items instanceof Set)? (Set<?>)items: new HashSet<>(items);
                         InReplacement inReplacement = new InReplacement(generateTemporaryTableName(databaseType), itemSet);
                         inReplacements.add(inReplacement);
-                        EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName(), whereEntityCondition.getSqlEscapeHelper());
-                        EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper(), whereEntityCondition.getSqlEscapeHelper());
+                        EntityWhereString newRhs = new EntityWhereString("select item from " + inReplacement.getTemporaryTableName());
+                        EntityExpr replacementCondition = new EntityExpr((String) input.getLhs(), input.isLUpper(), input.getOperator(), newRhs, input.isRUpper());
                         return replacementCondition;
                     } else {
                         return input;
@@ -1674,7 +1677,7 @@ public class GenericDAO {
         }
 
         private boolean shouldRewrite() {
-            final int parameterCount = whereEntityCondition.getParameterCount(modelEntity);
+            final int parameterCount = whereEntityCondition.getParameterCount(modelEntity, sqlEscapeHelper);
             return
                     (databaseType == MSSQL && parameterCount > MS_SQL_MAX_PARAMETER_COUNT)
                             || (databaseType == POSTGRES_7_3 && parameterCount > POSTGRESQL_MAX_PARAMETER_COUNT);

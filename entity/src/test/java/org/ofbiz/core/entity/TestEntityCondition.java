@@ -20,57 +20,57 @@ public class TestEntityCondition {
 
     @Test
     public void testEntityConditionListParameterCount() {
-        EntityConditionList ec = new EntityConditionList(ImmutableList.of(new MockEntityCondition(3), new MockEntityCondition(2)), EntityOperator.AND, sqlEscapeHelper);
-        assertEquals("Wrong parameter count.", 5, ec.getParameterCount(null));
+        EntityConditionList ec = new EntityConditionList(ImmutableList.of(new MockEntityCondition(3), new MockEntityCondition(2)), EntityOperator.AND);
+        assertEquals("Wrong parameter count.", 5, ec.getParameterCount(null, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityExprParameterCountForEntityConditions() {
-        EntityExpr ec = new EntityExpr(new MockEntityCondition(2), EntityOperator.AND, new MockEntityCondition(5), sqlEscapeHelper);
-        assertEquals("Wrong parameter count.", 7, ec.getParameterCount(null));
+        EntityExpr ec = new EntityExpr(new MockEntityCondition(2), EntityOperator.AND, new MockEntityCondition(5));
+        assertEquals("Wrong parameter count.", 7, ec.getParameterCount(null, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityExprParameterCountForInQueryCollection() {
-        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("one", "two", "three"), sqlEscapeHelper);
+        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("one", "two", "three"));
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
         modelEntity.addField(modelField);
-        assertEquals("Wrong parameter count.", 3, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 3, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityExprParameterCountForInQueryWhere() {
-        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, new EntityWhereString("blah", sqlEscapeHelper), sqlEscapeHelper);
+        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, new EntityWhereString("blah"));
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
         modelEntity.addField(modelField);
-        assertEquals("Wrong parameter count.", 0, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 0, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityExprParameterCountForInQueryLiteral() {
-        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, "something", sqlEscapeHelper);
+        EntityExpr ec = new EntityExpr("myField", EntityOperator.IN, "something");
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
         modelEntity.addField(modelField);
-        assertEquals("Wrong parameter count.", 1, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 1, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityExprListParameterCount() {
         EntityExprList ec = new EntityExprList(ImmutableList.of(
-                new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("one", "two"), sqlEscapeHelper),
-                new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("three", "four", "five"), sqlEscapeHelper)
-        ), EntityOperator.AND, sqlEscapeHelper);
+                new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("one", "two")),
+                new EntityExpr("myField", EntityOperator.IN, ImmutableList.of("three", "four", "five"))
+        ), EntityOperator.AND);
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
         modelEntity.addField(modelField);
-        assertEquals("Wrong parameter count.", 5, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 5, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class TestEntityCondition {
         EntityFieldMap ec = new EntityFieldMap(ImmutableMap.of(
                 "myField", "one",
                 "myField2", "two"
-        ), EntityOperator.OR, sqlEscapeHelper);
+        ), EntityOperator.OR);
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
@@ -86,17 +86,17 @@ public class TestEntityCondition {
         ModelField modelField2 = new ModelField();
         modelField2.setName("myField2");
         modelEntity.addField(modelField2);
-        assertEquals("Wrong parameter count.", 2, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 2, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     @Test
     public void testEntityFieldMapParameterCountWithNulls() {
-        EntityFieldMap ec = new EntityFieldMap(Collections.singletonMap("myField", null), EntityOperator.AND, sqlEscapeHelper);
+        EntityFieldMap ec = new EntityFieldMap(Collections.singletonMap("myField", null), EntityOperator.AND);
         ModelEntity modelEntity = new ModelEntity();
         ModelField modelField = new ModelField();
         modelField.setName("myField");
         modelEntity.addField(modelField);
-        assertEquals("Wrong parameter count.", 0, ec.getParameterCount(modelEntity));
+        assertEquals("Wrong parameter count.", 0, ec.getParameterCount(modelEntity, sqlEscapeHelper));
     }
 
     /**
@@ -106,12 +106,11 @@ public class TestEntityCondition {
         private final int parameterCount;
 
         public MockEntityCondition(int parameterCount) {
-            super(null);
             this.parameterCount = parameterCount;
         }
 
         @Override
-        public int getParameterCount(ModelEntity modelEntity) {
+        public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
             return parameterCount;
         }
 
@@ -121,7 +120,7 @@ public class TestEntityCondition {
         }
 
         @Override
-        public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+        public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams, SqlEscapeHelper sqlEscapeHelper) {
             throw new UnsupportedOperationException();
         }
     }

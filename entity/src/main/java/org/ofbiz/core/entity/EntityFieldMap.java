@@ -47,11 +47,9 @@ public class EntityFieldMap extends EntityCondition {
     protected EntityOperator operator;
 
     protected EntityFieldMap() {
-        super(null);
     }
 
-    public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator, SqlEscapeHelper sqlEscapeHelper) {
-        super(sqlEscapeHelper);
+    public EntityFieldMap(Map<String, ?> fieldMap, EntityOperator operator) {
         this.fieldMap = fieldMap;
         this.operator = operator;
     }
@@ -76,7 +74,8 @@ public class EntityFieldMap extends EntityCondition {
         return this.fieldMap.entrySet().iterator();
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         List<ModelField> whereFields = new ArrayList<ModelField>();
 
@@ -101,7 +100,7 @@ public class EntityFieldMap extends EntityCondition {
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         List<ModelField> whereFields = new ArrayList<ModelField>();
 
         if (fieldMap != null && fieldMap.size() > 0) {

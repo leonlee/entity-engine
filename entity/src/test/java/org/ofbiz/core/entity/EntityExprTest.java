@@ -36,12 +36,11 @@ public class EntityExprTest {
         SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
         when(sqlEscapeHelper.escapeColumn("NAME")).thenReturn("`NAME`");
 
-        EntityExpr entityExpr = new EntityExpr(FIELD_NAME, IN, params, sqlEscapeHelper);
-        entityExpr.sqlEscapeHelper = sqlEscapeHelper;
+        EntityExpr entityExpr = new EntityExpr(FIELD_NAME, IN, params);
 
         List<EntityConditionParam> entityConditionParams = new ArrayList<>();
 
-        String result = entityExpr.makeWhereString(modelEntity, entityConditionParams);
+        String result = entityExpr.makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper);
         System.out.println(entityConditionParams);
         assertEquals("`NAME` IN (?, ?, ?) ", result);
     }

@@ -54,7 +54,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.EntityOperator.EQUALS;
@@ -77,7 +76,7 @@ public class TestGenericDelegator {
     private static final String PROJECT_ENTITY = "Project";
     private static final String PROJECT_KEY_FIELD = "key";
     private static SqlEscapeHelper SQL_ESCAPE_HELPER;
-    private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%", SQL_ESCAPE_HELPER );
+    private static final EntityExpr PROJECT_KEY_LIKE_B_PERCENT = new EntityExpr(PROJECT_KEY_FIELD, LIKE, "B%");
     private static final String SEQUENCE_ENTITY = "SequenceValueItem";
 
     // Be sure to list all entities in the "default" group here
@@ -94,8 +93,6 @@ public class TestGenericDelegator {
         DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(type);
         SQL_ESCAPE_HELPER = new SqlEscapeHelper(datasourceInfo);
-        when(type.escapeColumnName(anyString())).thenCallRealMethod();
-        PROJECT_KEY_LIKE_B_PERCENT.sqlEscapeHelper = SQL_ESCAPE_HELPER;
 
         GenericDelegator.removeGenericDelegator(DELEGATOR_NAME);
         GenericDelegator.unlock();
@@ -540,7 +537,7 @@ public class TestGenericDelegator {
     public void shouldBeAbleToFindUsingNullSelectAndOrderByColumns() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        final EntityExpr keyEqualsFoo = new EntityExpr(PROJECT_KEY_FIELD, EQUALS, "FOO", SQL_ESCAPE_HELPER);
+        final EntityExpr keyEqualsFoo = new EntityExpr(PROJECT_KEY_FIELD, EQUALS, "FOO");
 
         // Invoke
         final List<GenericValue> matchingProjects =
@@ -609,7 +606,7 @@ public class TestGenericDelegator {
     public void transformingNonExistentEntityShouldReturnEmptyList() throws Exception {
         // Set up
         genericDelegator.storeAll(loadTestEntitiesFromXml("test-entities.xml"));
-        final EntityExpr invalidIdCondition = new EntityExpr(ID_FIELD, EQUALS, Long.MAX_VALUE, SQL_ESCAPE_HELPER);
+        final EntityExpr invalidIdCondition = new EntityExpr(ID_FIELD, EQUALS, Long.MAX_VALUE);
 
         // Invoke
         final List<GenericValue> transformedEntities = genericDelegator.transform(
@@ -733,7 +730,7 @@ public class TestGenericDelegator {
 
         @Override
         public void run() {
-            final EntityCondition selectCondition = new EntityExpr(ID_FIELD, EQUALS, projectId, SQL_ESCAPE_HELPER);
+            final EntityCondition selectCondition = new EntityExpr(ID_FIELD, EQUALS, projectId);
             final Transformation transformation = new IncrementIssueCount();
             waitForTheGoSignal();
             incrementIssueCount(selectCondition, transformation);

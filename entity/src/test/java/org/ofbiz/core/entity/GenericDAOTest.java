@@ -97,18 +97,18 @@ public class GenericDAOTest {
     @Test
     public void testCorrectlyDetectsExpressionToBeRewritten() throws Exception {
         assertTrue(GenericDAO.conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(
-                new EntityExpr("test", IN, ImmutableList.of(1, 2),sqlEscapeHelper), 1));
+                new EntityExpr("test", IN, ImmutableList.of(1, 2)), 1));
         assertFalse(GenericDAO.conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(
-                new EntityExpr("test", IN, ImmutableList.of(1, 2), sqlEscapeHelper), 5));
+                new EntityExpr("test", IN, ImmutableList.of(1, 2)), 5));
         assertFalse(GenericDAO.conditionContainsInClauseWithListOfSizeGreaterThanMaxSize(
-                new EntityExpr("test", AND, ImmutableList.of(1, 2), sqlEscapeHelper), 1));
+                new EntityExpr("test", AND, ImmutableList.of(1, 2)), 1));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCorrectlyRewritesQuery() throws Exception {
         EntityCondition result = GenericDAO.transformConditionSplittingInClauseListsToChunksNoLongerThanMaxSize(
-                new EntityExpr("test", IN, ImmutableList.of(1, 2, 3, 4, 5), sqlEscapeHelper), 2);
+                new EntityExpr("test", IN, ImmutableList.of(1, 2, 3, 4, 5)), 2);
 
         assertThat(result, instanceOf(EntityExprList.class));
         assertThat(((EntityExprList) result).getExprListSize(), equalTo(3));
@@ -123,7 +123,7 @@ public class GenericDAOTest {
     @Test
     public void testCorrectlyRewritesQueryWithoutModification() throws Exception {
         EntityCondition result = GenericDAO.transformConditionSplittingInClauseListsToChunksNoLongerThanMaxSize(
-                new EntityExpr("test", IN, ImmutableList.of(1, 2, 3, 4, 5), sqlEscapeHelper), 10);
+                new EntityExpr("test", IN, ImmutableList.of(1, 2, 3, 4, 5)), 10);
 
         assertThat(result, instanceOf(EntityExpr.class));
         assertThat((EntityExpr) result, entityExpr("test", IN, ImmutableList.of(1, 2, 3, 4, 5)));
@@ -140,7 +140,7 @@ public class GenericDAOTest {
             }
 
             public void describeTo(Description description) {
-                description.appendText(new EntityExpr(lhs, operator, rhs, sqlEscapeHelper).toString());
+                description.appendText(new EntityExpr(lhs, operator, rhs).toString());
             }
         };
     }
@@ -204,8 +204,10 @@ public class GenericDAOTest {
                 any(SqlEscapeHelper.class))).thenReturn("FIRST_NAME");
         when(mockFindOptions.getDistinct()).thenReturn(true);
         final EntityCondition mockWhereCondition = mock(EntityCondition.class);
-        final List<EntityConditionParam> whereConditionParams = new ArrayList<EntityConditionParam>();
-        when(mockWhereCondition.makeWhereString(mockModelEntity, whereConditionParams)).thenReturn("LAST_NAME IS NULL");
+        final List<EntityConditionParam> whereConditionParams = new ArrayList<>();
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
+
+        when(mockWhereCondition.makeWhereString(eq(mockModelEntity), eq(whereConditionParams), any(SqlEscapeHelper.class))).thenReturn("LAST_NAME IS NULL");
 
         // Invoke
         final String sql = dao.getSelectQuery(selectFields, mockFindOptions, mockModelEntity, null, mockWhereCondition,
@@ -229,8 +231,8 @@ public class GenericDAOTest {
         when(inExpression.getOperator()).thenReturn(IN);
 
         final List<EntityConditionParam> whereConditionParams = new ArrayList<>();
-        when(inExpression.makeWhereString(mockModelEntity, whereConditionParams)).thenReturn("LAST_NAME IS NULL");
-
+        when(inExpression.makeWhereString(eq(mockModelEntity), eq(whereConditionParams), any(SqlEscapeHelper.class))).thenReturn("LAST_NAME IS NULL");
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
         // Invoke
         final String sql = dao.getSelectQuery(selectFields, mockFindOptions, mockModelEntity, null, inExpression,
                 null, whereConditionParams, null, mockDatabaseType);
@@ -266,8 +268,8 @@ public class GenericDAOTest {
         // Set up
         final EntityFindOptions mockFindOptions = mock(EntityFindOptions.class);
         final EntityCondition mockHavingEntityCondition = mock(EntityCondition.class);
-        final List<EntityConditionParam> havingConditionParams = new ArrayList<EntityConditionParam>();
-        when(mockHavingEntityCondition.makeWhereString(mockModelEntity, havingConditionParams)).thenReturn("BLAH");
+        final List<EntityConditionParam> havingConditionParams = new ArrayList<>();
+        when(mockHavingEntityCondition.makeWhereString(eq(mockModelEntity), eq(havingConditionParams), any(SqlEscapeHelper.class))).thenReturn("BLAH");
 
         // Invoke
         final String sql = dao.getSelectQuery(null, mockFindOptions, mockModelEntity, null, null,
@@ -354,7 +356,7 @@ public class GenericDAOTest {
         field.setName("test");
         modelEntity.addField(field);
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids, sqlEscapeHelper), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids), modelEntity, sqlEscapeHelper);
         Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
 
         assertTrue("Rewrite should be required.", rewrite.isPresent());
@@ -384,7 +386,7 @@ public class GenericDAOTest {
         modelEntity.addField(field);
         final List<Integer> inOperands = new ArrayList<>(IntStream.range(1, numberOfUniqueElements + 1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
         inOperands.addAll(IntStream.range(1, numberOfUniqueElements + 1).mapToObj(Integer::valueOf).collect(Collectors.toList()));
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, inOperands, sqlEscapeHelper), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, inOperands), modelEntity, sqlEscapeHelper);
         // when
         final Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
         // then
@@ -409,11 +411,11 @@ public class GenericDAOTest {
         field2.setName("test2");
         modelEntity.addField(field2);
 
-        EntityExpr expr1 = new EntityExpr("test1", IN, ids, sqlEscapeHelper);
-        EntityExpr expr2 = new EntityExpr("test2", IN, ids, sqlEscapeHelper);
-        EntityExprList outerExpr = new EntityExprList(ImmutableList.of(expr1, expr2), EntityOperator.OR, sqlEscapeHelper);
+        EntityExpr expr1 = new EntityExpr("test1", IN, ids);
+        EntityExpr expr2 = new EntityExpr("test2", IN, ids);
+        EntityExprList outerExpr = new EntityExprList(ImmutableList.of(expr1, expr2), EntityOperator.OR);
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, outerExpr, modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, outerExpr, modelEntity, sqlEscapeHelper);
         Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
 
         assertTrue("Rewrite should be required.", rewrite.isPresent());
@@ -453,7 +455,7 @@ public class GenericDAOTest {
         field.setName("test");
         modelEntity.addField(field);
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids, sqlEscapeHelper), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids), modelEntity, sqlEscapeHelper);
 
         Optional<GenericDAO.WhereRewrite> rewrite = inQueryRewritter.rewriteConditionToUseTemporaryTablesForLargeInClauses();
 
@@ -478,7 +480,7 @@ public class GenericDAOTest {
             field.setName("test");
             modelEntity.addField(field);
 
-            final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(entry.getKey(), new EntityExpr("test", IN, ids, sqlEscapeHelper), modelEntity);
+            final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(entry.getKey(), new EntityExpr("test", IN, ids), modelEntity, sqlEscapeHelper);
             inQueryRewritter.rewriteIfNeeded();
             assertThat("Should have proper value for " + entry.getKey(), inQueryRewritter.isRewritten(), equalTo(entry.getValue()));
         }
@@ -501,7 +503,7 @@ public class GenericDAOTest {
         when(mockSqlProcessor.getPreparedStatement()).thenReturn(mock(PreparedStatement.class));
 
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(databaseType, new EntityExpr("test", IN, list, sqlEscapeHelper), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(databaseType, new EntityExpr("test", IN, list), modelEntity, sqlEscapeHelper);
         inQueryRewritter.rewriteIfNeeded();
         inQueryRewritter.createTemporaryTablesIfNeeded(mockSqlProcessor);
 
@@ -522,7 +524,7 @@ public class GenericDAOTest {
         final SQLProcessor mockSqlProcessor = mock(SQLProcessor.class);
         when(mockSqlProcessor.getPreparedStatement()).thenReturn(mock(PreparedStatement.class));
 
-        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids, sqlEscapeHelper), modelEntity);
+        final GenericDAO.InQueryRewritter inQueryRewritter = new GenericDAO.InQueryRewritter(MSSQL, new EntityExpr("test", IN, ids), modelEntity, sqlEscapeHelper);
         inQueryRewritter.rewriteIfNeeded();
         inQueryRewritter.createTemporaryTablesIfNeeded(mockSqlProcessor);
 
