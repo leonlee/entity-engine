@@ -28,6 +28,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelField;
 import org.ofbiz.core.entity.model.ModelFieldType;
@@ -144,6 +145,7 @@ public class GenericDelegator implements DelegatorInterface {
     protected volatile DelegatorInfo delegatorInfo;
     protected volatile DistributedCacheClear distributedCacheClear;
     protected volatile SequenceUtil sequencer;
+    protected SqlEscapeHelper sqlEscapeHelper;
 
     // this is really only for testing and the LockedDatabaseGenericDelegator ..... don't use unless know why!
     protected GenericDelegator() {
@@ -234,6 +236,8 @@ public class GenericDelegator implements DelegatorInterface {
                 GenericHelper helper = GenericHelperFactory.getHelper(helperName);
 
                 DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+
+                this.sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
 
                 if (datasourceInfo.isCheckOnStart()) {
                     if (Debug.infoOn()) {
@@ -2530,6 +2534,11 @@ public class GenericDelegator implements DelegatorInterface {
             genericValue.setDelegator(this);
         }
         return transformedEntities;
+    }
+
+    @Override
+    public SqlEscapeHelper getSqlEscapeHelper() {
+        return sqlEscapeHelper;
     }
 
     private static void checkIfLocked() {
