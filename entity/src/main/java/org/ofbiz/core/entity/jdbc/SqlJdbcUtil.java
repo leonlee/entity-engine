@@ -199,7 +199,7 @@ public class SqlJdbcUtil {
                             ModelField relLinkField = relLinkEntity.getField(keyMap.getRelFieldName());
                             condBuffer.append(viewLink.getRelEntityAlias());
                             condBuffer.append('.');
-                            condBuffer.append(filterColName(relLinkField.getColName()));
+                            condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
                         }
                     }
                     if (condBuffer.length() == 0) {
@@ -315,7 +315,7 @@ public class SqlJdbcUtil {
         while (iter.hasNext()) {
             final ModelField modelField = iter.next();
 
-            returnString.append(modelField.getColName());
+            returnString.append(sqlEscapeHelper.escapeColumn(modelField.getColName()));
             final Object fieldValue = fieldValues.get(modelField.getName());
 
             if (fieldValue == null) {
@@ -441,7 +441,9 @@ public class SqlJdbcUtil {
         return makeOrderByClause(modelEntity, orderBy, false, datasourceInfo);
     }
 
-    public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy, boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
+    public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy,
+                                           boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
+        SqlEscapeHelper sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
         StringBuilder sql = new StringBuilder("");
         String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + '.') : "";
 
@@ -470,9 +472,9 @@ public class SqlJdbcUtil {
 
                     if (curField.getName().equals(keyName)) {
                         if (ext != null)
-                            orderByStrings.add(fieldPrefix + curField.getColName() + ext);
+                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()) + ext);
                         else
-                            orderByStrings.add(fieldPrefix + curField.getColName());
+                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()));
                     }
                 }
             }
