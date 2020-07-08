@@ -237,7 +237,7 @@ public class GenericDelegator implements DelegatorInterface {
 
                 DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
-                sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
+                this.sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
 
                 if (datasourceInfo.isCheckOnStart()) {
                     if (Debug.infoOn()) {
@@ -2522,6 +2522,11 @@ public class GenericDelegator implements DelegatorInterface {
     }
 
     @Override
+    public SqlEscapeHelper getSqlEscapeHelper() {
+        return sqlEscapeHelper;
+    }
+
+    @Override
     public List<GenericValue> transform(final String entityName, final EntityCondition entityCondition,
                                         final List<String> orderBy, final String lockField, final Transformation transformation)
             throws GenericEntityException {
@@ -2541,5 +2546,4 @@ public class GenericDelegator implements DelegatorInterface {
             throw new UnsupportedOperationException(MESSAGE);
         }
     }
-
 }
