@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -319,6 +319,11 @@ public class TestDatabaseUtilFieldModifications {
     }
 
     @Test
+    public void testSqlStatementCompositionMySQL() throws Exception {
+        testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.MYSQL);
+    }
+
+    @Test
     public void testSqlStatementCompositionHsqldb() throws Exception {
 
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.HSQL);
@@ -326,7 +331,6 @@ public class TestDatabaseUtilFieldModifications {
 
     @Test
     public void testSqlStatementCompositionHsqldb233() throws Exception {
-
         testSqlStatementCompositionForDBWithModify(DatabaseTypeFactory.HSQL_2_3_3);
     }
 
@@ -340,11 +344,19 @@ public class TestDatabaseUtilFieldModifications {
         // mock desired type:
         when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(123)");
         when(modelField.getType()).thenReturn(databaseType.getFieldTypeName());
-
+        if (databaseType != DatabaseTypeFactory.MYSQL) {
+            when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
+        } else{
+            when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> "`" + i.getArgument(0) + "`");
+        }
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
 
-        // update should be performed:
-        verify(statement).executeUpdate("ALTER TABLE BOOKS MODIFY AUTHOR NVARCHAR(123)");
+        if (databaseType != DatabaseTypeFactory.MYSQL) {
+            // update should be performed:
+            verify(statement).executeUpdate("ALTER TABLE BOOKS MODIFY AUTHOR NVARCHAR(123)");
+        } else {
+            verify(statement).executeUpdate("ALTER TABLE BOOKS MODIFY `AUTHOR` NVARCHAR(123)");
+        }
     }
 
     @Test
@@ -365,6 +377,7 @@ public class TestDatabaseUtilFieldModifications {
 
         // mock desired type:
         when(modelFieldType.getSqlType()).thenReturn("VARCHAR(222)");
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
 
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
 
@@ -382,6 +395,7 @@ public class TestDatabaseUtilFieldModifications {
 
         // mock desired type:
         when(modelFieldType.getSqlType()).thenReturn("NVARCHAR(456)");
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
 
         databaseUtil.checkFieldType(modelEntity, modelField, columnInfo, messages, true, true);
 

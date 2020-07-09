@@ -185,7 +185,7 @@ public class SqlJdbcUtil {
                         }
                         condBuffer.append(aliasToUse);
                         condBuffer.append('.');
-                        condBuffer.append(filterColName(linkField.getColName()));
+                        condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
 
                         condBuffer.append(" = ");
 
@@ -199,7 +199,7 @@ public class SqlJdbcUtil {
                             ModelField relLinkField = relLinkEntity.getField(keyMap.getRelFieldName());
                             condBuffer.append(viewLink.getRelEntityAlias());
                             condBuffer.append('.');
-                            condBuffer.append(filterColName(relLinkField.getColName()));
+                            condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
                         }
                     }
                     if (condBuffer.length() == 0) {
@@ -269,8 +269,8 @@ public class SqlJdbcUtil {
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(
-            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator) {
-        return makeWhereStringFromFields(modelFields, fieldValues, operator, null);
+            final List<ModelField> modelFields, final Map<String, ?> fieldValues, final String operator, final SqlEscapeHelper sqlEscapeHelper) {
+        return makeWhereStringFromFields(modelFields, fieldValues, operator, null, sqlEscapeHelper);
     }
 
     public static int countWhereStringParametersFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues) {
@@ -303,7 +303,8 @@ public class SqlJdbcUtil {
      * "first_name IS NULL OR last_name=?"
      */
     public static String makeWhereStringFromFields(final List<ModelField> modelFields, final Map<String, ?> fieldValues,
-                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams) {
+                                                   final String operator, final List<? super EntityConditionParam> entityConditionParams,
+                                                   SqlEscapeHelper sqlEscapeHelper) {
         if (modelFields == null || modelFields.isEmpty()) {
             return "";
         }
@@ -314,7 +315,7 @@ public class SqlJdbcUtil {
         while (iter.hasNext()) {
             final ModelField modelField = iter.next();
 
-            returnString.append(modelField.getColName());
+            returnString.append(sqlEscapeHelper.escapeColumn(modelField.getColName()));
             final Object fieldValue = fieldValues.get(modelField.getName());
 
             if (fieldValue == null) {
@@ -336,14 +337,15 @@ public class SqlJdbcUtil {
         return returnString.toString();
     }
 
-    public static String makeWhereClause(ModelEntity modelEntity, List<ModelField> modelFields, Map<String, ?> fields, String operator, String joinStyle) throws GenericEntityException {
+    public static String makeWhereClause(ModelEntity modelEntity, List<ModelField> modelFields, Map<String, ?> fields, String operator, String joinStyle,
+                                         SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         StringBuilder whereString = new StringBuilder("");
 
         if (modelFields != null && modelFields.size() > 0) {
-            whereString.append(makeWhereStringFromFields(modelFields, fields, "AND"));
+            whereString.append(makeWhereStringFromFields(modelFields, fields, "AND", sqlEscapeHelper));
         }
 
-        String viewClause = makeViewWhereClause(modelEntity, joinStyle);
+        String viewClause = makeViewWhereClause(modelEntity, joinStyle, sqlEscapeHelper);
 
         if (viewClause.length() > 0) {
             if (whereString.length() > 0) {
@@ -362,7 +364,7 @@ public class SqlJdbcUtil {
         return "";
     }
 
-    public static String makeViewWhereClause(ModelEntity modelEntity, String joinStyle) throws GenericEntityException {
+    public static String makeViewWhereClause(ModelEntity modelEntity, String joinStyle, SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
             StringBuilder whereString = new StringBuilder("");
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
@@ -400,7 +402,7 @@ public class SqlJdbcUtil {
                         }
                         whereString.append(viewLink.getEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(linkField.getColName()));
+                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
 
                         //We throw an exception because we didn't implement this for theta joins. This should not be
                         //an issue because we do not support Oracle 8i or MSSQL pre 2000.
@@ -421,7 +423,7 @@ public class SqlJdbcUtil {
 
                         whereString.append(viewLink.getRelEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(relLinkField.getColName()));
+                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
                     }
                 }
             } else {
@@ -439,7 +441,9 @@ public class SqlJdbcUtil {
         return makeOrderByClause(modelEntity, orderBy, false, datasourceInfo);
     }
 
-    public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy, boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
+    public static String makeOrderByClause(ModelEntity modelEntity, List<String> orderBy,
+                                           boolean includeTablenamePrefix, DatasourceInfo datasourceInfo) {
+        SqlEscapeHelper sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
         StringBuilder sql = new StringBuilder("");
         String fieldPrefix = includeTablenamePrefix ? (modelEntity.getTableName(datasourceInfo) + '.') : "";
 
@@ -468,9 +472,9 @@ public class SqlJdbcUtil {
 
                     if (curField.getName().equals(keyName)) {
                         if (ext != null)
-                            orderByStrings.add(fieldPrefix + curField.getColName() + ext);
+                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()) + ext);
                         else
-                            orderByStrings.add(fieldPrefix + curField.getColName());
+                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()));
                     }
                 }
             }
@@ -500,19 +504,19 @@ public class SqlJdbcUtil {
             List<ModelField> fields = modelEntity.getFieldsCopy();
             if (fields.size() > 0) {
                 String colname = fields.get(0).getColName();
-                sql.append(colname);
+                sql.append(sqlEscapeHelper.escapeColumn(colname));
                 sql.append(" AS ");
-                sql.append(filterColName(colname));
+                sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
                 for (int i = 1; i < fields.size(); i++) {
                     colname = fields.get(i).getColName();
                     sql.append(", ");
-                    sql.append(colname);
+                    sql.append(sqlEscapeHelper.escapeColumn(colname));
                     sql.append(" AS ");
-                    sql.append(filterColName(colname));
+                    sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
                 }
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
+            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle(), sqlEscapeHelper));
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
             String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "", sqlEscapeHelper);
             if (UtilValidate.isNotEmpty(groupByString)) {

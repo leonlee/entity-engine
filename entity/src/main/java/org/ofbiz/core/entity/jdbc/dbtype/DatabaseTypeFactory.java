@@ -24,7 +24,6 @@ public class DatabaseTypeFactory {
     public static final DatabaseType HSQL_2_3_3 = new Hsql233DatabaseType();
     public static final DatabaseType H2 = new H2DatabaseType();
     public static final DatabaseType MYSQL = new MySqlDatabaseType();
-    public static final DatabaseType MYSQL8 = new MySql8DatabaseType();
     public static final DatabaseType MSSQL = new MsSqlDatabaseType();
     public static final DatabaseType ORACLE_10G = new Oracle10GDatabaseType();
     public static final DatabaseType ORACLE_8I = new Oracle8IDatabaseType();

@@ -24,6 +24,7 @@
  */
 package org.ofbiz.core.entity;
 
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelEntity;
 
 import java.util.Iterator;
@@ -65,7 +66,8 @@ public class EntityConditionList extends EntityCondition {
         return this.conditionList.iterator();
     }
 
-    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams) {
+    public String makeWhereString(ModelEntity modelEntity, List<? super EntityConditionParam> entityConditionParams,
+                                  SqlEscapeHelper sqlEscapeHelper) {
         // if (Debug.verboseOn()) Debug.logVerbose("makeWhereString for entity " + modelEntity.getEntityName());
         StringBuilder whereStringBuilder = new StringBuilder();
 
@@ -74,7 +76,7 @@ public class EntityConditionList extends EntityCondition {
                 EntityCondition condition = conditionList.get(i);
 
                 whereStringBuilder.append('(');
-                whereStringBuilder.append(condition.makeWhereString(modelEntity, entityConditionParams));
+                whereStringBuilder.append(condition.makeWhereString(modelEntity, entityConditionParams, sqlEscapeHelper));
                 whereStringBuilder.append(')');
                 if (i < conditionList.size() - 1) {
                     whereStringBuilder.append(' ');
@@ -96,10 +98,10 @@ public class EntityConditionList extends EntityCondition {
     }
 
     @Override
-    public int getParameterCount(ModelEntity modelEntity) {
+    public int getParameterCount(ModelEntity modelEntity, SqlEscapeHelper sqlEscapeHelper) {
         int count = 0;
         for (EntityCondition condition : conditionList) {
-            count += condition.getParameterCount(modelEntity);
+            count += condition.getParameterCount(modelEntity, sqlEscapeHelper);
         }
         return count;
     }

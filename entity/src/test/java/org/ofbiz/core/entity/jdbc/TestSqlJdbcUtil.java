@@ -1,6 +1,11 @@
 package org.ofbiz.core.entity.jdbc;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.List;
@@ -14,12 +19,22 @@ import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.isBoolean;
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TestSqlJdbcUtil {
+
+    @Mock
+    private SqlEscapeHelper sqlEscapeHelper;
+
+    @Before
+    public void setUp() {
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
+    }
 
     @Test
     public void makeWhereStringFromFieldsShouldReturnEmptyStringForEmptyListOfModelFields() {
@@ -28,7 +43,7 @@ public class TestSqlJdbcUtil {
         final List<ModelField> modelFields = emptyList();
 
         // Invoke
-        final String whereString = makeWhereStringFromFields(modelFields, fieldConditions, "anyOperator");
+        final String whereString = makeWhereStringFromFields(modelFields, fieldConditions, "anyOperator", sqlEscapeHelper);
 
         // Check
         assertEquals("", whereString);
@@ -40,7 +55,7 @@ public class TestSqlJdbcUtil {
         final Map<String, ?> fieldConditions = singletonMap("foo", "bar");
 
         // Invoke
-        final String whereString = makeWhereStringFromFields(null, fieldConditions, "anyOperator");
+        final String whereString = makeWhereStringFromFields(null, fieldConditions, "anyOperator", sqlEscapeHelper);
 
         // Check
         assertEquals("", whereString);
@@ -55,7 +70,7 @@ public class TestSqlJdbcUtil {
         final Map<String, ?> fieldValues = singletonMap(fieldName, "any non-null value");
 
         // Invoke
-        final String whereString = makeWhereStringFromFields(singletonList(mockField), fieldValues, "anyOperator");
+        final String whereString = makeWhereStringFromFields(singletonList(mockField), fieldValues, "anyOperator", sqlEscapeHelper);
 
         // Check
         assertEquals(columnName + "=?", whereString);
@@ -76,7 +91,7 @@ public class TestSqlJdbcUtil {
         final Map<String, ?> fieldValues = emptyMap();
 
         // Invoke
-        final String whereString = makeWhereStringFromFields(singletonList(mockField), fieldValues, "anyOperator");
+        final String whereString = makeWhereStringFromFields(singletonList(mockField), fieldValues, "anyOperator", sqlEscapeHelper);
 
         // Check
         assertEquals(columnName + " IS NULL", whereString);
@@ -96,7 +111,7 @@ public class TestSqlJdbcUtil {
         final Map<String, ?> fieldValues = singletonMap(fieldName1, "any non-null value");
 
         // Invoke
-        final String whereString = makeWhereStringFromFields(asList(mockField1, mockField2), fieldValues, "OR");
+        final String whereString = makeWhereStringFromFields(asList(mockField1, mockField2), fieldValues, "OR", sqlEscapeHelper);
 
         // Check
         assertEquals("myColumn1=? OR myColumn2 IS NULL", whereString);

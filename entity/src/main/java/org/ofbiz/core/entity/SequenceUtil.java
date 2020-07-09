@@ -101,7 +101,7 @@ public class SequenceUtil {
      * this is hit if we can't get one from the cache, must be synchronized
      */
     private synchronized SequenceBank constructSequenceBank(final String seqName) {
-        // check the cache first in-case someone has already populated 
+        // check the cache first in-case someone has already populated
         return sequences.computeIfAbsent(seqName, key -> new SequenceBank(key, this, clustering));
     }
 

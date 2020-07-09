@@ -300,7 +300,7 @@ public class DatabaseUtil {
 
                 if (addMissing) {
                     // create the table
-                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred(), sqlEscapeHelper);
+                    String errMsg = createTable(entity, modelEntities, false, datasourceInfo.isUsePkConstraintNames(), datasourceInfo.getConstraintNameClipLength(), datasourceInfo.getFkStyle(), datasourceInfo.isUseFkInitiallyDeferred());
 
                     if (errMsg != null && errMsg.length() > 0) {
                         error("Could not create table \"" + tableName + "\"", messages);
@@ -694,7 +694,7 @@ public class DatabaseUtil {
                 return "Failed to detect DB type.";
             }
 
-            String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), field.getColName(), type.getSqlType());
+            String changeColumnTypeClause = dbType.getChangeColumnTypeSQL(entity.getTableName(datasourceInfo), sqlEscapeHelper.escapeColumn(field.getColName()), type.getSqlType());
             if (changeColumnTypeClause == null) {
                 return "Changing of column type is not supported in " + dbType.getName() + ".";
             }
@@ -1303,8 +1303,7 @@ public class DatabaseUtil {
                               boolean usePkConstraintNames,
                               int constraintNameClipLength,
                               String fkStyle,
-                              boolean useFkInitiallyDeferred,
-                              SqlEscapeHelper sqlEscapeHelper) {
+                              boolean useFkInitiallyDeferred) {
         if (entity == null) {
             return "ModelEntity was null and is required to create a table";
         }
@@ -1597,14 +1596,14 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
 
             ModelField relField = relModelEntity.getField(keyMap.getRelFieldName());
 
             if (relCols.length() > 0) {
                 relCols.append(", ");
             }
-            relCols.append(relField.getColName());
+            relCols.append(sqlEscapeHelper.escapeColumn(relField.getColName()));
         }
 
         StringBuilder sqlBuf = new StringBuilder("");
@@ -1793,7 +1792,7 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
         }
         StringBuilder indexSqlBuf = generateIndexClause(entity, modelIndex.getUnique(), modelIndex.getName(), mainCols.toString());
         return indexSqlBuf.toString();
@@ -1929,7 +1928,7 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
         }
 
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);

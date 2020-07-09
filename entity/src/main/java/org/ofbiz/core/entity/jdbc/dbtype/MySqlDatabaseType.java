@@ -24,4 +24,13 @@ public class MySqlDatabaseType extends SimpleDatabaseType {
         }
     }
 
+    @Override
+    public Character getStartEscapeCharacter() {
+        return ESCAPE_CHARACTER_BACK_TICK;
+    }
+
+    @Override
+    public Character getEndEscapeCharacter() {
+        return ESCAPE_CHARACTER_BACK_TICK;
+    }
 }

@@ -6,11 +6,12 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.ofbiz.core.entity.ConnectionProvider;
 import org.ofbiz.core.entity.GenericEntityException;
+import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.alternative.ShouldNotRunIndexAlternativeAction;
 import org.ofbiz.core.entity.jdbc.alternative.SuspendingAlternativeAction;
-import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
 import org.ofbiz.core.entity.jdbc.dbtype.DatabaseTypeFactory;
+import org.ofbiz.core.entity.jdbc.dbtype.MySqlDatabaseType;
 import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.FunctionDefinitionBuilder;
 import org.ofbiz.core.entity.model.ModelEntity;
@@ -38,6 +39,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -47,6 +49,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.anyBoolean;
@@ -78,7 +82,9 @@ public class TestDatabaseUtil {
         final Connection connection = mock(Connection.class);
         final Statement statement = mock(Statement.class);
         when(connection.createStatement()).thenReturn(statement);
-        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection), null);
+        final SqlEscapeHelper sqlEscapeHelper = mock(SqlEscapeHelper.class);
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
+        DatabaseUtil du = new DatabaseUtil("Santa's Helper", null, null, new MyConnectionProvider(connection), sqlEscapeHelper);
         ModelEntity modelEntity = new ModelEntity("testable", Collections.<DatabaseUtil.ColumnCheckInfo>emptyList(), null);
         final ModelField modelField = new ModelField();
         modelField.setColName("nicecolumn");
@@ -674,6 +680,60 @@ public class TestDatabaseUtil {
         modelIndex.addAlternativeAction(new SuspendingAlternativeAction());
 
         databaseUtil.createDeclaredIndex(null, modelIndex);
+    }
+
+    @Test
+    public void testShouldCreateTableWithEscapedColumnName() throws SQLException {
+
+        Connection connection = mock(Connection.class, RETURNS_DEEP_STUBS);
+        Statement statement = mock(Statement.class);
+
+        when(connection.createStatement()).thenReturn(statement);
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(metaData.getSQLKeywords()).thenReturn("LEAD,GRANT,OF,OTHER");
+        when(connection.getMetaData()).thenReturn(metaData);
+
+        DatasourceInfo datasourceInfo = mock(DatasourceInfo.class);
+        DatabaseType databaseType = new MySqlDatabaseType();
+        databaseType.initialize(connection);
+        when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
+        SqlEscapeHelper sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
+
+        ModelFieldTypeReader modelFieldTypeReader = mock(ModelFieldTypeReader.class);
+        ModelFieldType modelFieldType = mock(ModelFieldType.class);
+        when(modelFieldType.getJavaType()).thenReturn("String");
+        when(modelFieldType.getSqlType()).thenReturn("VARCHAR2(255)");
+        when(modelFieldType.getType()).thenReturn("VARCHAR");
+        when(modelFieldTypeReader.getModelFieldType(any())).thenReturn(modelFieldType);
+
+        List<ModelField> modelFields = new ArrayList<>();
+        ModelField modelFieldId = new ModelField("id", "long-varchar", "id", false, emptyList());
+        modelFields.add(modelFieldId);
+        modelFields.add(new ModelField("lead", "long-varchar", "lead", false, emptyList()));
+        modelFields.add(new ModelField("other", "long-varchar", "other", false, emptyList()));
+        modelFields.add(new ModelField("author", "long-varchar", "author", false, emptyList()));
+
+        ModelEntity modelEntity = mock(ModelEntity.class);
+        when(modelEntity.getPksCopy()).thenReturn(Collections.singletonList(modelFieldId));
+        when(modelEntity.getTableName(eq(datasourceInfo))).thenReturn("PROJECT");
+        when(modelEntity.getFieldsSize()).thenReturn(modelFields.size());
+        when(modelEntity.getPlainTableName()).thenReturn("PROJECT");
+        when(modelEntity.getField(anyInt())).thenAnswer(i -> modelFields.get(i.getArgument(0)));
+        when(modelEntity.colNameString(anyList(), eq(sqlEscapeHelper))).thenCallRealMethod();
+        when(modelEntity.colNameString(anyList(), eq(", "), eq(""), eq(sqlEscapeHelper))).thenCallRealMethod();
+
+        DatabaseUtil databaseUtil = new DatabaseUtil(null, modelFieldTypeReader, datasourceInfo, null, sqlEscapeHelper) {
+            @Override
+            public Connection getConnection() {
+                return connection;
+            }
+        };
+
+        String result = databaseUtil.createTable(modelEntity, null, false, false, 1, "name_constraint", false);
+
+        assertNull(result);
+        verify(statement, times(1)).executeUpdate("CREATE TABLE PROJECT (id VARCHAR2(255), `lead` VARCHAR2(255), `other` VARCHAR2(255), author VARCHAR2(255),  PRIMARY KEY (id))");
+        verify(statement, times(1)).close();
     }
 
     private ModelEntity createSimpleModelEntity(String tableAndEntityName, String... fields) {
