@@ -345,7 +345,7 @@ public class SqlJdbcUtil {
             whereString.append(makeWhereStringFromFields(modelFields, fields, "AND", sqlEscapeHelper));
         }
 
-        String viewClause = makeViewWhereClause(modelEntity, joinStyle);
+        String viewClause = makeViewWhereClause(modelEntity, joinStyle, sqlEscapeHelper);
 
         if (viewClause.length() > 0) {
             if (whereString.length() > 0) {
@@ -364,7 +364,7 @@ public class SqlJdbcUtil {
         return "";
     }
 
-    public static String makeViewWhereClause(ModelEntity modelEntity, String joinStyle) throws GenericEntityException {
+    public static String makeViewWhereClause(ModelEntity modelEntity, String joinStyle, SqlEscapeHelper sqlEscapeHelper) throws GenericEntityException {
         if (modelEntity instanceof ModelViewEntity) {
             StringBuilder whereString = new StringBuilder("");
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
@@ -402,7 +402,7 @@ public class SqlJdbcUtil {
                         }
                         whereString.append(viewLink.getEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(linkField.getColName()));
+                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
 
                         //We throw an exception because we didn't implement this for theta joins. This should not be
                         //an issue because we do not support Oracle 8i or MSSQL pre 2000.
@@ -423,7 +423,7 @@ public class SqlJdbcUtil {
 
                         whereString.append(viewLink.getRelEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(relLinkField.getColName()));
+                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
                     }
                 }
             } else {
@@ -504,19 +504,19 @@ public class SqlJdbcUtil {
             List<ModelField> fields = modelEntity.getFieldsCopy();
             if (fields.size() > 0) {
                 String colname = fields.get(0).getColName();
-                sql.append(colname);
+                sql.append(sqlEscapeHelper.escapeColumn(colname));
                 sql.append(" AS ");
-                sql.append(filterColName(colname));
+                sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
                 for (int i = 1; i < fields.size(); i++) {
                     colname = fields.get(i).getColName();
                     sql.append(", ");
-                    sql.append(colname);
+                    sql.append(sqlEscapeHelper.escapeColumn(colname));
                     sql.append(" AS ");
-                    sql.append(filterColName(colname));
+                    sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
                 }
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));
-            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle()));
+            sql.append(makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle(), sqlEscapeHelper));
             ModelViewEntity modelViewEntity = (ModelViewEntity) modelEntity;
             String groupByString = modelViewEntity.colNameString(modelViewEntity.getGroupBysCopy(), ", ", "", sqlEscapeHelper);
             if (UtilValidate.isNotEmpty(groupByString)) {

@@ -962,7 +962,7 @@ public class GenericDAO {
             entityCondWhereString = whereEntityCondition.makeWhereString(modelEntity, whereEntityConditionParams, sqlEscapeHelper);
         }
 
-        final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle());
+        final String viewClause = SqlJdbcUtil.makeViewWhereClause(modelEntity, datasourceInfo.getJoinStyle(), sqlEscapeHelper);
 
         if (viewClause.length() > 0) {
             if (entityCondWhereString.length() > 0) {
@@ -1005,7 +1005,7 @@ public class GenericDAO {
         sqlBuilder.append(SqlJdbcUtil.makeOrderByClause(modelEntity, orderBy, datasourceInfo));
         String sql = sqlBuilder.toString();
         if (findOptions.getMaxResults() > 0) {
-            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults());
+            sql = limitHelper.addLimitClause(sql, selectFields, findOptions.getOffset(), findOptions.getMaxResults(), sqlEscapeHelper);
         }
 
         return sql;

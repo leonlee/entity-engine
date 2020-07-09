@@ -292,9 +292,8 @@ public class GenericDAOTest {
         when(mockModelEntity.colNameString(eq(selectFields), eq(", "), eq(""),
                 any(SqlEscapeHelper.class))).thenReturn("Address");
         final String sqlWithLimit = "some SQL with a limit";
-        when(mockLimitHelper.addLimitClause("SELECT Address FROM Issue", selectFields, offset, maxResults))
+        when(mockLimitHelper.addLimitClause(eq("SELECT Address FROM Issue"), eq(selectFields), eq(offset), eq(maxResults), any(SqlEscapeHelper.class)))
                 .thenReturn(sqlWithLimit);
-
         // Invoke
         final String sql = dao.getSelectQuery(
                 selectFields, mockFindOptions, mockModelEntity, null, null, null, null, null, mockDatabaseType);

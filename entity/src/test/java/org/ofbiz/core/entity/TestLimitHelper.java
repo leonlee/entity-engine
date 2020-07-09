@@ -5,6 +5,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.ArrayList;
@@ -13,12 +17,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
  * @since v1.0.24
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TestLimitHelper {
 
     @Rule
@@ -62,6 +68,9 @@ public class TestLimitHelper {
     private final List<ModelField> emptyFields = new ArrayList<ModelField>();
     private final List<ModelField> idFields = new ArrayList<ModelField>();
 
+    @Mock
+    private SqlEscapeHelper sqlEscapeHelper;
+
     @Before
     public void setupMocks() {
         expectedLimitResults.put("hsql", topSql);
@@ -83,6 +92,7 @@ public class TestLimitHelper {
         ModelField idField = mock(ModelField.class);
         when(idField.getColName()).thenReturn("jiraissue.ID");
         idFields.add(idField);
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
     }
 
     @Test
@@ -98,35 +108,35 @@ public class TestLimitHelper {
         when(field3.getColName()).thenReturn("ABC.c");
         when(field4.getColName()).thenReturn("a12.D");
         List<ModelField> modelFields = Arrays.asList(field1, field2, field3, field4);
-        Assert.assertEquals("SELECT sq_.a,sq_.b,sq_.c,sq_.D FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, modelFields, 5));
+        Assert.assertEquals("SELECT sq_.a,sq_.b,sq_.c,sq_.D FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, modelFields, 5, sqlEscapeHelper));
     }
 
     @Test
     public void TestOracleProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a";
         LimitHelper helper = new LimitHelper("oracle");
-        Assert.assertEquals("SELECT sq_.* FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, emptyFields, 5));
+        Assert.assertEquals("SELECT sq_.* FROM (SELECT abc.a, A12.b, ABC.c, a12.D FROM jira ORDER BY a) sq_ WHERE ROWNUM <= 5", helper.addLimitClause(sql, emptyFields, 5, sqlEscapeHelper));
     }
 
     @Test
     public void TestOracleOffsetProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT * FROM jiraissue ORDER BY pkey";
         LimitHelper helper = new LimitHelper("oracle");
-        Assert.assertEquals("Oracle should produce sensible output", "SELECT * FROM (SELECT sq_.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) sq_ WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
+        Assert.assertEquals("Oracle should produce sensible output", "SELECT * FROM (SELECT sq_.*,ROWNUM rnum FROM (SELECT * FROM jiraissue ORDER BY pkey) sq_ WHERE ROWNUM <= 6) WHERE rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5, sqlEscapeHelper));
     }
 
     @Test
     public void TestMSSQLOffsetProducesSensibleResultsWithNoFieldsProvided() {
         String sql = "SELECT * FROM jiraissue ORDER BY pkey";
         LimitHelper helper = new LimitHelper("mssql");
-        Assert.assertEquals("MS SQL should produce sensible output", "SELECT sq_.* FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY pkey) rnum FROM jiraissue) sq_ WHERE sq_.rnum <= 6 AND sq_.rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5));
+        Assert.assertEquals("MS SQL should produce sensible output", "SELECT sq_.* FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY pkey) rnum FROM jiraissue) sq_ WHERE sq_.rnum <= 6 AND sq_.rnum > 1", helper.addLimitClause(sql, emptyFields, 1, 5, sqlEscapeHelper));
     }
 
     @Test
     public void testSupportedFieldTypes() {
         for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql, idFields, 5));
+            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitResults.get(fieldType), helper.addLimitClause(sql, idFields, 5, sqlEscapeHelper));
         }
     }
 
@@ -135,7 +145,7 @@ public class TestLimitHelper {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("The database type cloudscape is not a supported database type.");
         LimitHelper helper = new LimitHelper("cloudscape");
-        Assert.assertEquals("The database type cloudscape is not a supported database type.", sql, helper.addLimitClause(sql, idFields, 5));
+        Assert.assertEquals("The database type cloudscape is not a supported database type.", sql, helper.addLimitClause(sql, idFields, 5, sqlEscapeHelper));
     }
 
     @Test
@@ -143,7 +153,7 @@ public class TestLimitHelper {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("The SQL SELECT * is invalid it does not have an ORDER BY clause.");
         LimitHelper helper = new LimitHelper("postgres");
-        Assert.assertEquals("Not having an ORDER BY clause should throw an exception.", sql, helper.addLimitClause("SELECT *", idFields, 5));
+        Assert.assertEquals("Not having an ORDER BY clause should throw an exception.", sql, helper.addLimitClause("SELECT *", idFields, 5, sqlEscapeHelper));
     }
 
     @Test
@@ -151,14 +161,14 @@ public class TestLimitHelper {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Offset -1 is invalid, it  must be a valid non-negative integer.");
         LimitHelper helper = new LimitHelper("postgres");
-        Assert.assertEquals("Testing invalid offsets should throw an exception", sql, helper.addLimitClause("SELECT *", idFields, -1, 5));
+        Assert.assertEquals("Testing invalid offsets should throw an exception", sql, helper.addLimitClause("SELECT *", idFields, -1, 5, sqlEscapeHelper));
     }
 
     @Test
     public void testOffsetForSupportedFieldTypes() {
         for (String fieldType : expectedLimitAndOffsetResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitAndOffsetResults.get(fieldType), helper.addLimitClause(sql, idFields, 1, 5));
+            Assert.assertEquals(fieldType + " is supposed to return", expectedLimitAndOffsetResults.get(fieldType), helper.addLimitClause(sql, idFields, 1, 5, sqlEscapeHelper));
         }
     }
 
@@ -167,7 +177,7 @@ public class TestLimitHelper {
         int maxResults = 0;
         for (String fieldType : expectedLimitResults.keySet()) {
             LimitHelper helper = new LimitHelper(fieldType);
-            Assert.assertEquals(fieldType + " is supposed to return", sql, helper.addLimitClause(sql, idFields, maxResults--));
+            Assert.assertEquals(fieldType + " is supposed to return", sql, helper.addLimitClause(sql, idFields, maxResults--, sqlEscapeHelper));
         }
     }
 }

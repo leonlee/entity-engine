@@ -1,7 +1,10 @@
 package org.ofbiz.core.entity.jdbc;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
@@ -16,15 +19,22 @@ import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.isBoolean;
 import static org.ofbiz.core.entity.jdbc.SqlJdbcUtil.makeWhereStringFromFields;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TestSqlJdbcUtil {
 
     @Mock
     private SqlEscapeHelper sqlEscapeHelper;
+
+    @Before
+    public void setUp() {
+        when(sqlEscapeHelper.escapeColumn(anyString())).thenAnswer(i -> i.getArgument(0));
+    }
 
     @Test
     public void makeWhereStringFromFieldsShouldReturnEmptyStringForEmptyListOfModelFields() {

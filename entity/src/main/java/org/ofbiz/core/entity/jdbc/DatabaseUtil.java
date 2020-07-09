@@ -1928,7 +1928,7 @@ public class DatabaseUtil {
             if (mainCols.length() > 0) {
                 mainCols.append(", ");
             }
-            mainCols.append(mainField.getColName());
+            mainCols.append(sqlEscapeHelper.escapeColumn(mainField.getColName()));
         }
 
         String relConstraintName = makeFkConstraintName(modelRelation, constraintNameClipLength);
