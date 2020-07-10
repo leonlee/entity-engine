@@ -4,6 +4,7 @@ import org.ofbiz.core.entity.jdbc.sql.escape.SqlEscapeHelper;
 import org.ofbiz.core.entity.model.ModelField;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Amends the passed in SQL string to provide limit clause
@@ -97,7 +98,9 @@ public class LimitHelper {
     }
 
     private String escapeColumnName(List<ModelField> modelFields, SqlEscapeHelper sqlEscapeHelper, int i) {
-        return sqlEscapeHelper.escapeColumn(modelFields.get(i).getColName());
+        return Optional.ofNullable(sqlEscapeHelper)
+                .map(helper -> helper.escapeColumn(modelFields.get(i).getColName()))
+                .orElse(modelFields.get(i).getColName());
     }
 
     private String createQualifiedColumnName(final String colName, boolean useSubQueryVariable) {
