@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -185,7 +186,7 @@ public class SqlJdbcUtil {
                         }
                         condBuffer.append(aliasToUse);
                         condBuffer.append('.');
-                        condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
+                        condBuffer.append(filterColName(escapeColumnName(sqlEscapeHelper, linkField.getColName())));
 
                         condBuffer.append(" = ");
 
@@ -199,7 +200,7 @@ public class SqlJdbcUtil {
                             ModelField relLinkField = relLinkEntity.getField(keyMap.getRelFieldName());
                             condBuffer.append(viewLink.getRelEntityAlias());
                             condBuffer.append('.');
-                            condBuffer.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
+                            condBuffer.append(filterColName(escapeColumnName(sqlEscapeHelper, relLinkField.getColName())));
                         }
                     }
                     if (condBuffer.length() == 0) {
@@ -255,6 +256,12 @@ public class SqlJdbcUtil {
             sql.append(modelEntity.getTableName(datasourceInfo));
         }
         return sql.toString();
+    }
+
+    private static String escapeColumnName(SqlEscapeHelper sqlEscapeHelper, String colName) {
+        return Optional.ofNullable(sqlEscapeHelper)
+                .map(helper -> helper.escapeColumn(colName))
+                .orElse(colName);
     }
 
     /**
@@ -315,7 +322,7 @@ public class SqlJdbcUtil {
         while (iter.hasNext()) {
             final ModelField modelField = iter.next();
 
-            returnString.append(sqlEscapeHelper.escapeColumn(modelField.getColName()));
+            returnString.append(escapeColumnName(sqlEscapeHelper, modelField.getColName()));
             final Object fieldValue = fieldValues.get(modelField.getName());
 
             if (fieldValue == null) {
@@ -402,7 +409,7 @@ public class SqlJdbcUtil {
                         }
                         whereString.append(viewLink.getEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(linkField.getColName())));
+                        whereString.append(filterColName(escapeColumnName(sqlEscapeHelper, linkField.getColName())));
 
                         //We throw an exception because we didn't implement this for theta joins. This should not be
                         //an issue because we do not support Oracle 8i or MSSQL pre 2000.
@@ -423,7 +430,7 @@ public class SqlJdbcUtil {
 
                         whereString.append(viewLink.getRelEntityAlias());
                         whereString.append('.');
-                        whereString.append(filterColName(sqlEscapeHelper.escapeColumn(relLinkField.getColName())));
+                        whereString.append(filterColName(escapeColumnName(sqlEscapeHelper, relLinkField.getColName())));
                     }
                 }
             } else {
@@ -472,9 +479,9 @@ public class SqlJdbcUtil {
 
                     if (curField.getName().equals(keyName)) {
                         if (ext != null)
-                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()) + ext);
+                            orderByStrings.add(fieldPrefix + escapeColumnName(sqlEscapeHelper, curField.getColName()) + ext);
                         else
-                            orderByStrings.add(fieldPrefix + sqlEscapeHelper.escapeColumn(curField.getColName()));
+                            orderByStrings.add(fieldPrefix + escapeColumnName(sqlEscapeHelper, curField.getColName()));
                     }
                 }
             }
@@ -504,15 +511,15 @@ public class SqlJdbcUtil {
             List<ModelField> fields = modelEntity.getFieldsCopy();
             if (fields.size() > 0) {
                 String colname = fields.get(0).getColName();
-                sql.append(sqlEscapeHelper.escapeColumn(colname));
+                sql.append(escapeColumnName(sqlEscapeHelper, colname));
                 sql.append(" AS ");
-                sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
+                sql.append(filterColName(escapeColumnName(sqlEscapeHelper, colname)));
                 for (int i = 1; i < fields.size(); i++) {
                     colname = fields.get(i).getColName();
                     sql.append(", ");
-                    sql.append(sqlEscapeHelper.escapeColumn(colname));
+                    sql.append(escapeColumnName(sqlEscapeHelper, colname));
                     sql.append(" AS ");
-                    sql.append(filterColName(sqlEscapeHelper.escapeColumn(colname)));
+                    sql.append(filterColName(escapeColumnName(sqlEscapeHelper, colname)));
                 }
             }
             sql.append(makeFromClause(modelEntity, datasourceInfo, sqlEscapeHelper));

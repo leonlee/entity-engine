@@ -87,13 +87,17 @@ public class LimitHelper {
         } else {
             int i = 0;
             for (; i < modelFields.size() - 1; i++) {
-                sqlBuilder.append(createQualifiedColumnName(sqlEscapeHelper.escapeColumn(modelFields.get(i).getColName()), useSubQueryVariable));
+                sqlBuilder.append(createQualifiedColumnName(escapeColumnName(modelFields, sqlEscapeHelper, i), useSubQueryVariable));
                 sqlBuilder.append(",");
             }
-            sqlBuilder.append(createQualifiedColumnName(sqlEscapeHelper.escapeColumn(modelFields.get(i).getColName()), useSubQueryVariable));
+            sqlBuilder.append(createQualifiedColumnName(escapeColumnName(modelFields, sqlEscapeHelper, i), useSubQueryVariable));
         }
         sqlBuilder.append(" FROM (");
         return sqlBuilder.toString();
+    }
+
+    private String escapeColumnName(List<ModelField> modelFields, SqlEscapeHelper sqlEscapeHelper, int i) {
+        return sqlEscapeHelper.escapeColumn(modelFields.get(i).getColName());
     }
 
     private String createQualifiedColumnName(final String colName, boolean useSubQueryVariable) {
