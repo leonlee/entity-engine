@@ -31,6 +31,7 @@ public class SqlEscapeHelperTest {
 
         when(datasourceInfo.getDatabaseTypeFromJDBCConnection()).thenReturn(databaseType);
         when(databaseType.getReservedKeywords()).thenReturn(RESERVED_KEYWORDS);
+        when(databaseType.enableEscaping()).thenReturn(true);
 
         sqlEscapeHelper = new SqlEscapeHelper(datasourceInfo);
     }

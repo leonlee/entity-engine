@@ -37,7 +37,7 @@ public class MsSqlDatabaseTypeTest {
     @Test
     public void shouldEscapeWithBracketsCharacters() throws SQLException {
         String someColumn = msSqlDatabaseType.escapeColumnName("someColumn");
-        assertEquals("[someColumn]", someColumn);
+        assertEquals("someColumn", someColumn);
     }
 
     @Test

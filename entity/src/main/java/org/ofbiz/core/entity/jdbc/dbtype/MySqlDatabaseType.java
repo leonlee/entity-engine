@@ -33,4 +33,9 @@ public class MySqlDatabaseType extends SimpleDatabaseType {
     public Character getEndEscapeCharacter() {
         return ESCAPE_CHARACTER_BACK_TICK;
     }
+
+    @Override
+    public boolean enableEscaping() {
+        return true;
+    }
 }
