@@ -1,6 +1,7 @@
 package org.ofbiz.core.entity.jdbc.dbtype;
 
 import com.google.common.base.Strings;
+import org.ofbiz.core.util.Debug;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
 
@@ -205,6 +207,9 @@ public abstract class AbstractDatabaseType implements DatabaseType {
                             .map(String::toUpperCase)
                             .collect(toSet()))
                     .orElse(emptySet());
+
+            Debug.log(format("Database initialized, reserved keywords fetched %s", sqlKeywords));
+            Debug.log(format("Escaping enabled: %s", enableEscaping()));
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
