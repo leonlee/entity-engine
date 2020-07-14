@@ -21,15 +21,22 @@ public interface ReservedKeywordsAware {
         return ESCAPE_CHARACTER_DOUBLE_QUOTE;
     }
 
+    default boolean enableEscaping() {
+        return false;
+    }
+
     default String escapeColumnName(String colName) {
-        Objects.requireNonNull(colName);
-        final StringBuilder stringBuilder = new StringBuilder();
-        if (getReservedKeywords().contains(colName.trim().toUpperCase())) {
-            return stringBuilder
-                    .append(getStartEscapeCharacter())
-                    .append(colName)
-                    .append(getEndEscapeCharacter())
-                    .toString();
+        if (enableEscaping()) {
+            Objects.requireNonNull(colName);
+            final StringBuilder stringBuilder = new StringBuilder();
+            if (getReservedKeywords().contains(colName.trim().toUpperCase())) {
+                return stringBuilder
+                        .append(getStartEscapeCharacter())
+                        .append(colName)
+                        .append(getEndEscapeCharacter())
+                        .toString();
+            }
+            return colName;
         }
         return colName;
     }
