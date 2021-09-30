@@ -107,6 +107,8 @@ public class SQLProcessor {
     // / The database resources to be used
     private ResultSet _rs = null;
 
+    private int[] _batchResult;
+
     // / The SQL String used. Use for debugging only
     private String _sql;
 
@@ -122,6 +124,7 @@ public class SQLProcessor {
     private SQLInterceptor _sqlInterceptor;
 
     private List<String> _parameterValues;
+    private List<List<String>> _parameterValuesForBatch;
 
     /**
      * Construct a SQLProcessor based on the helper/datasource and a specific {@link
@@ -467,6 +470,7 @@ public class SQLProcessor {
 
             _sql = sql;
             _parameterValues = new ArrayList<>();
+            _parameterValuesForBatch = new ArrayList<>();
             _ind = 1;
             if (specifyTypeAndConcur) {
                 _ps = connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
@@ -615,6 +619,31 @@ public class SQLProcessor {
                 }
             }
         }
+    }
+
+    /**
+     * Execute a batch query based on the prepared statement
+     *
+     * @return an array of update counts containing one element for each command in the batch. The elements of the array are ordered according to the order in which commands were added to the batch.
+     * @throws GenericDataSourceException if an SQLException occurs
+     * @see PreparedStatement#executeBatch()
+     * @see PreparedStatement#addBatch()
+     */
+    public int[] executeBatch() throws GenericDataSourceException {
+        try {
+            //todo probably I need some batched version
+            beforeExecution();
+
+            _batchResult = _ps.executeBatch();
+
+            //todo probably I need some batched version
+            afterExecution();
+        } catch (SQLException sqle) {
+            onException(sqle);
+
+            throw new GenericDataSourceException("SQL Exception while executing the following (batch mode):" + _sql, sqle);
+        }
+        return _batchResult;
     }
 
     private void validateCommitMode() {
@@ -973,6 +1002,12 @@ public class SQLProcessor {
         recordParameter("BLOB");
 
         _ind++;
+    }
+
+    public void addBatch() throws SQLException {
+        _ps.addBatch();
+        _parameterValuesForBatch.add(_parameterValues);
+        _parameterValues = new ArrayList<>();
     }
 
     /**
