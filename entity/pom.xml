@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.atlassian.ofbiz</groupId>
         <artifactId>entityengine-parent</artifactId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.5.1-jira01</version>
     </parent>
 
     <artifactId>entityengine</artifactId>
