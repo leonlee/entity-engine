@@ -48,8 +48,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 /**
  * SQLProcessor - provides utility functions to ease database access
@@ -60,6 +61,8 @@ import java.util.List;
  */
 @NotThreadSafe  // You really ought to just assume this for everything in entity engine...
 public class SQLProcessor {
+
+    private static final int[] BATCH_EMPTY_RESULT = new int[0];
 
     public enum CommitMode {
         /**
@@ -106,8 +109,6 @@ public class SQLProcessor {
 
     // / The database resources to be used
     private ResultSet _rs = null;
-
-    private int[] _batchResult;
 
     // / The SQL String used. Use for debugging only
     private String _sql;
@@ -375,7 +376,7 @@ public class SQLProcessor {
         } catch (GenericTransactionException e) {
             // nevermind, don't worry about it, but print the exc anyway
             Debug.logWarning("[SQLProcessor.getConnection]: Exception was thrown trying to check " +
-                    "transaction status: " + e.toString(), module);
+                    "transaction status: " + e, module);
         }
 
         return _connection;
@@ -403,11 +404,7 @@ public class SQLProcessor {
             return;
         }
 
-        if (_commitMode == CommitMode.AUTO_COMMIT) {
-            doSetAutoCommit(connection, true);
-        } else {
-            doSetAutoCommit(connection, false);
-        }
+        doSetAutoCommit(connection, _commitMode == CommitMode.AUTO_COMMIT);
     }
 
     /**
@@ -494,26 +491,31 @@ public class SQLProcessor {
         } else {
             _sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         }
-        _sqlInterceptor.beforeExecution(_sql, _parameterValues, _ps);
-    }
-
-    private void afterExecution(int rowsUpdated) {
-        if (_sqlInterceptor != null) {
-            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, null, rowsUpdated);
-            _sqlInterceptor = null;
-        }
+        _sqlInterceptor.beforeExecution(_sql, _parameterValues, _parameterValuesForBatch, _ps);
     }
 
     private void afterExecution() {
+        afterExecution(-1, BATCH_EMPTY_RESULT);
+    }
+
+    private void afterExecution(int rowsUpdated) {
+        afterExecution(rowsUpdated, BATCH_EMPTY_RESULT);
+    }
+
+    private void afterExecution(int[] rowsUpdatedByBatch) {
+        afterExecution(-1, rowsUpdatedByBatch);
+    }
+
+    private void afterExecution(int rowsUpdated, int[] rowsUpdatedByBatch) {
         if (_sqlInterceptor != null) {
-            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, _rs, -1);
+            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _parameterValuesForBatch, _ps, null, rowsUpdated, rowsUpdatedByBatch);
             _sqlInterceptor = null;
         }
     }
 
     private void onException(final SQLException sqle) {
         if (_sqlInterceptor != null) {
-            _sqlInterceptor.onException(_sql, _parameterValues, _ps, sqle);
+            _sqlInterceptor.onException(_sql, _parameterValues, _parameterValuesForBatch, _ps, sqle);
             _sqlInterceptor = null;
         }
     }
@@ -586,7 +588,7 @@ public class SQLProcessor {
         validateCommitMode();
 
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
-        List<String> emptyList = Collections.emptyList();
+        List<String> emptyList = emptyList();
 
         Statement stmt = null;
         try {
@@ -601,14 +603,14 @@ public class SQLProcessor {
                 guard.setSql(sql);
             }
 
-            sqlInterceptor.beforeExecution(sql, emptyList, stmt);
+            sqlInterceptor.beforeExecution(sql, emptyList, emptyList(), stmt);
 
             int rc = stmt.executeUpdate(sql);
 
-            sqlInterceptor.afterSuccessfulExecution(sql, emptyList, stmt, null, rc);
+            sqlInterceptor.afterSuccessfulExecution(sql, emptyList, emptyList(), stmt, null, rc, BATCH_EMPTY_RESULT);
             return rc;
         } catch (SQLException sqle) {
-            sqlInterceptor.onException(sql, emptyList, stmt, sqle);
+            sqlInterceptor.onException(sql, emptyList, emptyList(), stmt, sqle);
             throw new GenericDataSourceException("SQL Exception while executing the following:" + sql, sqle);
         } finally {
             if (stmt != null) {
@@ -631,19 +633,17 @@ public class SQLProcessor {
      */
     public int[] executeBatch() throws GenericDataSourceException {
         try {
-            //todo probably I need some batched version
             beforeExecution();
 
-            _batchResult = _ps.executeBatch();
+            int[] batchResult = _ps.executeBatch();
 
-            //todo probably I need some batched version
-            afterExecution();
+            afterExecution(batchResult);
+            return batchResult;
         } catch (SQLException sqle) {
             onException(sqle);
 
             throw new GenericDataSourceException("SQL Exception while executing the following (batch mode):" + _sql, sqle);
         }
-        return _batchResult;
     }
 
     private void validateCommitMode() {
@@ -1004,9 +1004,15 @@ public class SQLProcessor {
         _ind++;
     }
 
+    /**
+     * Adds a set of parameters to underlying PreparedStatement object's batch of commands.
+     *
+     * @throws SQLException is something goes wrong
+     * @see PreparedStatement#addBatch()
+     */
     public void addBatch() throws SQLException {
         _ps.addBatch();
-        _parameterValuesForBatch.add(_parameterValues);
+        _parameterValuesForBatch.add(new ArrayList<>(_parameterValues));
         _parameterValues = new ArrayList<>();
         _ind = 1;
     }
@@ -1018,7 +1024,7 @@ public class SQLProcessor {
      * This method is specifically added to support PostgreSQL BYTEA and SQLServer IMAGE datatypes.
      *
      * @param field the field value in play
-     * @throws SQLException if somethings goes wrong
+     * @throws SQLException if something goes wrong
      */
     public void setByteArrayData(Object field) throws SQLException {
         if (field != null) {
@@ -1043,7 +1049,7 @@ public class SQLProcessor {
     @Override
     public String toString() {
         return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql +
-                ",parameters=" + _parameterValues + ']';
+                ",parameters=" + _parameterValues + ",parametersForBatch=" + _parameterValuesForBatch + ']';
     }
 
 }
