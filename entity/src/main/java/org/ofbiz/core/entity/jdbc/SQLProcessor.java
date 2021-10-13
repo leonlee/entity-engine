@@ -42,14 +42,18 @@ import java.io.ObjectOutputStream;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 /**
  * SQLProcessor - provides utility functions to ease database access
@@ -60,6 +64,8 @@ import java.util.List;
  */
 @NotThreadSafe  // You really ought to just assume this for everything in entity engine...
 public class SQLProcessor {
+
+    private static final int[] BATCH_EMPTY_RESULT = new int[0];
 
     public enum CommitMode {
         /**
@@ -122,6 +128,7 @@ public class SQLProcessor {
     private SQLInterceptor _sqlInterceptor;
 
     private List<String> _parameterValues;
+    private List<List<String>> _parameterValuesForBatch;
 
     /**
      * Construct a SQLProcessor based on the helper/datasource and a specific {@link
@@ -372,7 +379,7 @@ public class SQLProcessor {
         } catch (GenericTransactionException e) {
             // nevermind, don't worry about it, but print the exc anyway
             Debug.logWarning("[SQLProcessor.getConnection]: Exception was thrown trying to check " +
-                    "transaction status: " + e.toString(), module);
+                    "transaction status: " + e, module);
         }
 
         return _connection;
@@ -400,11 +407,7 @@ public class SQLProcessor {
             return;
         }
 
-        if (_commitMode == CommitMode.AUTO_COMMIT) {
-            doSetAutoCommit(connection, true);
-        } else {
-            doSetAutoCommit(connection, false);
-        }
+        doSetAutoCommit(connection, _commitMode == CommitMode.AUTO_COMMIT);
     }
 
     /**
@@ -430,10 +433,11 @@ public class SQLProcessor {
      * Prepare a statement. In case no connection has been given, allocate a new one.
      *
      * @param sql The SQL statement to be executed
+     * @return this for method chaining
      * @throws GenericEntityException if an SQLException occurs
      */
-    public void prepareStatement(String sql) throws GenericEntityException {
-        this.prepareStatement(sql, false, 0, 0);
+    public SQLProcessor prepareStatement(String sql) throws GenericEntityException {
+        return this.prepareStatement(sql, false, 0, 0);
     }
 
     /**
@@ -445,10 +449,11 @@ public class SQLProcessor {
      *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @return this for method chaining
      * @throws GenericEntityException if an SQLException occurs
      */
-    public void prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
-                                 final int resultSetConcurrency) throws GenericEntityException {
+    public SQLProcessor prepareStatement(final String sql, final boolean specifyTypeAndConcur, final int resultSetType,
+                                         final int resultSetConcurrency) throws GenericEntityException {
         if (Debug.verboseOn()) {
             Debug.logVerbose("[SQLProcessor.prepareStatement] sql=" + sql, module);
         }
@@ -466,13 +471,15 @@ public class SQLProcessor {
             }
 
             _sql = sql;
-            _parameterValues = new ArrayList<>();
             _ind = 1;
             if (specifyTypeAndConcur) {
                 _ps = connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
             } else {
                 _ps = connection.prepareStatement(sql);
             }
+            _parameterValues = new ArrayList<>(_ps.getParameterMetaData().getParameterCount());
+            _parameterValuesForBatch = new ArrayList<>();
+            return this;
         } catch (SQLException sqle) {
             throw new GenericDataSourceException("SQL Exception while executing the following:" + sql, sqle);
         }
@@ -490,26 +497,31 @@ public class SQLProcessor {
         } else {
             _sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
         }
-        _sqlInterceptor.beforeExecution(_sql, _parameterValues, _ps);
-    }
-
-    private void afterExecution(int rowsUpdated) {
-        if (_sqlInterceptor != null) {
-            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, null, rowsUpdated);
-            _sqlInterceptor = null;
-        }
+        _sqlInterceptor.beforeExecution(_sql, _parameterValues, _parameterValuesForBatch, _ps);
     }
 
     private void afterExecution() {
+        afterExecution(-1, BATCH_EMPTY_RESULT);
+    }
+
+    private void afterExecution(int rowsUpdated) {
+        afterExecution(rowsUpdated, BATCH_EMPTY_RESULT);
+    }
+
+    private void afterExecution(int[] rowsUpdatedByBatch) {
+        afterExecution(-1, rowsUpdatedByBatch);
+    }
+
+    private void afterExecution(int rowsUpdated, int[] rowsUpdatedByBatch) {
         if (_sqlInterceptor != null) {
-            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _ps, _rs, -1);
+            _sqlInterceptor.afterSuccessfulExecution(_sql, _parameterValues, _parameterValuesForBatch, _ps, null, rowsUpdated, rowsUpdatedByBatch);
             _sqlInterceptor = null;
         }
     }
 
     private void onException(final SQLException sqle) {
         if (_sqlInterceptor != null) {
-            _sqlInterceptor.onException(_sql, _parameterValues, _ps, sqle);
+            _sqlInterceptor.onException(_sql, _parameterValues, _parameterValuesForBatch, _ps, sqle);
             _sqlInterceptor = null;
         }
     }
@@ -582,7 +594,7 @@ public class SQLProcessor {
         validateCommitMode();
 
         SQLInterceptor sqlInterceptor = SQLInterceptorSupport.getNonNullSQLInterceptor(helperName);
-        List<String> emptyList = Collections.emptyList();
+        List<String> emptyList = emptyList();
 
         Statement stmt = null;
         try {
@@ -597,14 +609,14 @@ public class SQLProcessor {
                 guard.setSql(sql);
             }
 
-            sqlInterceptor.beforeExecution(sql, emptyList, stmt);
+            sqlInterceptor.beforeExecution(sql, emptyList, emptyList(), stmt);
 
             int rc = stmt.executeUpdate(sql);
 
-            sqlInterceptor.afterSuccessfulExecution(sql, emptyList, stmt, null, rc);
+            sqlInterceptor.afterSuccessfulExecution(sql, emptyList, emptyList(), stmt, null, rc, BATCH_EMPTY_RESULT);
             return rc;
         } catch (SQLException sqle) {
-            sqlInterceptor.onException(sql, emptyList, stmt, sqle);
+            sqlInterceptor.onException(sql, emptyList, emptyList(), stmt, sqle);
             throw new GenericDataSourceException("SQL Exception while executing the following:" + sql, sqle);
         } finally {
             if (stmt != null) {
@@ -614,6 +626,29 @@ public class SQLProcessor {
                     Debug.logWarning("Unable to close 'statement': " + sqle.getMessage(), module);
                 }
             }
+        }
+    }
+
+    /**
+     * Execute a batch query based on the prepared statement
+     *
+     * @return an array of update counts containing one element for each command in the batch. The elements of the array are ordered according to the order in which commands were added to the batch.
+     * @throws GenericDataSourceException if an SQLException occurs
+     * @see PreparedStatement#executeBatch()
+     * @see PreparedStatement#addBatch()
+     */
+    public int[] executeBatch() throws GenericDataSourceException {
+        try {
+            beforeExecution();
+
+            int[] batchResult = _ps.executeBatch();
+
+            afterExecution(batchResult);
+            return batchResult;
+        } catch (SQLException sqle) {
+            onException(sqle);
+
+            throw new GenericDataSourceException("SQL Exception while executing the following (batch mode):" + _sql, sqle);
         }
     }
 
@@ -705,9 +740,10 @@ public class SQLProcessor {
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(String field) throws SQLException {
+    public SQLProcessor setValue(String field) throws SQLException {
         if (field != null) {
             _ps.setString(_ind, field);
         } else {
@@ -716,15 +752,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Timestamp field) throws SQLException {
+    public SQLProcessor setValue(Timestamp field) throws SQLException {
         if (field != null) {
             _ps.setTimestamp(_ind, field);
         } else {
@@ -733,15 +772,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Time field) throws SQLException {
+    public SQLProcessor setValue(Time field) throws SQLException {
         if (field != null) {
             _ps.setTime(_ind, field);
         } else {
@@ -750,15 +792,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(java.sql.Date field) throws SQLException {
+    public SQLProcessor setValue(Date field) throws SQLException {
         if (field != null) {
             _ps.setDate(_ind, field);
         } else {
@@ -767,15 +812,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Integer field) throws SQLException {
+    public SQLProcessor setValue(Integer field) throws SQLException {
         if (field != null) {
             _ps.setInt(_ind, field);
         } else {
@@ -784,15 +832,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Long field) throws SQLException {
+    public SQLProcessor setValue(Long field) throws SQLException {
         if (field != null) {
             _ps.setLong(_ind, field);
         } else {
@@ -801,15 +852,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Float field) throws SQLException {
+    public SQLProcessor setValue(Float field) throws SQLException {
         if (field != null) {
             _ps.setFloat(_ind, field);
         } else {
@@ -818,15 +872,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Double field) throws SQLException {
+    public SQLProcessor setValue(Double field) throws SQLException {
         if (field != null) {
             _ps.setDouble(_ind, field);
         } else {
@@ -835,15 +892,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Boolean field) throws SQLException {
+    public SQLProcessor setValue(Boolean field) throws SQLException {
         if (field != null) {
             _ps.setBoolean(_ind, field);
         } else {
@@ -852,15 +912,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement.
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Object field) throws SQLException {
+    public SQLProcessor setValue(Object field) throws SQLException {
         if (field != null) {
             _ps.setObject(_ind, field, Types.JAVA_OBJECT);
         } else {
@@ -869,15 +932,18 @@ public class SQLProcessor {
         recordParameter(field);
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement
      *
      * @param field the field value in play
+     * @return
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Blob field) throws SQLException {
+    public SQLProcessor setValue(Blob field) throws SQLException {
         if (field != null) {
             _ps.setBlob(_ind, field);
         } else {
@@ -886,15 +952,18 @@ public class SQLProcessor {
         recordParameter("BLOB");
 
         _ind++;
+
+        return this;
     }
 
     /**
      * Set the next binding variable of the currently active prepared statement
      *
      * @param field the field value in play
+     * @return this for method chaining
      * @throws SQLException if somethings goes wrong
      */
-    public void setValue(Clob field) throws SQLException {
+    public SQLProcessor setValue(Clob field) throws SQLException {
         if (field != null) {
             _ps.setClob(_ind, field);
         } else {
@@ -903,6 +972,8 @@ public class SQLProcessor {
         recordParameter("CLOB");
 
         _ind++;
+
+        return this;
     }
 
     /**
@@ -912,9 +983,10 @@ public class SQLProcessor {
      * to set those!
      *
      * @param field the field value
+     * @return
      * @throws SQLException if something goes wrong
      */
-    public void setBlob(byte[] field) throws SQLException {
+    public SQLProcessor setBlob(byte[] field) throws SQLException {
         if (field != null) {
             _ps.setBinaryStream(_ind, new ByteArrayInputStream(field));
         } else {
@@ -923,6 +995,8 @@ public class SQLProcessor {
 
         recordParameter("BLOB");
         _ind++;
+
+        return this;
     }
 
     /**
@@ -931,9 +1005,10 @@ public class SQLProcessor {
      * or an HSQL {@code OTHER} field.  Use {@link #setBlob(byte[])} to set {@code BLOB}s!
      *
      * @param field the field value
+     * @return
      * @throws SQLException if something goes wrong
      */
-    public void setByteArray(byte[] field) throws SQLException {
+    public SQLProcessor setByteArray(byte[] field) throws SQLException {
         if (field != null) {
             _ps.setBytes(_ind, field);
         } else {
@@ -942,6 +1017,8 @@ public class SQLProcessor {
 
         recordParameter("byte[]");
         _ind++;
+
+        return this;
     }
 
     /**
@@ -949,9 +1026,10 @@ public class SQLProcessor {
      * to a BLOB that is stored as an OID SQL type.
      *
      * @param field the field value in play
+     * @return
      * @throws SQLException if somethings goes wrong
      */
-    public void setBinaryStream(Object field) throws SQLException {
+    public SQLProcessor setBinaryStream(Object field) throws SQLException {
         if (field != null) {
             try {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -973,6 +1051,24 @@ public class SQLProcessor {
         recordParameter("BLOB");
 
         _ind++;
+
+        return this;
+    }
+
+    /**
+     * Adds a set of parameters to underlying PreparedStatement object's batch of commands.
+     *
+     * @return this for method chaining
+     * @throws SQLException is something goes wrong
+     * @see PreparedStatement#addBatch()
+     */
+    public SQLProcessor addBatch() throws SQLException {
+        _ps.addBatch();
+        _parameterValuesForBatch.add(new ArrayList<>(_parameterValues));
+        _parameterValues = new ArrayList<>(_ps.getParameterMetaData().getParameterCount());
+        _ind = 1;
+
+        return this;
     }
 
     /**
@@ -982,9 +1078,10 @@ public class SQLProcessor {
      * This method is specifically added to support PostgreSQL BYTEA and SQLServer IMAGE datatypes.
      *
      * @param field the field value in play
-     * @throws SQLException if somethings goes wrong
+     * @return this for method chaining
+     * @throws SQLException if something goes wrong
      */
-    public void setByteArrayData(Object field) throws SQLException {
+    public SQLProcessor setByteArrayData(Object field) throws SQLException {
         if (field != null) {
             try {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -1001,13 +1098,15 @@ public class SQLProcessor {
         recordParameter("BLOB");
 
         _ind++;
+
+        return this;
     }
 
 
     @Override
     public String toString() {
         return "SQLProcessor[commitMode=" + _commitMode + ",connection=" + _connection + ",sql=" + _sql +
-                ",parameters=" + _parameterValues + ']';
+                ",parameters=" + _parameterValues + ",parametersForBatch=" + _parameterValuesForBatch + ']';
     }
 
 }
