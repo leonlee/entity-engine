@@ -170,7 +170,7 @@ public class TestDatabaseUtil {
             final ResultSet rs = mock(ResultSet.class);
             when(metaData.getIndexInfo(null, "schema", "NAME", false, true)).thenReturn(rs);
 
-            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name", null), is(rs));
 
             verifyZeroInteractions(rs);
         }
@@ -187,7 +187,7 @@ public class TestDatabaseUtil {
             final ResultSet rs = mock(ResultSet.class);
             when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
 
-            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name", null), is(rs));
 
             verifyZeroInteractions(rs);
         }
@@ -206,7 +206,7 @@ public class TestDatabaseUtil {
             when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs);
             when(rs.next()).thenReturn(true);
 
-            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs));
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name", null), is(rs));
 
             final InOrder inOrder = inOrder(rs);
             inOrder.verify(rs).next();
@@ -229,7 +229,7 @@ public class TestDatabaseUtil {
             when(metaData.getIndexInfo(null, "schema", "Name", false, true)).thenReturn(rs1);
             when(metaData.getIndexInfo(null, "schema", "name", false, true)).thenReturn(rs2);
 
-            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name"), is(rs2));
+            assertThat(du.getIndexInfo(metaData, databaseType, "schema", "Name", null), is(rs2));
 
             final InOrder inOrder = inOrder(rs1, rs2);
             inOrder.verify(rs1).next();
