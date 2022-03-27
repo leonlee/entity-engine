@@ -50,7 +50,7 @@
         <log4j.version>1.2.15</log4j.version>
         <tyrex.version>1.0.1</tyrex.version>
         <xapool.version>1.5.0</xapool.version>
-        <xerces.version>2.12.0</xerces.version>
+        <xerces.version>2.12.2</xerces.version>
 
         <!-- Test Dependencies -->
         <hamcrest.version>1.3</hamcrest.version>
