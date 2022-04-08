@@ -832,7 +832,7 @@ public class DatabaseUtil {
         try {
             String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
             String lookupSchemaName = lookupSchemaName(dbData);
-            tableSet = dbData.getTables(null, lookupSchemaName, null, types);
+            tableSet = dbData.getTables(connection.getCatalog(), lookupSchemaName, null, types);
             if (tableSet == null) {
                 Debug.logWarning("getTables returned null set", module);
             }
@@ -959,7 +959,7 @@ public class DatabaseUtil {
         try {
             String lookupSchemaName = lookupSchemaName(dbData);
 
-            ResultSet rsCols = dbData.getColumns(null, lookupSchemaName, null, null);
+            ResultSet rsCols = dbData.getColumns(connection.getCatalog(), lookupSchemaName, null, null);
             while (rsCols.next()) {
                 try {
                     ColumnCheckInfo ccInfo = new ColumnCheckInfo();
@@ -1065,7 +1065,7 @@ public class DatabaseUtil {
             // ResultSet rsCols = dbData.getCrossReference(null, null, null, null, null, null);
             String lookupSchemaName = lookupSchemaName(dbData);
 
-            ResultSet rsCols = dbData.getImportedKeys(null, lookupSchemaName, null);
+            ResultSet rsCols = dbData.getImportedKeys(connection.getCatalog(), lookupSchemaName, null);
             int totalFkRefs = 0;
 
             // Iterator tableNamesIter = tableNames.iterator();
@@ -1196,7 +1196,7 @@ public class DatabaseUtil {
 
                 ResultSet rsCols = null;
                 try {
-                    rsCols = getIndexInfo(dbData, databaseType, lookupSchemaName, curTableName);
+                    rsCols = getIndexInfo(dbData, databaseType, lookupSchemaName, curTableName, connection.getCatalog());
                 } catch (Exception e) {
                     Debug.logWarning(e, "Error getting index info for table: " + curTableName + " using lookupSchemaName " + lookupSchemaName);
                 }
@@ -1258,11 +1258,12 @@ public class DatabaseUtil {
      * @param dbType     the type of the databaes, e.g. {@link DatabaseTypeFactory#ORACLE_10G}
      * @param schemaName the name of the schema.
      * @param tableName  the name of the table whose indexes are being queried.
+     * @param catalogName the name of database catalog
      * @return the {@link ResultSet} for the IndexInfo
      * @throws SQLException direct from the jdbc call.
      */
     @VisibleForTesting
-    ResultSet getIndexInfo(DatabaseMetaData dbData, DatabaseType dbType, String schemaName, String tableName)
+    ResultSet getIndexInfo(DatabaseMetaData dbData, DatabaseType dbType, String schemaName, String tableName, String catalogName)
             throws SQLException {
         ResultSet rsCols;
         // ORACLE's table names are case sensitive when used as a parameter to getIndexInfo call
@@ -1279,7 +1280,7 @@ public class DatabaseUtil {
                 || DatabaseTypeFactory.H2 == dbType) {
             rsCols = dbData.getIndexInfo(null, schemaName, tableName.toUpperCase(), false, true);
         } else {
-            rsCols = dbData.getIndexInfo(null, schemaName, tableName, false, true);
+            rsCols = dbData.getIndexInfo(catalogName, schemaName, tableName, false, true);
             boolean isPostgres = DatabaseTypeFactory.POSTGRES == dbType
                     || DatabaseTypeFactory.POSTGRES_7_2 == dbType
                     || DatabaseTypeFactory.POSTGRES_7_3 == dbType;
@@ -1289,7 +1290,7 @@ public class DatabaseUtil {
                 // we fall back to the index info of the lower case version of the table
                 if (rsCols == null || !rsCols.next()) {
                     close("empty result set from reading index info", rsCols);
-                    rsCols = dbData.getIndexInfo(null, schemaName, tableName.toLowerCase(), false, true);
+                    rsCols = dbData.getIndexInfo(catalogName, schemaName, tableName.toLowerCase(), false, true);
                 } else {
                     rsCols.beforeFirst();
                 }
