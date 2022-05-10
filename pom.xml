@@ -9,7 +9,7 @@
 
     <groupId>com.atlassian.ofbiz</groupId>
     <artifactId>entityengine-parent</artifactId>
-    <version>3.0.0-51311e6</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Atlassian OFBiz Fork</name>
@@ -32,7 +32,7 @@
         <connection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</connection>
         <developerConnection>scm:git:git@bitbucket.org:atlassian/entity-engine.git</developerConnection>
         <url>https://bitbucket.org/atlassian/entity-engine</url>
-        <tag>entityengine-parent-3.0.0-51311e6</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
