@@ -1,12 +1,13 @@
 package org.ofbiz.core.entity;
 
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.model.ModelEntity;
 import org.ofbiz.core.entity.model.ModelFieldType;
 import org.ofbiz.core.entity.model.ModelGroupReader;
 import org.ofbiz.core.entity.model.ModelReader;
 import org.ofbiz.core.util.UtilCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -24,7 +25,7 @@ import java.util.Set;
  * Created: christo 15/09/2006 12:16:27
  */
 public class LockedDatabaseGenericDelegator extends GenericDelegator {
-    private static final Logger log = Logger.getLogger(LockedDatabaseGenericDelegator.class);
+    private static final Logger log = LoggerFactory.getLogger(LockedDatabaseGenericDelegator.class);
     private static final String MESSAGE = "Database is locked";
 
     public LockedDatabaseGenericDelegator() {

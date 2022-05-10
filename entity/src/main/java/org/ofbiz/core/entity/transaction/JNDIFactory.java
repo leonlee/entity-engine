@@ -25,7 +25,6 @@
 package org.ofbiz.core.entity.transaction;
 
 import com.atlassian.util.concurrent.CopyOnWriteMap;
-import org.apache.log4j.Logger;
 import org.ofbiz.core.config.GenericConfigException;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.GenericEntityException;
@@ -38,6 +37,8 @@ import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.GeneralException;
 import org.ofbiz.core.util.JNDIContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -59,7 +60,7 @@ import java.util.concurrent.Callable;
  */
 public class JNDIFactory implements TransactionFactoryInterface {
 
-    private static final Logger log = Logger.getLogger(JNDIFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(JNDIFactory.class);
 
     // Debug module name
     public static final String module = JNDIFactory.class.getName();

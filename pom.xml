@@ -47,7 +47,8 @@
         <guava.version>11.0.2</guava.version>
         <jotm.version>1.4.3</jotm.version>
         <jta.version>1.0.1</jta.version>
-        <log4j.version>1.2.15</log4j.version>
+        <log4j.version>2.17.2</log4j.version>
+        <slf4j.version>1.7.32</slf4j.version>
         <tyrex.version>1.0.1</tyrex.version>
         <xapool.version>1.5.0</xapool.version>
         <xerces.version>2.12.0</xerces.version>
@@ -100,8 +101,23 @@
                 <version>${jta.version}</version>
             </dependency>
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
                 <version>${log4j.version}</version>
             </dependency>
             <dependency>
