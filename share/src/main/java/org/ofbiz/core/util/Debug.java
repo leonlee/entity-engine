@@ -1,50 +1,40 @@
 /*
- * $Id: Debug.java,v 1.1 2005/04/01 05:58:06 sfarquhar Exp $
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *  Copyright (c) 2001, 2002 The Open For Business Project - www.ofbiz.org
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Permission is hereby granted, free of charge, to any person obtaining a
- *  copy of this software and associated documentation files (the "Software"),
- *  to deal in the Software without restriction, including without limitation
- *  the rights to use, copy, modify, merge, publish, distribute, sublicense,
- *  and/or sell copies of the Software, and to permit persons to whom the
- *  Software is furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included
- *  in all copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- *  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- *  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- *  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
- *  OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- *  THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.ofbiz.core.util;
 
-import org.apache.log4j.Category;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.text.DateFormat;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+
 
 /**
  * Configurable Debug logging wrapper class
- *
- * @author <a href="mailto:jonesde@ofbiz.org">David E. Jones</a>
- * @author <a href="mailto:jaz@ofbiz.org">Andy Zeneski</a>
- * @version $Revision: 1.1 $
- * @since 2.0
  */
 public final class Debug {
-    public static final boolean useLog4J = true;
-    public static final String noModuleModule = "NoModule";  // set to null for previous behavior
+
+    private static final String NO_MODULE = "NoModule";  // set to null for previous behavior
 
     public static final int ALWAYS = 0;
     public static final int VERBOSE = 1;
@@ -55,38 +45,44 @@ public final class Debug {
     public static final int ERROR = 6;
     public static final int FATAL = 7;
 
-    public static final String[] levels = {"Always", "Verbose", "Timing", "Info", "Important", "Warning", "Error", "Fatal"};
-    public static final String[] levelProps = {"", "print.verbose", "print.timing", "print.info", "print.important", "print.warning", "print.error", "print.fatal"};
-    public static final Level[] levelObjs = {Level.INFO, Level.DEBUG, Level.DEBUG, Level.INFO, Level.INFO, Level.WARN, Level.ERROR, Level.FATAL};
+    private static final String[] LEVEL_PROPS = {"", "print.verbose", "print.timing", "print.info", "print.important", "print.warning",
+            "print.error", "print.fatal"};
 
-    protected static Map<String, Integer> levelStringMap = new HashMap<String, Integer>();
+    private static final MessageLogger[] LEVEL_LOGS = {Logger::trace, Logger::debug, Logger::trace, Logger::info, Logger::info, Logger::warn, Logger::error, Logger::error};
 
-    protected static PrintStream printStream = System.out;
-    protected static PrintWriter printWriter = new PrintWriter(printStream);
+    private static final Map<String, Integer> LEVEL_STRING_MAP = new HashMap<>();
 
-    protected static boolean levelOnCache[] = new boolean[8];
-    protected static final boolean useLevelOnCache = true;
+    private static final boolean[] LEVEL_ON_CACHE = new boolean[8]; // this field is not thread safe
+
+    private static final Logger ROOT = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+
+    private static PrintStream printStream = System.out;
+    private static PrintWriter printWriter = new PrintWriter(printStream);
 
     static {
-        levelStringMap.put("verbose", Debug.VERBOSE);
-        levelStringMap.put("timing", Debug.TIMING);
-        levelStringMap.put("info", Debug.INFO);
-        levelStringMap.put("important", Debug.IMPORTANT);
-        levelStringMap.put("warning", Debug.WARNING);
-        levelStringMap.put("error", Debug.ERROR);
-        levelStringMap.put("fatal", Debug.FATAL);
-        levelStringMap.put("always", Debug.ALWAYS);
+        LEVEL_STRING_MAP.put("verbose", Debug.VERBOSE);
+        LEVEL_STRING_MAP.put("timing", Debug.TIMING);
+        LEVEL_STRING_MAP.put("info", Debug.INFO);
+        LEVEL_STRING_MAP.put("important", Debug.IMPORTANT);
+        LEVEL_STRING_MAP.put("warning", Debug.WARNING);
+        LEVEL_STRING_MAP.put("error", Debug.ERROR);
+        LEVEL_STRING_MAP.put("fatal", Debug.FATAL);
+        LEVEL_STRING_MAP.put("always", Debug.ALWAYS);
 
-        // initialize Log4J
-        PropertyConfigurator.configure(FlexibleProperties.makeFlexibleProperties(UtilURL.fromResource("debug")));
-
-        // initialize levelOnCache
-        for (int i = 0; i < 8; i++) {
-            levelOnCache[i] = (i == Debug.ALWAYS || UtilProperties.propertyValueEqualsIgnoreCase("debug", levelProps[i], "true"));
+        // initialize LEVEL_ON_CACHE
+        Properties properties = FlexibleProperties.makeFlexibleProperties(UtilURL.fromResource("debug"));
+        for (int i = 0; i < LEVEL_ON_CACHE.length; i++) {
+            LEVEL_ON_CACHE[i] = (i == Debug.ALWAYS || "true".equalsIgnoreCase(properties.getProperty(LEVEL_PROPS[i])));
         }
     }
 
-    static Logger root = Logger.getRootLogger();
+    public static Logger getLogger(String module) {
+        if (module != null && module.length() > 0) {
+            return LoggerFactory.getLogger(module);
+        } else {
+            return ROOT;
+        }
+    }
 
     public static PrintStream getPrintStream() {
         return printStream;
@@ -101,20 +97,12 @@ public final class Debug {
         return printWriter;
     }
 
-    public static Logger getLogger(String module) {
-        if (module != null && module.length() > 0) {
-            return Logger.getLogger(module);
-        } else {
-            return root;
-        }
-    }
-
     /**
      * Gets an Integer representing the level number from a String representing the level name; will return null if not found
      */
     public static Integer getLevelFromString(String levelName) {
         if (levelName == null) return null;
-        return levelStringMap.get(levelName.toLowerCase());
+        return LEVEL_STRING_MAP.get(levelName.toLowerCase());
     }
 
     /**
@@ -134,47 +122,29 @@ public final class Debug {
     }
 
     public static void log(int level, Throwable t, String msg, String module, String callingClass) {
+        log(level, t, msg, module, callingClass, new Object[0]);
+    }
+
+    public static void log(int level, Throwable t, String msg, String module, String callingClass, Object... params) {
         if (isOn(level)) {
-            if (useLog4J) {
-                Category logger = getLogger(module);
-
-                logger.log(callingClass, levelObjs[level], msg, t);
-            } else {
-                StringBuilder prefixBuf = new StringBuilder();
-
-                DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
-                prefixBuf.append(dateFormat.format(new java.util.Date()));
-                prefixBuf.append(" [OFBiz");
-                if (module != null) {
-                    prefixBuf.append(":");
-                    prefixBuf.append(module);
-                }
-                prefixBuf.append(":");
-                prefixBuf.append(levels[level]);
-                prefixBuf.append("] ");
-                if (msg != null) {
-                    getPrintWriter().print(prefixBuf.toString());
-                    getPrintWriter().println(msg);
-                }
-                if (t != null) {
-                    getPrintWriter().print(prefixBuf.toString());
-                    getPrintWriter().println("Received throwable:");
-                    t.printStackTrace(getPrintWriter());
-                }
+            if (msg != null && params.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                Formatter formatter = new Formatter(sb);
+                formatter.format(msg, params);
+                msg = sb.toString();
+                formatter.close();
             }
+            // log
+            LEVEL_LOGS[level].log(getLogger(module), msg, t);
         }
     }
 
     public static boolean isOn(int level) {
-        if (useLevelOnCache) {
-            return levelOnCache[level];
-        } else {
-            return (level == Debug.ALWAYS || UtilProperties.propertyValueEqualsIgnoreCase("debug", levelProps[level], "true"));
-        }
+        return LEVEL_ON_CACHE[level];
     }
 
     public static void log(String msg) {
-        log(Debug.ALWAYS, null, msg, noModuleModule);
+        log(Debug.ALWAYS, null, msg, NO_MODULE);
     }
 
     public static void log(String msg, String module) {
@@ -182,11 +152,11 @@ public final class Debug {
     }
 
     public static void log(Throwable t) {
-        log(Debug.ALWAYS, t, null, noModuleModule);
+        log(Debug.ALWAYS, t, null, NO_MODULE);
     }
 
     public static void log(Throwable t, String msg) {
-        log(Debug.ALWAYS, t, msg, noModuleModule);
+        log(Debug.ALWAYS, t, msg, NO_MODULE);
     }
 
     public static void log(Throwable t, String msg, String module) {
@@ -198,7 +168,7 @@ public final class Debug {
     }
 
     public static void logVerbose(String msg) {
-        log(Debug.VERBOSE, null, msg, noModuleModule);
+        log(Debug.VERBOSE, null, msg, NO_MODULE);
     }
 
     public static void logVerbose(String msg, String module) {
@@ -206,11 +176,11 @@ public final class Debug {
     }
 
     public static void logVerbose(Throwable t) {
-        log(Debug.VERBOSE, t, null, noModuleModule);
+        log(Debug.VERBOSE, t, null, NO_MODULE);
     }
 
     public static void logVerbose(Throwable t, String msg) {
-        log(Debug.VERBOSE, t, msg, noModuleModule);
+        log(Debug.VERBOSE, t, msg, NO_MODULE);
     }
 
     public static void logVerbose(Throwable t, String msg, String module) {
@@ -222,7 +192,7 @@ public final class Debug {
     }
 
     public static void logTiming(String msg) {
-        log(Debug.TIMING, null, msg, noModuleModule);
+        log(Debug.TIMING, null, msg, NO_MODULE);
     }
 
     public static void logTiming(String msg, String module) {
@@ -230,11 +200,11 @@ public final class Debug {
     }
 
     public static void logTiming(Throwable t) {
-        log(Debug.TIMING, t, null, noModuleModule);
+        log(Debug.TIMING, t, null, NO_MODULE);
     }
 
     public static void logTiming(Throwable t, String msg) {
-        log(Debug.TIMING, t, msg, noModuleModule);
+        log(Debug.TIMING, t, msg, NO_MODULE);
     }
 
     public static void logTiming(Throwable t, String msg, String module) {
@@ -246,7 +216,7 @@ public final class Debug {
     }
 
     public static void logInfo(String msg) {
-        log(Debug.INFO, null, msg, noModuleModule);
+        log(Debug.INFO, null, msg, NO_MODULE);
     }
 
     public static void logInfo(String msg, String module) {
@@ -254,11 +224,11 @@ public final class Debug {
     }
 
     public static void logInfo(Throwable t) {
-        log(Debug.INFO, t, null, noModuleModule);
+        log(Debug.INFO, t, null, NO_MODULE);
     }
 
     public static void logInfo(Throwable t, String msg) {
-        log(Debug.INFO, t, msg, noModuleModule);
+        log(Debug.INFO, t, msg, NO_MODULE);
     }
 
     public static void logInfo(Throwable t, String msg, String module) {
@@ -270,7 +240,7 @@ public final class Debug {
     }
 
     public static void logImportant(String msg) {
-        log(Debug.IMPORTANT, null, msg, noModuleModule);
+        log(Debug.IMPORTANT, null, msg, NO_MODULE);
     }
 
     public static void logImportant(String msg, String module) {
@@ -278,11 +248,11 @@ public final class Debug {
     }
 
     public static void logImportant(Throwable t) {
-        log(Debug.IMPORTANT, t, null, noModuleModule);
+        log(Debug.IMPORTANT, t, null, NO_MODULE);
     }
 
     public static void logImportant(Throwable t, String msg) {
-        log(Debug.IMPORTANT, t, msg, noModuleModule);
+        log(Debug.IMPORTANT, t, msg, NO_MODULE);
     }
 
     public static void logImportant(Throwable t, String msg, String module) {
@@ -294,7 +264,7 @@ public final class Debug {
     }
 
     public static void logWarning(String msg) {
-        log(Debug.WARNING, null, msg, noModuleModule);
+        log(Debug.WARNING, null, msg, NO_MODULE);
     }
 
     public static void logWarning(String msg, String module) {
@@ -302,11 +272,11 @@ public final class Debug {
     }
 
     public static void logWarning(Throwable t) {
-        log(Debug.WARNING, t, null, noModuleModule);
+        log(Debug.WARNING, t, null, NO_MODULE);
     }
 
     public static void logWarning(Throwable t, String msg) {
-        log(Debug.WARNING, t, msg, noModuleModule);
+        log(Debug.WARNING, t, msg, NO_MODULE);
     }
 
     public static void logWarning(Throwable t, String msg, String module) {
@@ -318,7 +288,7 @@ public final class Debug {
     }
 
     public static void logError(String msg) {
-        log(Debug.ERROR, null, msg, noModuleModule);
+        log(Debug.ERROR, null, msg, NO_MODULE);
     }
 
     public static void logError(String msg, String module) {
@@ -326,11 +296,11 @@ public final class Debug {
     }
 
     public static void logError(Throwable t) {
-        log(Debug.ERROR, t, null, noModuleModule);
+        log(Debug.ERROR, t, null, NO_MODULE);
     }
 
     public static void logError(Throwable t, String msg) {
-        log(Debug.ERROR, t, msg, noModuleModule);
+        log(Debug.ERROR, t, msg, NO_MODULE);
     }
 
     public static void logError(Throwable t, String msg, String module) {
@@ -342,7 +312,7 @@ public final class Debug {
     }
 
     public static void logFatal(String msg) {
-        log(Debug.FATAL, null, msg, noModuleModule);
+        log(Debug.FATAL, null, msg, NO_MODULE);
     }
 
     public static void logFatal(String msg, String module) {
@@ -350,11 +320,11 @@ public final class Debug {
     }
 
     public static void logFatal(Throwable t) {
-        log(Debug.FATAL, t, null, noModuleModule);
+        log(Debug.FATAL, t, null, NO_MODULE);
     }
 
     public static void logFatal(Throwable t, String msg) {
-        log(Debug.FATAL, t, msg, noModuleModule);
+        log(Debug.FATAL, t, msg, NO_MODULE);
     }
 
     public static void logFatal(Throwable t, String msg, String module) {
@@ -362,8 +332,10 @@ public final class Debug {
     }
 
     public static void set(int level, boolean on) {
-        if (!useLevelOnCache)
-            return;
-        levelOnCache[level] = on;
+        LEVEL_ON_CACHE[level] = on;
+    }
+
+    private interface MessageLogger {
+        void log(Logger logger, String message, Throwable throwable);
     }
 }

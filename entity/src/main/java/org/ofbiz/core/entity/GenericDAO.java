@@ -33,7 +33,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.config.DatasourceInfo;
 import org.ofbiz.core.entity.config.EntityConfigUtil;
 import org.ofbiz.core.entity.jdbc.AutoCommitSQLProcessor;
@@ -53,6 +52,8 @@ import org.ofbiz.core.entity.model.ModelRelation;
 import org.ofbiz.core.entity.model.ModelViewEntity;
 import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -101,7 +102,7 @@ public class GenericDAO {
     public static final int MS_SQL_MAX_PARAMETER_COUNT = 2000;
     public static final int POSTGRESQL_MAX_PARAMETER_COUNT = 30000;
 
-    private static final Logger LOGGER = Logger.getLogger(GenericDAO.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GenericDAO.class);
 
     // The maximum amount of time to back off when contending with another thread for an atomic update
     private static final int MAX_BACK_OFF_MILLIS = 30;
