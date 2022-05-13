@@ -60,6 +60,7 @@
         <mockito.version>2.1.0</mockito.version>
         <utt.version>0.0.3</utt.version>
         <javadoc.additional.params>-Xdoclint:none</javadoc.additional.params>
+        <plugins.version>7.0.0</plugins.version>
     </properties>
 
     <dependencyManagement>
@@ -168,6 +169,21 @@
                 <groupId>com.atlassian.utt</groupId>
                 <artifactId>toolkit</artifactId>
                 <version>${utt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.profiling</groupId>
+                <artifactId>atlassian-profiling-api</artifactId>
+                <version>${atlassian.profiling.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.profiling</groupId>
+                <artifactId>atlassian-profiling-micrometer</artifactId>
+                <version>${atlassian.profiling.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.plugins</groupId>
+                <artifactId>atlassian-plugins-api</artifactId>
+                <version>${plugins.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
