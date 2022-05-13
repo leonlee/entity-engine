@@ -31,7 +31,6 @@ import org.ofbiz.core.util.Debug;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
 /**
  * ConnectionFactory - central source for JDBC connections
  *

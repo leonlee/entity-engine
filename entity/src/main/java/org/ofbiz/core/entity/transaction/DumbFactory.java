@@ -37,6 +37,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import static javax.transaction.Status.STATUS_NO_TRANSACTION;
+import static org.ofbiz.core.entity.metrics.MetricEmittingConnection.wrapWithMetrics;
 
 /**
  * A dumb, non-working transaction manager.
@@ -67,7 +68,7 @@ public class DumbFactory implements TransactionFactoryInterface {
             return null;
         }
 
-        return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
+        return wrapWithMetrics(ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource()));
     }
 
     public void removeDatasource(final String helperName) {

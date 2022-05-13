@@ -38,6 +38,8 @@ import javax.transaction.UserTransaction;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import static org.ofbiz.core.entity.metrics.MetricEmittingConnection.wrapWithMetrics;
+
 /**
  * JotmFactory - Central source for JOTM JTA objects
  *
@@ -53,7 +55,7 @@ public class JotmFactory implements TransactionFactoryInterface {
 
     static {
         try {
-            // creates an instance of JOTM with a local transaction factory which is not bound to a registry            
+            // creates an instance of JOTM with a local transaction factory which is not bound to a registry
             jotm = new Jotm(true, false);
         } catch (NamingException ne) {
             Debug.logError(ne, "Problems creating JOTM instance", module);
@@ -90,22 +92,22 @@ public class JotmFactory implements TransactionFactoryInterface {
 
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
-
+        Connection con = null;
         if (datasourceInfo.getJdbcDatasource() != null) {
             // Use JOTM (enhydra-jdbc.jar) connection pooling
             try {
-                Connection con = JotmConnectionFactory.getConnection(helperName, datasourceInfo.getJdbcDatasource());
-                if (con != null) return con;
+                con = JotmConnectionFactory.getConnection(helperName, datasourceInfo.getJdbcDatasource());
             } catch (Exception ex) {
                 Debug.logError(ex, "JOTM is the configured transaction manager but there was an error getting a database Connection through JOTM for the " + helperName + " datasource. Please check your configuration, class path, etc.");
             }
 
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
-            return otherCon;
+            if (con == null) {
+                con = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
+            }
         } else {
             Debug.logError("JOTM is the configured transaction manager but no inline-jdbc element was specified in the " + helperName + " datasource. Please check your configuration");
-            return null;
         }
+        return wrapWithMetrics(con);
     }
 
     public void removeDatasource(final String helperName) {

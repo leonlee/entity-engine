@@ -41,6 +41,8 @@ import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import static org.ofbiz.core.entity.metrics.MetricEmittingConnection.wrapWithMetrics;
+
 /**
  * TyrexTransactionFactory - central source for Tyrex JTA objects
  *
@@ -146,6 +148,10 @@ public class TyrexFactory implements TransactionFactoryInterface {
     }
 
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
+        return wrapWithMetrics(getConnectionUnwrapped(helperName));
+    }
+
+    private Connection getConnectionUnwrapped(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
 
         if (datasourceInfo.getJdbcDatasource() != null) {

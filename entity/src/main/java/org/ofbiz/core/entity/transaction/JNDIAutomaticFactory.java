@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
+import static org.ofbiz.core.entity.metrics.MetricEmittingConnection.wrapWithMetrics;
+
 /**
  * A TransactionFactory that automatically resolves the transaction factory from JNDI by making
  * some informed guesses.
@@ -289,17 +291,15 @@ public class JNDIAutomaticFactory implements TransactionFactoryInterface {
                 con = getJndiConnection(helperName, conDetails.getConnectionName(), conDetails.getServerName());
             }
 
-            if (con != null) return con;
         } else {
             Debug.logError("JNDI loaded is the configured transaction manager but no jndi-jdbc element was specified in the " + helperName + " datasource. Please check your configuration; will try other sources");
         }
 
-        if (datasourceInfo.getJdbcDatasource() != null) {
-            return ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
-        } else {
-            //no real need to print an error here
-            return null;
+        if (con == null && datasourceInfo.getJdbcDatasource() != null) {
+            con = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
         }
+
+        return wrapWithMetrics(con);
     }
 
     private static Connection getJndiConnection(final String helperName, String jndiName, String jndiServerName) throws SQLException, GenericEntityException {

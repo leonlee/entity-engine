@@ -50,6 +50,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import static org.ofbiz.core.entity.metrics.MetricEmittingConnection.wrapWithMetrics;
+
 /**
  * Central source for Tyrex JTA objects from JNDI
  *
@@ -148,10 +150,10 @@ public class JNDIFactory implements TransactionFactoryInterface {
 
     public Connection getConnection(String helperName) throws SQLException, GenericEntityException {
         DatasourceInfo datasourceInfo = EntityConfigUtil.getInstance().getDatasourceInfo(helperName);
+        Connection con = null;
 
         if (datasourceInfo.getJndiDatasource() != null) {
             JndiDatasourceInfo jndiDatasource = datasourceInfo.getJndiDatasource();
-            Connection con = null;
             try {
                 con = getJndiConnection(helperName, jndiDatasource.getJndiName(), jndiDatasource.getJndiServerName());
             } catch (AbstractMethodError err) {
@@ -167,15 +169,11 @@ public class JNDIFactory implements TransactionFactoryInterface {
                 log.warn("                                                                                                           ");
                 log.warn("***********************************************************************************************************");
             }
-            if (con != null) return con;
         }
-        if (datasourceInfo.getJdbcDatasource() != null) {
-            Connection otherCon = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
-            return otherCon;
-        } else {
-            //no real need to print an error here
-            return null;
+        if (con == null && datasourceInfo.getJdbcDatasource() != null) {
+            con = ConnectionFactory.tryGenericConnectionSources(helperName, datasourceInfo.getJdbcDatasource());
         }
+        return wrapWithMetrics(con);
     }
 
     private static Connection getJndiConnection(String helperName, String jndiName, String jndiServerName) throws SQLException, GenericEntityException {
