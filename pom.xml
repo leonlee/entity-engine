@@ -41,6 +41,7 @@
 
         <!-- Core Dependencies -->
         <atlassian-util-concurrent.version>2.6.2</atlassian-util-concurrent.version>
+        <atlassian.profiling.version>4.6.1</atlassian.profiling.version>
         <commons-codec.version>1.9</commons-codec.version>
         <commons-collections.version>3.2.1</commons-collections.version>
         <commons-dbcp.version>2.1</commons-dbcp.version>
@@ -123,6 +124,11 @@
                 <groupId>xerces</groupId>
                 <artifactId>xercesImpl</artifactId>
                 <version>${xerces.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.profiling</groupId>
+                <artifactId>atlassian-profiling</artifactId>
+                <version>${atlassian.profiling.version}</version>
             </dependency>
 
             <!-- Inter-module Dependencies -->
