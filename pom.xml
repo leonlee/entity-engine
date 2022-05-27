@@ -42,7 +42,7 @@
         <!-- Core Dependencies -->
         <atlassian-util-concurrent.version>2.6.2</atlassian-util-concurrent.version>
         <commons-codec.version>1.9</commons-codec.version>
-        <commons-collections.version>3.2.1</commons-collections.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
         <commons-dbcp.version>2.1</commons-dbcp.version>
         <guava.version>11.0.2</guava.version>
         <jotm.version>1.4.3</jotm.version>
