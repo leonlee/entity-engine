@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -127,15 +126,12 @@ public final class Debug {
 
     public static void log(int level, Throwable t, String msg, String module, String callingClass, Object... params) {
         if (isOn(level)) {
-            if (msg != null && params.length > 0) {
-                StringBuilder sb = new StringBuilder();
-                Formatter formatter = new Formatter(sb);
-                formatter.format(msg, params);
-                msg = sb.toString();
-                formatter.close();
+            if (msg != null) {
+                if (params.length > 0) {
+                    msg = String.format(msg, params);
+                }
+                LEVEL_LOGS[level].log(getLogger(module), msg, t);
             }
-            // log
-            LEVEL_LOGS[level].log(getLogger(module), msg, t);
         }
     }
 
