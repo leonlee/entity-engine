@@ -1,10 +1,11 @@
 package org.ofbiz.core.entity.comparator;
 
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OFBizFieldComparator implements java.util.Comparator<GenericValue> {
-    private static final Logger log = Logger.getLogger(OFBizFieldComparator.class);
+    private static final Logger log = LoggerFactory.getLogger(OFBizFieldComparator.class);
 
     String fieldname;
 

@@ -1,0 +1,14 @@
+<Configuration>
+    <Appenders>
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %t %p [%c{4}] %m%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.ofbiz.core.entity.GenericDAO" level="debug"/>
+        <Logger name="org.ofbiz.core.entity.LoggingSQLInterceptorFactory" level="info"/>
+        <Root level="debug">
+            <AppenderRef ref="STDOUT"/>
+        </Root>
+    </Loggers>
+</Configuration>
