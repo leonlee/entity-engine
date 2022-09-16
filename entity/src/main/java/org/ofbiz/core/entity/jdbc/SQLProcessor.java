@@ -29,6 +29,8 @@ import org.ofbiz.core.entity.GenericDataSourceException;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.GenericTransactionException;
 import org.ofbiz.core.entity.TransactionUtil;
+import org.ofbiz.core.entity.jdbc.dbtype.DatabaseType;
+import org.ofbiz.core.entity.jdbc.dbtype.MsSqlDatabaseType;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionWithSQLInterceptor;
 import org.ofbiz.core.util.Debug;
@@ -129,6 +131,8 @@ public class SQLProcessor {
 
     private List<String> _parameterValues;
     private List<List<String>> _parameterValuesForBatch;
+
+    public static final DatabaseType MSSQL = new MsSqlDatabaseType();
 
     /**
      * Construct a SQLProcessor based on the helper/datasource and a specific {@link
@@ -477,7 +481,12 @@ public class SQLProcessor {
             } else {
                 _ps = connection.prepareStatement(sql);
             }
-            _parameterValues = new ArrayList<>(_ps.getParameterMetaData().getParameterCount());
+
+            if (MSSQL.matchesConnection(connection)) {
+                _parameterValues = new ArrayList<>();
+            } else {
+                _parameterValues = new ArrayList<>(_ps.getParameterMetaData().getParameterCount());
+            }
             _parameterValuesForBatch = new ArrayList<>();
             return this;
         } catch (SQLException sqle) {
