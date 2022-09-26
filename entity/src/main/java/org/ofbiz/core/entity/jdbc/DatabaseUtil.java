@@ -25,6 +25,7 @@ package org.ofbiz.core.entity.jdbc;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.ConnectionProvider;
@@ -87,6 +88,8 @@ public class DatabaseUtil {
             .put("VARCHAR2", "NVARCHAR2")
             .put("NVARCHAR", "NTEXT")
             .build();
+    
+    private static final Set<String> TABLE_TYPES = ImmutableSet.of("BASE TABLE", "TABLE", "VIEW", "ALIAS", "SYNONYM");
 
     protected final String helperName;
     protected final ModelFieldTypeReader modelFieldTypeReader;
@@ -830,7 +833,7 @@ public class DatabaseUtil {
         ResultSet tableSet = null;
 
         try {
-            String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+            String[] types = TABLE_TYPES.toArray(new String[0]);
             String lookupSchemaName = lookupSchemaName(dbData);
             tableSet = dbData.getTables(connection.getCatalog(), lookupSchemaName, null, types);
             if (tableSet == null) {
@@ -859,13 +862,9 @@ public class DatabaseUtil {
 
                     tableType = (tableType == null) ? null : tableType.toUpperCase();
                     // only allow certain table types
-                    if (tableType != null && !"TABLE".equals(tableType) && !"VIEW".equals(tableType) && !"ALIAS".equals(tableType) && !"SYNONYM".equals(tableType)) {
-                        continue;
+                    if (tableType == null || TABLE_TYPES.contains(tableType)) {
+                        tableNames.add(tableName);
                     }
-
-                    // String remarks = tableSet.getString("REMARKS");
-                    tableNames.add(tableName);
-                    // if (Debug.infoOn()) Debug.logInfo("Found table named \"" + tableName + "\" of type \"" + tableType + "\" with remarks: " + remarks);
                 } catch (SQLException sqle) {
                     error("Error getting table information... Error was:" + sqle.toString(), messages);
                 }
