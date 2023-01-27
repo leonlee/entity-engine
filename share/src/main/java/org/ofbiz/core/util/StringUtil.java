@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.stream.Collectors;
 
 /**
  * Misc String Utility Functions
@@ -54,24 +55,7 @@ public class StringUtil {
         if (mainString == null) {
             return null;
         }
-        if (oldString == null || oldString.length() == 0) {
-            return mainString;
-        }
-        if (newString == null) {
-            newString = "";
-        }
-
-        int i = mainString.lastIndexOf(oldString);
-
-        if (i < 0) return mainString;
-
-        StringBuilder mainSb = new StringBuilder(mainString);
-
-        while (i >= 0) {
-            mainSb.replace(i, i + oldString.length(), newString);
-            i = mainString.lastIndexOf(oldString, i - 1);
-        }
-        return mainSb.toString();
+        return mainString.replace(oldString, newString);
     }
 
     /**
@@ -80,20 +64,15 @@ public class StringUtil {
      * @param list  a list of strings to join
      * @param delim the delimiter character(s) to use. (null value will join with no delimiter)
      * @return a String of all values in the list seperated by the delimiter
-     * @deprecated Use {@code com.google.common.base.Joiner} instead
      */
     public static String join(List<String> list, String delim) {
-        if (list == null || list.size() < 1)
+        if (list == null || list.isEmpty()) {
             return null;
-        StringBuilder buf = new StringBuilder();
-        Iterator<String> i = list.iterator();
-
-        while (i.hasNext()) {
-            buf.append(i.next());
-            if (i.hasNext())
-                buf.append(delim);
         }
-        return buf.toString();
+        if (delim == null) {
+            delim = "";
+        }
+        return String.join(delim, list);
     }
 
     /**
@@ -130,17 +109,9 @@ public class StringUtil {
      * @param list List of String(s) to quote.
      */
     public static List<String> quoteStrList(List<String> list) {
-        List<String> tmpList = list;
-
-        list = new ArrayList<String>();
-
-        for (String aTmpList : tmpList) {
-            String str = aTmpList;
-
-            str = "'" + str + "''";
-            list.add(str);
-        }
-        return list;
+        return list.stream()
+                .map(str -> "'" + str + "'")
+                .collect(Collectors.toList());
     }
 
     /**
@@ -222,11 +193,6 @@ public class StringUtil {
      * Removes all spaces from a string
      */
     public static String removeSpaces(String str) {
-        StringBuilder newString = new StringBuilder();
-        for (int i = 0; i < str.length(); i++) {
-            if (str.charAt(i) != ' ')
-                newString.append(str.charAt(i));
-        }
-        return newString.toString();
+        return str.replaceAll("\\s+","");
     }
 }
