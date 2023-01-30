@@ -55,6 +55,12 @@ public class StringUtil {
         if (mainString == null) {
             return null;
         }
+        if (oldString == null || oldString.length() == 0) {
+            return mainString;
+        }
+        if (newString == null) {
+            newString = "";
+        }
         return mainString.replace(oldString, newString);
     }
 
