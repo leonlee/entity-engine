@@ -416,7 +416,7 @@ public class TestDatabaseUtil {
         when(dbData.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);
         when(dbData.getUserName()).thenReturn("user");
         final ResultSet rightResultSet = mock(ResultSet.class);
-        final String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+        final String[] types = {"BASE TABLE", "TABLE", "VIEW", "ALIAS", "SYNONYM"};
 
         when(dbData.getTables(null, null, null, types)).thenReturn(rightResultSet);
 
@@ -453,7 +453,7 @@ public class TestDatabaseUtil {
         when(dbData.supportsSchemasInTableDefinitions()).thenReturn(Boolean.TRUE);
         when(dbData.getUserName()).thenReturn("user");
         final ResultSet rightResultSet = mock(ResultSet.class);
-        final String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+        final String[] types = {"BASE TABLE", "TABLE", "VIEW", "ALIAS", "SYNONYM"};
 
         final ResultSet emptyResult = mock(ResultSet.class);
         //use this as to be sure that user as schema is used

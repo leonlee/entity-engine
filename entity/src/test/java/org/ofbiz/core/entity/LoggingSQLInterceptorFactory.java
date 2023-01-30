@@ -1,10 +1,11 @@
 package org.ofbiz.core.entity;
 
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptor;
 import org.ofbiz.core.entity.jdbc.interceptors.SQLInterceptorFactory;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionPoolState;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.SQLConnectionInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -17,7 +18,7 @@ import java.util.List;
  */
 public class LoggingSQLInterceptorFactory implements SQLInterceptorFactory {
 
-    private static final Logger LOGGER = Logger.getLogger(LoggingSQLInterceptorFactory.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggingSQLInterceptorFactory.class);
 
     private static final String BEFORE_TEMPLATE = "About to execute '%s'\n... with parameter values: %s";
     private static final String CONNECTION_TAKEN_TEMPLATE = "Took connection %s, pool state = %s";

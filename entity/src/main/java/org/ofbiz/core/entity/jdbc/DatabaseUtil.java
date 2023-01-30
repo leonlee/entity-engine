@@ -24,7 +24,9 @@
 package org.ofbiz.core.entity.jdbc;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import org.ofbiz.core.entity.ConnectionFactory;
 import org.ofbiz.core.entity.ConnectionProvider;
@@ -49,6 +51,7 @@ import org.ofbiz.core.util.Debug;
 import org.ofbiz.core.util.UtilTimer;
 import org.ofbiz.core.util.UtilValidate;
 
+import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -87,6 +90,15 @@ public class DatabaseUtil {
             .put("VARCHAR2", "NVARCHAR2")
             .put("NVARCHAR", "NTEXT")
             .build();
+
+    private static final Map<String, String> H2_TYPE_NAME_SYNONYMS = ImmutableMap.<String, String>builder()
+            .put("CHARACTER VARYING", "VARCHAR")
+            .put("BINARY LARGE OBJECT", "BLOB")
+            .put("DOUBLE PRECISION", "DOUBLE")
+            .put("CHARACTER", "CHAR")
+            .build();
+
+    private static final Set<String> TABLE_TYPES = ImmutableSet.of("BASE TABLE", "TABLE", "VIEW", "ALIAS", "SYNONYM");
 
     protected final String helperName;
     protected final ModelFieldTypeReader modelFieldTypeReader;
@@ -579,6 +591,8 @@ public class DatabaseUtil {
             final String fullTypeStr = parsedColumnType.getFullTypeStr();
 
             if (!ccInfo.typeName.equals(typeName.toUpperCase())) {
+                @Nullable
+                final String h2TypeSynonym = DatabaseUtil.H2_TYPE_NAME_SYNONYMS.get(ccInfo.typeName);
                 final Collection<String> allowedPromotions = DatabaseUtil.allowedFieldTypePromotions.get(ccInfo.typeName);
                 // decimal digits not supported yet for promoting!
                 if (promote && allowedPromotions != null && allowedPromotions.contains(typeName.toUpperCase()) && decimalDigits == -1) {
@@ -594,7 +608,7 @@ public class DatabaseUtil {
                                 ccInfo.typeAsString() + "\" to type: \"" + fullTypeStr + "\".", messages);
                         error(errorMessage, messages);
                     }
-                } else {
+                } else if (!typeName.toUpperCase().equals(h2TypeSynonym)) {
                     final String message = "WARNING: Column \"" + ccInfo.columnName + "\" of table \"" + entity.getTableName(datasourceInfo) + "\" of entity \"" +
                             entity.getEntityName() + "\" is of type \"" + ccInfo.typeAsString() + "\" in the database, but is defined as type \"" +
                             fullTypeStr + "\" in the entity definition.";
@@ -830,7 +844,7 @@ public class DatabaseUtil {
         ResultSet tableSet = null;
 
         try {
-            String[] types = {"TABLE", "VIEW", "ALIAS", "SYNONYM"};
+            String[] types = TABLE_TYPES.toArray(new String[0]);
             String lookupSchemaName = lookupSchemaName(dbData);
             tableSet = dbData.getTables(connection.getCatalog(), lookupSchemaName, null, types);
             if (tableSet == null) {
@@ -859,13 +873,9 @@ public class DatabaseUtil {
 
                     tableType = (tableType == null) ? null : tableType.toUpperCase();
                     // only allow certain table types
-                    if (tableType != null && !"TABLE".equals(tableType) && !"VIEW".equals(tableType) && !"ALIAS".equals(tableType) && !"SYNONYM".equals(tableType)) {
-                        continue;
+                    if (tableType == null || TABLE_TYPES.contains(tableType)) {
+                        tableNames.add(tableName);
                     }
-
-                    // String remarks = tableSet.getString("REMARKS");
-                    tableNames.add(tableName);
-                    // if (Debug.infoOn()) Debug.logInfo("Found table named \"" + tableName + "\" of type \"" + tableType + "\" with remarks: " + remarks);
                 } catch (SQLException sqle) {
                     error("Error getting table information... Error was:" + sqle.toString(), messages);
                 }

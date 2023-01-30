@@ -29,12 +29,13 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
-import org.apache.log4j.Logger;
 import org.ofbiz.core.entity.GenericEntityException;
 import org.ofbiz.core.entity.config.ConnectionPoolInfo;
 import org.ofbiz.core.entity.config.JdbcDatasourceInfo;
 import org.ofbiz.core.entity.jdbc.interceptors.connection.ConnectionTracker;
 import org.ofbiz.core.util.Debug;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -63,7 +64,7 @@ import static org.ofbiz.core.util.UtilValidate.isNotEmpty;
  *          Created on Dec 18, 2001, 5:03 PM
  */
 public class DBCPConnectionFactory {
-    private static final Logger log = Logger.getLogger(DBCPConnectionFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(DBCPConnectionFactory.class);
 
     protected static final Map<String, BasicDataSource> dsCache = CopyOnWriteMap.newHashMap();
     protected static final Map<String, ConnectionTracker> trackerCache = CopyOnWriteMap.newHashMap();
